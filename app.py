@@ -84,7 +84,7 @@ class App:
                     self.set_active_panel(self.system_info_panel)
 
         pressed = pygame.key.get_pressed()
-        if pressed[pygame.K_q] and pressed[pygame.K_LCTRL]:
+        if pressed[pygame.K_q] and (pressed[pygame.K_LCTRL] or pressed[pygame.K_RCTRL]):
             self._done = True
 
     def _update_screen(self):
