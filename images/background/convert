@@ -1,0 +1,7 @@
+#/bin/bash
+
+ind=1
+for file in ~/temp/*.svg;do
+    cairosvg ${file} -o ${ind}.png -s 0.87
+    let ind++
+done
