@@ -486,7 +486,7 @@ class Weather(Widget):
                 change_count += 1
 
         x = self.x
-        y = self.y + desc_text.get_height() + current_text.get_height() + forecast_text.get_height() + 10
+        y = self.y + desc_text.get_height() + current_text.get_height() + forecast_text.get_height() + 5
         for desc, timestamp, icon_id in change_info:
             rendered_change_text = self.change_font.render("{} -> {}".format(timestamp, desc), True, self.colors['white'])
             screen.blit(rendered_change_text, (x, y))

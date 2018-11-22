@@ -108,13 +108,22 @@ class App:
         y_offset = (self._screen_height - self._background_image_size) / 2
         current_time = int(time.time() * self._frame_rate)
         background_surface = pygame.Surface((self._screen_width, self._screen_height))
+        rotated_image_queue = Queue.Queue()
+        threads = []
         for ind, image in enumerate(self._background_images):
             image_center = image.get_rect().center
             image_center = (image_center[0] + x_offset, image_center[1] + y_offset)
             degree = int(current_time / (2 ** ind) * self._background_speed_rate) % 360
-            rotate_image = pygame.transform.rotate(image, degree)
-            rotate_rect = rotate_image.get_rect(center=image_center)
-            background_surface.blit(rotate_image, rotate_rect)
+            thread = ImageRotateThread(image, image_center, degree, rotated_image_queue)
+            threads.append(thread)
+            thread.start()
+
+        for thread in threads:
+            thread.join()
+
+        for rotated_image, rect in rotated_image_queue.queue:
+            background_surface.blit(rotated_image, rect)
+
         background_surface.set_alpha(self._background_alpha)
         screen.blit(background_surface.convert(), (0, 0))
 

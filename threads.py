@@ -43,18 +43,16 @@ class ImageFetchThread(Thread):
 
 
 class ImageRotateThread(Thread):
-    def __init__(self, image, center, queue):
+    def __init__(self, image, center, degree, queue):
         super(ImageRotateThread, self).__init__()
 
         self.image = image
         self.center = center
+        self.degree = degree
         self.queue = queue
         self.daemon = True
 
     def run(self):
-        image_set = []
-        for ind in range(1080):
-            rotate_image = pygame.transform.rotate(self.image, ind * 0.333)
-            rotate_rect = rotate_image.get_rect(center=self.center)
-            image_set.append((rotate_image, rotate_rect))
-        self.queue.put(image_set)
+        rotate_image = pygame.transform.rotate(self.image, self.degree)
+        rotate_rect = rotate_image.get_rect(center=self.center)
+        self.queue.put((rotate_image, rotate_rect))

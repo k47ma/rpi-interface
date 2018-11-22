@@ -102,7 +102,7 @@ class MainPanel(Panel):
         super(MainPanel, self).__init__(app)
 
         self.news_widget = News(self, 30, 300)
-        self.weather_widget = Weather(self, 10, 70)
+        self.weather_widget = Weather(self, 10, 75)
         self.time_widget = Time(self)
         self.calendar_widget = Calendar(self, 190, 100)
         self.stock_widget = Stock(self, 5, 5)
