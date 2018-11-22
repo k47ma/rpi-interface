@@ -212,7 +212,9 @@ class SystemInfoPanel(Panel):
                                   max_x=int(self._max_size*self._update_interval), info_colors=self._info_colors,
                                   x_unit=self._update_interval, y_unit=1,
                                   x_label_interval=5, y_label_interval=20)
-        self._info_widget = SystemInfo(self, 160, 20, font=self._info_font, cpu_info=False, memory_info=False, percent_bar=False)
+        self._info_widget = SystemInfo(self, 160, 20, font=self._info_font,
+                                       cpu_info=False, memory_info=False,
+                                       disk_info=False, percent_bar=False)
         self.caption_widget = ChartCaption(self, 360, 10, self._info_colors, font=self._caption_font)
         self.widgets = [self.title_widget, self.chart_widget, self._info_widget, self.caption_widget]
 

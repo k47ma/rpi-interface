@@ -693,25 +693,29 @@ class Stock(Widget):
 
 
 class SystemInfo(Widget):
-    def __init__(self, parent, x, y, font=None, cpu_info=True, memory_info=True, internet_info=True, percent_bar=True):
+    def __init__(self, parent, x, y, font=None, cpu_info=True, memory_info=True, disk_info=True, internet_info=True, percent_bar=True):
         super(SystemInfo, self).__init__(parent, x, y)
 
-        self.font = font if font is not None else pygame.font.Font("fonts/FreeSans.ttf", 13)
+        self.font = font if font is not None else pygame.font.Font("fonts/FreeSans.ttf", 12)
         self.cpu_info = cpu_info
         self.memory_info = memory_info
+        self.disk_info = disk_info
         self.internet_info = internet_info
         self.percent_bar = percent_bar
         self._info_text_height = self.font.render(' ', True, self.colors['white']).get_height()
 
         self._cpu_percent = 0.0
         self._memory_percent = 0.0
+        self._disk_percent = 0.0
+        self._disk_partitions = [partition.mountpoint for partition in psutil.disk_partitions()]
+        self._disk_total = float(sum(psutil.disk_usage(path).total for path in self._disk_partitions))
         self._last_net_sent_bytes = psutil.net_io_counters().bytes_sent
         self._last_net_recv_bytes = psutil.net_io_counters().bytes_recv
         self._net_sent_speed = 0
         self._net_recv_speed = 0
 
         self._percent_bar_width = 50 if self.percent_bar else 0
-        self._percent_bar_height = int(self._info_text_height * 0.8)
+        self._percent_bar_height = int(self._info_text_height * 0.75)
 
         self._update_interval = 1.0
         self._last_update = time.time()
@@ -719,6 +723,9 @@ class SystemInfo(Widget):
     def _update_info(self):
         self._memory_percent = psutil.virtual_memory().percent
         self._cpu_percent = psutil.cpu_percent()
+
+        disk_used = float(sum(psutil.disk_usage(path).used for path in self._disk_partitions))
+        self._disk_percent = disk_used / self._disk_total * 100
 
         current_sent_bytes = psutil.net_io_counters().bytes_sent
         current_recv_bytes = psutil.net_io_counters().bytes_recv
@@ -766,13 +773,17 @@ class SystemInfo(Widget):
         self.clear_shapes()
         rendered_cpu_text = self.font.render("CPU: ", True, self.colors['white'])
         rendered_memory_text = self.font.render("Memory: ", True, self.colors['white'])
+        rendered_disk_text = self.font.render("Disk: ", True, self.colors['white'])
         percent_bar_x = self.x + max(rendered_cpu_text.get_width(), rendered_memory_text.get_width())
+        percent_bar_y = self.y + (self._info_text_height - self._percent_bar_height) / 2
         rendered_cpu_percent_text = self.font.render(" {:.2f}%".format(self._cpu_percent), True, self.colors['white'])
         rendered_memory_percent_text = self.font.render(" {:.2f}%".format(self._memory_percent), True, self.colors['white'])
+        rendered_disk_percent_text = self.font.render(" {:.2f}%".format(self._disk_percent), True, self.colors['white'])
 
         if self.percent_bar:
-            self._add_percent_bar(self._cpu_percent, percent_bar_x, self.y)
-            self._add_percent_bar(self._memory_percent, percent_bar_x, self.y + self._info_text_height)
+            self._add_percent_bar(self._cpu_percent, percent_bar_x, percent_bar_y)
+            self._add_percent_bar(self._memory_percent, percent_bar_x, percent_bar_y + self._info_text_height)
+            self._add_percent_bar(self._disk_percent, percent_bar_x, percent_bar_y + self._info_text_height * 2)
 
         upload_speed = self._bytes_to_string(self._net_sent_speed)
         download_speed = self._bytes_to_string(self._net_recv_speed)
@@ -788,6 +799,11 @@ class SystemInfo(Widget):
             screen.blit(rendered_memory_text, (self.x, y))
             screen.blit(rendered_memory_percent_text, (percent_bar_x + self._percent_bar_width, y))
             y+= self._info_text_height
+
+        if self.disk_info:
+            screen.blit(rendered_disk_text, (self.x, y))
+            screen.blit(rendered_disk_percent_text, (percent_bar_x + self._percent_bar_width, y))
+            y += self._info_text_height
 
         if self.internet_info:
             screen.blit(rendered_net_text, (self.x, y))
