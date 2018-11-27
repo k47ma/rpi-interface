@@ -44,7 +44,8 @@ class App:
         self.search_panel = SearchPanel(self)
         self.system_info_panel = SystemInfoPanel(self)
         self.system_info_panel.always_update = True
-        self.panels = [self.main_panel, self.night_panel, self.news_panel, self.search_panel, self.system_info_panel]
+        self.stock_panel = StockPanel(self)
+        self.panels = [self.main_panel, self.night_panel, self.news_panel, self.search_panel, self.system_info_panel, self.stock_panel]
         self.active_panel = self.main_panel
         self._night_mode = False
 
@@ -80,8 +81,10 @@ class App:
                     self.set_active_panel(self.news_panel)
                 if event.key == pygame.K_b:
                     self.set_active_panel(self.search_panel)
-                if event.key == pygame.K_s:
+                if event.key == pygame.K_i:
                     self.set_active_panel(self.system_info_panel)
+                if event.key == pygame.K_s:
+                    self.set_active_panel(self.stock_panel)
 
         pressed = pygame.key.get_pressed()
         if pressed[pygame.K_q] and (pressed[pygame.K_LCTRL] or pressed[pygame.K_RCTRL]):

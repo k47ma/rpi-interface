@@ -626,11 +626,16 @@ class Calendar(Widget):
 
 
 class Stock(Widget):
-    def __init__(self, parent, x, y):
+    def __init__(self, parent, x, y, chart=False, chart_width=100, chart_height=100):
         super(Stock, self).__init__(parent, x, y)
 
-        self.stock_font = pygame.font.Font("fonts/arial.ttf", 15)
-        self.stock_footnote_font = pygame.font.Font("fonts/arial.ttf", 10)
+        self.chart = chart
+        self.chart_width = chart_width
+        self.chart_height = chart_height
+
+        self.stock_font = pygame.font.Font("fonts/FreeSans.ttf", 15)
+        self.stock_font_height = self.stock_font.render(' ', True, self.colors['white']).get_height()
+        self.stock_footnote_font = pygame.font.Font("fonts/FreeSans.ttf", 10)
 
         self._stock_url = "https://www.alphavantage.co/query"
         self._stock_keys = ['T9O3IK0TF72YCBP8", "JEIP3D1ZI2UTJZUL", "TI8F72SY4LKSD23L']
@@ -642,6 +647,10 @@ class Stock(Widget):
         self._stock_info_queue = Queue.Queue(maxsize=1)
         self._stock_info = None
         self._loading_thread = None
+
+        if self.chart:
+            self.chart_widget = Chart(self.parent, self.x, self.y + self.stock_font_height)
+            self._subwidgets.append(self.chart_widget)
 
     def _load_stock(self):
         if not self._loading_thread:
@@ -708,7 +717,7 @@ class SystemInfo(Widget):
         self._memory_percent = 0.0
         self._disk_percent = 0.0
         self._disk_partitions = [partition.mountpoint for partition in psutil.disk_partitions()]
-        self._disk_total = float(sum(psutil.disk_usage(path).total for path in self._disk_partitions))
+        self._disk_total = 0
         self._last_net_sent_bytes = psutil.net_io_counters().bytes_sent
         self._last_net_recv_bytes = psutil.net_io_counters().bytes_recv
         self._net_sent_speed = 0
@@ -724,8 +733,13 @@ class SystemInfo(Widget):
         self._memory_percent = psutil.virtual_memory().percent
         self._cpu_percent = psutil.cpu_percent()
 
-        disk_used = float(sum(psutil.disk_usage(path).used for path in self._disk_partitions))
-        self._disk_percent = disk_used / self._disk_total * 100
+        try:
+            disk_used = float(sum(psutil.disk_usage(path).used for path in self._disk_partitions))
+            if not self._disk_total:
+                self._disk_total = float(sum(psutil.disk_usage(path).total for path in self._disk_partitions))
+            self._disk_percent = disk_used / self._disk_total * 100
+        except WindowsError:
+            self._disk_percent = 0.0
 
         current_sent_bytes = psutil.net_io_counters().bytes_sent
         current_recv_bytes = psutil.net_io_counters().bytes_recv
@@ -813,7 +827,7 @@ class Time(Widget):
     def __init__(self, parent):
         super(Time, self).__init__(parent, 0, 0)
 
-        self.date_str = dt.now().strftime("%A, %b %-d")
+        self.date_str = dt.now().strftime("%A, %b %d")
         self.time_str = dt.now().strftime("%H:%M")
 
         self.date_font = pygame.font.SysFont(self.default_font_name, 30)
@@ -823,7 +837,7 @@ class Time(Widget):
         pass
 
     def _on_update(self):
-        self.date_str = dt.now().strftime("%A, %b %-d")
+        self.date_str = dt.now().strftime("%A, %b %d")
         self.time_str = dt.now().strftime("%H:%M")
 
     def _on_draw(self, screen):
@@ -837,7 +851,7 @@ class NightTime(Time):
     def __init__(self, parent):
         super(NightTime, self).__init__(parent)
 
-        self.date_str = dt.now().strftime("%A, %b %-d")
+        self.date_str = dt.now().strftime("%A, %b %d")
         self.time_str = dt.now().strftime("%H:%M")
         self.night_date_font = pygame.font.SysFont(self.default_font_name, 50)
         self.night_time_font = pygame.font.SysFont(self.default_font_name, 150)
@@ -1370,6 +1384,9 @@ class Chart(Widget):
                             (self.x + self.width, self.y + self.height), width=2))
 
     def _add_curves(self):
+        if not self.info:
+            return
+
         x_unit_distance = float(self.width) / (self.max_x - self.min_x - 1) * self.x_unit
         y_unit_distance = float(self.height) / (self.max_y - self.min_y) * self.y_unit
         for key, vals in self.info.iteritems():

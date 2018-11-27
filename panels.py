@@ -233,3 +233,14 @@ class SystemInfoPanel(Panel):
         self._memory_info.put(psutil.virtual_memory().percent)
 
         self._last_update = current_time
+
+
+class StockPanel(Panel):
+    def __init__(self, app):
+        super(StockPanel, self).__init__(app)
+
+        self._title_font = pygame.font.SysFont(self.default_font_name, 35)
+
+        self.title_widget = Content(self, 10, 10, "Stock", font=self._title_font)
+        self.stock_widget = Stock(self, 10, 50, chart=True, chart_width=self._screen_width-70, chart_height=self._screen_height-80)
+        self.widgets = [self.title_widget, self.stock_widget]
