@@ -1,15 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-import pygame
-import requests
-import time
-import math
-import os
-import glob
-import Queue
-from threads import *
 from panels import *
-from util import *
+
 
 class App:
     def __init__(self, args=None):

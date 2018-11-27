@@ -1,6 +1,7 @@
 import pygame
 from shapes import *
 
+
 class Table:
     def __init__(self, data, x=0, y=0, header_font=None, content_font=None,
                  header_color=(255, 255, 255), content_color=(255, 255, 255),

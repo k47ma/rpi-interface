@@ -1,19 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-import pygame
 import time
-import requests
-import threading
 import Queue
-import os
 import re
 import glob
 import psutil
-import random
-from abc import ABCMeta, abstractmethod
 from bs4 import BeautifulSoup
 from table import Table
-from util import *
 from threads import *
 from shapes import *
 

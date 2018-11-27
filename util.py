@@ -1,6 +1,7 @@
 import math
 from datetime import datetime as dt
 
+
 def in_sorted(target, sorted_list):
     """Check if target is in the given sorted list"""
     for ind in range(len(sorted_list)):

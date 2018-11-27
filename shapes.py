@@ -2,6 +2,7 @@ from abc import ABCMeta, abstractmethod
 from pygame import Rect
 from util import *
 
+
 class Shape:
     __metaclass__ = ABCMeta
 

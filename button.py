@@ -1,5 +1,6 @@
 import pygame
 
+
 class Button:
     def __init__(self, x, y, text="", image=None, color=(255, 255, 255),
                  background=None, thickness=0, font=None, on_click=None):

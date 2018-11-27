@@ -1,11 +1,10 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-import pygame
-import Queue
 from widgets import *
 from button import Button
 from datetime import datetime as dt
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
+
 
 class Panel:
     __metaclass__ = ABCMeta

@@ -4,6 +4,7 @@ import random
 import pygame
 from threading import Thread
 
+
 class RequestThread(Thread):
     def __init__(self, queue, url, payload):
         super(RequestThread, self).__init__()

@@ -2,6 +2,7 @@ import pygame
 import colors
 from shapes import *
 
+
 class Chart:
     def __init__(self, caption=None, width=300, height=250, margin=10, pos=(0, 0)):
         self.caption = caption
