@@ -17,6 +17,7 @@ from util import *
 from threads import *
 from shapes import *
 
+
 class Widget:
     __metaclass__ = ABCMeta
 
@@ -68,7 +69,7 @@ class Widget:
         pass
 
     @abstractmethod
-    def _on_draw(self):
+    def _on_draw(self, screen):
         pass
 
     def _handle_widget_events(self, event):
@@ -112,7 +113,10 @@ class Widget:
     def handle_events(self, event):
         for widget in self._subwidgets:
             if widget.is_active:
-                widget.handle_events(event)
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    widget.set_active(False)
+                else:
+                    widget.handle_events(event)
                 return
         self._handle_widget_events(event)
 
@@ -639,20 +643,31 @@ class Stock(Widget):
 
         self._stock_url = "https://www.alphavantage.co/query"
         self._stock_keys = ['T9O3IK0TF72YCBP8", "JEIP3D1ZI2UTJZUL", "TI8F72SY4LKSD23L']
-        self._stock_symbol = "TSLA"
+        self._stock_symbol = ""
         self._stock_payload = {"function": "GLOBAL_QUOTE", "symbol": self._stock_symbol, "apikey": self._stock_keys[0]}
         self._stock_last_update = time.time()
         self._stock_last_update_str = ""
-        self._stock_update_interval = 10
+        self._stock_update_interval = 60
         self._stock_info_queue = Queue.Queue(maxsize=1)
         self._stock_info = None
         self._loading_thread = None
 
+        self._input_font = pygame.font.Font("fonts/FreeSans.ttf", 15)
+        self._input_widget = Input(self.parent, self.x, self.y, font=self._input_font, width=150, enter_key_event=self._search)
+        self._subwidgets.append(self._input_widget)
+
         if self.chart:
-            self.chart_widget = Chart(self.parent, self.x, self.y + self.stock_font_height)
+            self.chart_widget = Chart(self.parent, self.x, self.y + self.stock_font_height + self._input_widget.get_height() + 20)
             self._subwidgets.append(self.chart_widget)
 
+    def _search(self):
+        pass
+        # self._stock_symbol = self._input_widget.get_text()
+
     def _load_stock(self):
+        if not self._stock_symbol:
+            return
+
         if not self._loading_thread:
             self._loading_thread = RequestThread(self._stock_info_queue, self._stock_url, self._stock_payload)
             self._loading_thread.start()
@@ -662,7 +677,19 @@ class Stock(Widget):
             self._stock_last_update = time.time()
             self._stock_last_update_str = dt.now().strftime("%H:%M:%S")
 
+    def _handle_widget_events(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN:
+                self._input_widget.set_active(True)
+
+    def _on_enter(self):
+        self._input_widget.set_active(True)
+
+    def _on_exit(self):
+        self._input_widget.set_active(False)
+
     def _on_setup(self):
+        self._input_widget.set_active(True)
         self._load_stock()
 
     def _on_update(self):
@@ -670,6 +697,9 @@ class Stock(Widget):
             self._load_stock()
 
     def _on_draw(self, screen):
+        if not self._stock_symbol:
+            return
+
         if not self._stock_info:
             loading_text = self.stock_font.render("Loading stock info...", True, self.colors['white'])
             screen.blit(loading_text, (self.x, self.y))
@@ -679,7 +709,6 @@ class Stock(Widget):
             return
 
         quote = self._stock_info.get("Global Quote")
-        open_price = quote.get("02. open")
         price = float(quote.get("05. price"))
         change = float(quote.get("09. change"))
         percent = float(quote.get("10. change percent")[:-1])
@@ -698,7 +727,7 @@ class Stock(Widget):
         update_text = self.stock_footnote_font.render("Last Update: " + self._stock_last_update_str, True, self.colors['white'])
         screen.blit(symbol_text, (self.x, self.y))
         screen.blit(price_text, (self.x + symbol_text.get_width() + 10, self.y))
-        screen.blit(update_text, (self.x, self.y + symbol_text.get_height()))
+        screen.blit(update_text, (self.x + symbol_text.get_width() + price_text.get_width() + 10, self.y))
 
 
 class SystemInfo(Widget):
@@ -759,21 +788,6 @@ class SystemInfo(Widget):
         self.add_shape(Rectangle(self.colors['lightgray'], x, y, self._percent_bar_width, self._percent_bar_height, line_width=0))
         self.add_shape(Rectangle(color, x, y, width, self._percent_bar_height, line_width=0))
 
-    def _bytes_to_string(self, n):
-        if n < 1000:
-            return "{}B".format(n)
-
-        n /= 1000.0
-        if n < 1000:
-            return "{:.2f}K".format(n)
-
-        n /= 1000.0
-        if n < 1000:
-            return "{:.2f}M".format(n)
-
-        n /= 1000.0
-        return "{:.2f}G".format(n)
-
     def _on_setup(self):
         self._update_info()
 
@@ -799,8 +813,8 @@ class SystemInfo(Widget):
             self._add_percent_bar(self._memory_percent, percent_bar_x, percent_bar_y + self._info_text_height)
             self._add_percent_bar(self._disk_percent, percent_bar_x, percent_bar_y + self._info_text_height * 2)
 
-        upload_speed = self._bytes_to_string(self._net_sent_speed)
-        download_speed = self._bytes_to_string(self._net_recv_speed)
+        upload_speed = bytes_to_string(self._net_sent_speed)
+        download_speed = bytes_to_string(self._net_recv_speed)
         rendered_net_text = self.font.render(u"Internet: \u2193{}/s \u2191{}/s".format(download_speed, upload_speed), True, self.colors['white'])
 
         y = self.y
@@ -1137,10 +1151,6 @@ class SearchWidget(Widget):
         self._page_index = 0
         self._search_str_widget.clear()
 
-    def handle_events(self, event):
-        self._search_str_widget.handle_events(event)
-        self._handle_widget_events(event)
-
 
 class Input(Widget):
     def __init__(self, parent, x, y, font=None, width=100, enter_key_event=None):
@@ -1310,6 +1320,9 @@ class Input(Widget):
 
     def get_text(self):
         return self._string
+
+    def get_height(self):
+        return self.font.render(' ', True, self.colors['white']).get_height()
 
 
 class Chart(Widget):

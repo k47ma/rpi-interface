@@ -32,3 +32,18 @@ def distance(a, b):
 def get_timestr():
     """Return the current time"""
     return str(dt.now())[:19]
+
+def bytes_to_string(n):
+    if n < 1000:
+        return "{}B".format(n)
+
+    n /= 1000.0
+    if n < 1000:
+        return "{:.2f}K".format(n)
+
+    n /= 1000.0
+    if n < 1000:
+        return "{:.2f}M".format(n)
+
+    n /= 1000.0
+    return "{:.2f}G".format(n)

@@ -244,3 +244,6 @@ class StockPanel(Panel):
         self.title_widget = Content(self, 10, 10, "Stock", font=self._title_font)
         self.stock_widget = Stock(self, 10, 50, chart=True, chart_width=self._screen_width-70, chart_height=self._screen_height-80)
         self.widgets = [self.title_widget, self.stock_widget]
+
+    def on_enter(self):
+        self._set_active_widget(self.stock_widget)
