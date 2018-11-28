@@ -113,9 +113,9 @@ class Widget:
             if widget.is_active:
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                     widget.set_active(False)
+                    return
                 else:
                     widget.handle_events(event)
-                return
         self._handle_widget_events(event)
 
     def set_active(self, status):
@@ -661,7 +661,7 @@ class Stock(Widget):
             self._subwidgets.append(self._chart_widget)
 
     def _search(self):
-        self.clear()
+        self.reset()
         self._stock_symbol = self._input_widget.get_text()
         self._load_stock()
 
@@ -684,7 +684,6 @@ class Stock(Widget):
 
     def _on_exit(self):
         self._input_widget.set_active(False)
-        self.clear()
 
     def _on_setup(self):
         self._input_widget.set_active(True)
@@ -757,11 +756,17 @@ class Stock(Widget):
         screen.blit(symbol_text, (self.x, self.y + self._input_widget.get_height() + 5))
         screen.blit(price_text, (self.x + symbol_text.get_width() + 10, self.y + self._input_widget.get_height() + 5))
 
-    def clear(self):
+    def reset(self):
+        self._stock_symbol = ""
         self._stock_info_queue = Queue.Queue(maxsize=1)
         self._stock_info = None
         self._time_series_today = []
         self._loading_thread = None
+
+    def clear(self):
+        self.reset()
+        self._input_widget.reset()
+        self._chart_widget.reset()
 
 
 class SystemInfo(Widget):
@@ -1179,11 +1184,11 @@ class SearchWidget(Widget):
         if page_contents:
             self._search_result_pages.append(page_contents)
 
-    def clear(self):
+    def reset(self):
         self._search_results = []
         self._search_result_pages = []
         self._page_index = 0
-        self._search_str_widget.clear()
+        self._search_str_widget.reset()
 
 
 class Input(Widget):
@@ -1350,7 +1355,7 @@ class Input(Widget):
             elif event.key == pygame.K_RIGHT:
                 self._move_cursor("right")
 
-    def clear(self):
+    def reset(self):
         self._clear_str()
 
     def get_text(self):
@@ -1390,7 +1395,7 @@ class Chart(Widget):
         pass
 
     def _on_update(self):
-        self.clear()
+        self.clear_shapes()
 
         self._add_labels()
         self._add_curves()
@@ -1473,8 +1478,10 @@ class Chart(Widget):
     def _on_draw(self, screen):
         pass
 
-    def clear(self):
+    def reset(self):
+        self.info = None
         self.clear_shapes()
+        self._add_axis()
 
     def set_info(self, info):
         self.info = info

@@ -183,7 +183,7 @@ class SearchPanel(Panel):
         self._set_active_widget(self.search_widget)
 
     def on_exit(self):
-        self.search_widget.clear()
+        self.search_widget.reset()
 
 
 class SystemInfoPanel(Panel):
@@ -243,3 +243,11 @@ class StockPanel(Panel):
 
     def on_enter(self):
         self._set_active_widget(self.stock_widget)
+
+    def on_exit(self):
+        self.stock_widget.clear()
+
+    def handle_panel_events(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN:
+                self._set_active_widget(self.stock_widget)
