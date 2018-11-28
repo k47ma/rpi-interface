@@ -83,6 +83,9 @@ class Widget:
     def _draw_shape(self, screen, shape):
         if isinstance(shape, Line):
             pygame.draw.line(screen, shape.color, shape.start_pos, shape.end_pos, shape.width)
+        elif isinstance(shape, DashLine):
+            for line in shape.lines:
+                self._draw_shape(screen, line)
         elif isinstance(shape, Lines):
             if shape.anti_alias:
                 try:
@@ -95,6 +98,8 @@ class Widget:
             screen.blit(shape.text_surface, shape.pos)
         elif isinstance(shape, Rectangle):
             pygame.draw.rect(screen, shape.color, shape.to_pygame_rect(), shape.line_width)
+        elif isinstance(shape, Polygon):
+            pygame.draw.polygon(screen, shape.color, shape.pointlist, shape.width)
 
     def get_pos(self):
         return self.x, self.y
@@ -711,7 +716,12 @@ class Stock(Widget):
         if self.chart:
             price_info = [(float(element['2. high']) + float(element['3. low'])) / 2 for element in self._time_series_today]
             self._chart_widget.set_info({"price": price_info})
+            self._chart_widget.set_constants([float(self._time_series_today[-1].get('1. open'))])
             self._chart_widget.set_y_range(min(price_info) * 0.975, max(price_info) * 1.025)
+            if price_info[0] - price_info[-1] < 0:
+                self._chart_widget.set_info_colors({"price": 'red'})
+            else:
+                self._chart_widget.set_info_colors({"price": 'green'})
 
     def _on_draw(self, screen):
         if not self._stock_symbol:
@@ -973,7 +983,7 @@ class Content(Widget):
                 rendered_text = self.font.render(content_text, True, self.color)
                 start_pos = (pos[0], pos[1] + rendered_text.get_height())
                 end_pos = (pos[0] + rendered_text.get_width(), pos[1] + rendered_text.get_height())
-                self._add_shape(Line(self.color, start_pos, end_pos))
+                self.add_shape(Line(self.color, start_pos, end_pos))
 
     def _on_update(self):
         if self.text:
@@ -1351,13 +1361,15 @@ class Input(Widget):
 
 
 class Chart(Widget):
-    def __init__(self, parent, x, y, info=None, width=100, height=100,
+    def __init__(self, parent, x, y, info=None, constants=[], width=100, height=100,
                  max_x=100, max_y=100, min_x=0, min_y=0, info_colors=None,
                  x_unit=1, y_unit=1,
-                 x_label_interval=None, y_label_interval=None):
+                 x_label_interval=None, y_label_interval=None,
+                 background=False, background_color=(255, 255, 255)):
         super(Chart, self).__init__(parent, x, y)
 
         self.info = info
+        self.constants = constants
         self.width = width
         self.height = height
         self.max_x = max_x
@@ -1369,6 +1381,8 @@ class Chart(Widget):
         self.y_unit = y_unit
         self.x_label_interval = x_label_interval
         self.y_label_interval = y_label_interval
+        self.background = background
+        self.background_color = background_color
 
         self._label_font = pygame.font.Font("fonts/FreeSans.ttf", 12)
 
@@ -1448,6 +1462,14 @@ class Chart(Widget):
             curve = Lines(color, False, points, anti_alias=True)
             self.add_shape(curve)
 
+            if self.background:
+                background_points = points + [(points[-1][0], self.y + self.height), (points[0][0], self.y + self.height)]
+                self.add_shape(Polygon(self.background_color, background_points, width=0))
+
+        for constant in self.constants:
+            y = int(self.y + self.height - y_unit_distance * (constant - self.min_y))
+            self.add_shape(DashLine(self.colors['white'], (self.x, y), (self.x + self.width, y)))
+
     def _on_draw(self, screen):
         pass
 
@@ -1457,6 +1479,12 @@ class Chart(Widget):
     def set_info(self, info):
         self.info = info
 
+    def set_info_colors(self, info_colors):
+        self.info_colors = info_colors
+
+    def set_constants(self, constants):
+        self.constants = constants
+
     def set_x_range(self, min_x, max_x):
         self.min_x = min_x
         self.max_x = max_x
@@ -1464,6 +1492,9 @@ class Chart(Widget):
     def set_y_range(self, min_y, max_y):
         self.min_y = min_y
         self.max_y = max_y
+
+    def set_background_color(self, color):
+        self.background_color = color
 
 
 class ChartCaption(Widget):

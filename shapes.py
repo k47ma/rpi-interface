@@ -14,6 +14,7 @@ class Shape:
     def add_offset(self, x_offset, y_offset):
         pass
 
+
 class Line(Shape):
     def __init__(self, color, start_pos, end_pos, width=1):
         super(Line, self).__init__()
@@ -28,6 +29,7 @@ class Line(Shape):
         end_x, end_y = self.end_pos
         self.start_pos = (start_x + x_offset, start_y + y_offset)
         self.end_pos = (end_x + x_offset, end_y + y_offset)
+
 
 class Lines(Shape):
     def __init__(self, color, closed, pointlist, width=1, anti_alias=False):
@@ -44,6 +46,7 @@ class Lines(Shape):
         for point in self.pointlist:
             temp_pointlist.append((point[0] + x_offset, point[1] + y_offset))
         self.pointlist = temp_pointlist
+
 
 class DashLine(Shape):
     def __init__(self, color, start_pos, end_pos, dash_length=5, width=1):
@@ -83,6 +86,7 @@ class DashLine(Shape):
 
         return lines
 
+
 class Rectangle(Shape):
     def __init__(self, color, x, y, width, height, line_width=1):
         super(Rectangle, self).__init__()
@@ -101,6 +105,7 @@ class Rectangle(Shape):
         self.x += x_offset
         self.y += y_offset
 
+
 class Circle(Shape):
     def __init__(self, color, pos, radius, width=0):
         super(Circle, self).__init__()
@@ -114,6 +119,7 @@ class Circle(Shape):
         x, y = self.pos
         self.pos = (x + x_offset, y + y_offset)
 
+
 class Text(Shape):
     def __init__(self, text_surface, pos):
         super(Text, self).__init__()
@@ -124,3 +130,18 @@ class Text(Shape):
     def add_offset(self, x_offset, y_offset):
         x, y = self.pos
         self.pos = (x + x_offset, y + y_offset)
+
+
+class Polygon(Shape):
+    def __init__(self, color, pointlist, width=0):
+        super(Polygon, self).__init__()
+
+        self.color = color
+        self.pointlist = pointlist
+        self.width = width
+
+    def add_offset(self, x_offset, y_offset):
+        temp_pointlist = []
+        for point in self.pointlist:
+            temp_pointlist.append((point[0] + x_offset, point[1] + y_offset))
+        self.pointlist = temp_pointlist
