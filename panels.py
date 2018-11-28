@@ -91,10 +91,6 @@ class Panel:
     def handle_panel_events(self, event):
         pass
 
-    def activate(self):
-        if self.widgets:
-            self.active_widget = self.widget[0]
-
 
 class MainPanel(Panel):
     def __init__(self, app):
@@ -133,7 +129,7 @@ class NightPanel(Panel):
     def _on_update(self):
         curr_hour = dt.now().hour
         curr_minute = dt.now().minute
-        if curr_hour == 6 and curr_minute == 0 and self._night_mode:
+        if curr_hour == 6 and curr_minute == 0:
             self.app.set_active_panel(self.app.main_panel)
 
     def handle_panel_events(self, event):
@@ -241,7 +237,8 @@ class StockPanel(Panel):
         self._title_font = pygame.font.SysFont(self.default_font_name, 35)
 
         self.title_widget = Content(self, 10, 10, "Stock", font=self._title_font)
-        self.stock_widget = Stock(self, 10, 50, chart=True, chart_width=self._screen_width-70, chart_height=self._screen_height-80)
+        self.stock_widget = Stock(self, 20, 40, chart=True, chart_width=self._screen_width-80,
+                                  chart_height=self._screen_height-120)
         self.widgets = [self.title_widget, self.stock_widget]
 
     def on_enter(self):

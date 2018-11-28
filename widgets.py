@@ -637,38 +637,37 @@ class Stock(Widget):
         self._stock_url = "https://www.alphavantage.co/query"
         self._stock_keys = ['T9O3IK0TF72YCBP8", "JEIP3D1ZI2UTJZUL", "TI8F72SY4LKSD23L']
         self._stock_symbol = ""
-        self._stock_payload = {"function": "GLOBAL_QUOTE", "symbol": self._stock_symbol, "apikey": self._stock_keys[0]}
-        self._stock_last_update = time.time()
-        self._stock_last_update_str = ""
-        self._stock_update_interval = 60
+        self._stock_payload = {"function": "TIME_SERIES_INTRADAY", "symbol": self._stock_symbol,
+                               "interval": "5min", "outputsize": "full", "apikey": self._stock_keys[0]}
         self._stock_info_queue = Queue.Queue(maxsize=1)
         self._stock_info = None
+        self._time_series_today = []
         self._loading_thread = None
 
         self._input_font = pygame.font.Font("fonts/FreeSans.ttf", 15)
-        self._input_widget = Input(self.parent, self.x, self.y, font=self._input_font, width=150, enter_key_event=self._search)
+        self._input_widget = Input(self.parent, self.x, self.y, font=self._input_font, width=150,
+                                   enter_key_event=self._search, capital_lock=True)
         self._subwidgets.append(self._input_widget)
 
+        self._chart_widget = None
         if self.chart:
-            self.chart_widget = Chart(self.parent, self.x, self.y + self.stock_font_height + self._input_widget.get_height() + 20)
-            self._subwidgets.append(self.chart_widget)
+            self._chart_widget = Chart(self.parent, self.x, self.y + self.stock_font_height + self._input_widget.get_height() + 10,
+                                       width=self.chart_width, height=self.chart_height, max_x=78)
+            self._subwidgets.append(self._chart_widget)
 
     def _search(self):
-        pass
-        # self._stock_symbol = self._input_widget.get_text()
+        self.clear()
+        self._stock_symbol = self._input_widget.get_text()
+        self._load_stock()
 
     def _load_stock(self):
         if not self._stock_symbol:
             return
 
         if not self._loading_thread:
+            self._stock_payload['symbol'] = self._stock_symbol
             self._loading_thread = RequestThread(self._stock_info_queue, self._stock_url, self._stock_payload)
             self._loading_thread.start()
-        elif not self._loading_thread.is_alive():
-            self._stock_info = self._stock_info_queue.get()
-            self._loading_thread = None
-            self._stock_last_update = time.time()
-            self._stock_last_update_str = dt.now().strftime("%H:%M:%S")
 
     def _handle_widget_events(self, event):
         if event.type == pygame.KEYDOWN:
@@ -680,31 +679,59 @@ class Stock(Widget):
 
     def _on_exit(self):
         self._input_widget.set_active(False)
+        self.clear()
 
     def _on_setup(self):
         self._input_widget.set_active(True)
-        self._load_stock()
 
     def _on_update(self):
-        if self._stock_info_queue.empty() or time.time() - self._stock_last_update > self._stock_update_interval:
-            self._load_stock()
+        if not self._stock_info_queue.empty():
+            self._stock_info = self._stock_info_queue.get()
+            self._loading_thread = None
+
+        if not self._stock_info or self._time_series_today:
+            return
+
+        if not self._time_series_today:
+            self._parse_stock_info()
+
+    def _parse_stock_info(self):
+        time_series_key = "Time Series ({})".format(self._stock_payload['interval'])
+        if not self._stock_info.get(time_series_key):
+            return
+
+        time_series = self._stock_info.get(time_series_key)
+        time_series_list = []
+        for key in sorted(time_series, reverse=True):
+            time_series[key]['timestamp'] = key
+            time_series_list.append(time_series[key])
+        today_str = time_series_list[0]['timestamp'][:10]
+        self._time_series_today = [element for element in time_series_list if element['timestamp'].startswith(today_str)]
+
+        if self.chart:
+            price_info = [(float(element['2. high']) + float(element['3. low'])) / 2 for element in self._time_series_today]
+            self._chart_widget.set_info({"price": price_info})
+            self._chart_widget.set_y_range(min(price_info) * 0.975, max(price_info) * 1.025)
 
     def _on_draw(self, screen):
         if not self._stock_symbol:
             return
 
-        if not self._stock_info:
+        if self._loading_thread and self._loading_thread.is_alive():
             loading_text = self.stock_font.render("Loading stock info...", True, self.colors['white'])
-            screen.blit(loading_text, (self.x, self.y))
+            screen.blit(loading_text, (self.x, self.y + self._input_widget.get_height() + 5))
             return
 
-        if not self._stock_info.get("Global Quote"):
+        self._draw_quote(screen)
+
+    def _draw_quote(self, screen):
+        if not self._time_series_today:
             return
 
-        quote = self._stock_info.get("Global Quote")
-        price = float(quote.get("05. price"))
-        change = float(quote.get("09. change"))
-        percent = float(quote.get("10. change percent")[:-1])
+        current_price = float(self._time_series_today[0].get('4. close'))
+        today_open_price = float(self._time_series_today[-1].get('1. open'))
+        change = current_price - today_open_price
+        percent = change / today_open_price * 100
         if change > 0:
             color = "green"
             shape = u'▲'
@@ -716,11 +743,15 @@ class Stock(Widget):
             shape = u'▬'
 
         symbol_text = self.stock_font.render(self._stock_symbol, True, self.colors['white'])
-        price_text = self.stock_font.render(u'{:.2f}  |  {:.2f}% {}'.format(price, percent, shape), True, self.colors[color])
-        update_text = self.stock_footnote_font.render("Last Update: " + self._stock_last_update_str, True, self.colors['white'])
-        screen.blit(symbol_text, (self.x, self.y))
-        screen.blit(price_text, (self.x + symbol_text.get_width() + 10, self.y))
-        screen.blit(update_text, (self.x + symbol_text.get_width() + price_text.get_width() + 10, self.y))
+        price_text = self.stock_font.render(u'{:.2f}  |  {:.2f}% {}'.format(current_price, percent, shape), True, self.colors[color])
+        screen.blit(symbol_text, (self.x, self.y + self._input_widget.get_height() + 5))
+        screen.blit(price_text, (self.x + symbol_text.get_width() + 10, self.y + self._input_widget.get_height() + 5))
+
+    def clear(self):
+        self._stock_info_queue = Queue.Queue(maxsize=1)
+        self._stock_info = None
+        self._time_series_today = []
+        self._loading_thread = None
 
 
 class SystemInfo(Widget):
@@ -1146,12 +1177,13 @@ class SearchWidget(Widget):
 
 
 class Input(Widget):
-    def __init__(self, parent, x, y, font=None, width=100, enter_key_event=None):
+    def __init__(self, parent, x, y, font=None, width=100, enter_key_event=None, capital_lock=False):
         super(Input, self).__init__(parent, x, y)
 
         self.font = font if font is not None else self.default_font
         self.width = width
         self.enter_key_event = enter_key_event
+        self.capital_lock = capital_lock
 
         self._cursor_index = 0
         self._cursor_active_time = time.time()
@@ -1185,7 +1217,7 @@ class Input(Widget):
         if self._ctrl_pressed():
             return
 
-        if self._shift_pressed():
+        if self._shift_pressed() or self.capital_lock:
             s = s.upper()
 
         self._string = self._string[:self._cursor_index] + s + self._string[self._cursor_index:]
@@ -1380,7 +1412,7 @@ class Chart(Widget):
                     y = self.y
                 if i > 0:
                     self.add_shape(Line(self.colors['lightgray'], (x, y), (x + self.width, y)))
-                self.add_shape(Text(rendered_label_text,(x - rendered_label_text.get_width() - 3, y - text_height / 2)))
+                self.add_shape(Text(rendered_label_text, (x - rendered_label_text.get_width() - 3, y - text_height / 2)))
                 y -= y_label_interval_distance
 
     def _add_axis(self):
@@ -1396,20 +1428,23 @@ class Chart(Widget):
         x_unit_distance = float(self.width) / (self.max_x - self.min_x - 1) * self.x_unit
         y_unit_distance = float(self.height) / (self.max_y - self.min_y) * self.y_unit
         for key, vals in self.info.iteritems():
-            if vals.qsize() <= 1:
+            if isinstance(vals, Queue.Queue) and vals.qsize() <= 1:
+                continue
+            elif isinstance(vals, list) and len(vals) <= 1:
                 continue
 
             points = []
-            for ind, val in enumerate(reversed(vals.queue)):
-                pos_x = int(self.x + x_unit_distance * ind)
-                pos_y = int(self.y + self.height - y_unit_distance * val)
+            val_list = vals if isinstance(vals, list) else vals.queue
+            for ind, val in enumerate(reversed(val_list)):
+                pos_x = int(self.x + x_unit_distance * (ind - self.min_x))
+                pos_y = int(self.y + self.height - y_unit_distance * (val - self.min_y))
                 if pos_x <= self.x + self.width:
                     points.append((pos_x, pos_y))
 
             color_name = self.info_colors.get(key) if self.info_colors else "white"
             color = self.colors.get(color_name)
             if not color:
-                color = random.coice(self.colors)
+                color = self.colors['white']
             curve = Lines(color, False, points, anti_alias=True)
             self.add_shape(curve)
 
@@ -1418,6 +1453,17 @@ class Chart(Widget):
 
     def clear(self):
         self.clear_shapes()
+
+    def set_info(self, info):
+        self.info = info
+
+    def set_x_range(self, min_x, max_x):
+        self.min_x = min_x
+        self.max_x = max_x
+
+    def set_y_range(self, min_y, max_y):
+        self.min_y = min_y
+        self.max_y = max_y
 
 
 class ChartCaption(Widget):
