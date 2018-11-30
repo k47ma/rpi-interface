@@ -644,13 +644,27 @@ class Stock(Widget):
         self._stock_url = "https://www.alphavantage.co/query"
         self._stock_keys = ['T9O3IK0TF72YCBP8", "JEIP3D1ZI2UTJZUL", "TI8F72SY4LKSD23L']
         self._stock_symbol = ""
-        self._stock_payload = {"function": "TIME_SERIES_INTRADAY", "symbol": self._stock_symbol,
-                               "interval": "5min", "outputsize": "full", "apikey": self._stock_keys[0]}
+        self._stock_payload = {"1D": {"function": "TIME_SERIES_INTRADAY", "symbol": self._stock_symbol,
+                                      "interval": "5min", "outputsize": "full", "apikey": self._stock_keys[0]},
+                               "5D": {"function": "TIME_SERIES_INTRADAY", "symbol": self._stock_symbol,
+                                      "interval": "5min", "outputsize": "full", "apikey": self._stock_keys[0]},
+                               "1M": {"function": "TIME_SERIES_INTRADAY", "symbol": self._stock_symbol,
+                                      "interval": "60min", "outputsize": "full", "apikey": self._stock_keys[0]},
+                               "3M": {"function": "TIME_SERIES_DAILY", "symbol": self._stock_symbol,
+                                      "outputsize": "full", "apikey": self._stock_keys[0]},
+                               "6M": {"function": "TIME_SERIES_DAILY", "symbol": self._stock_symbol,
+                                      "outputsize": "full", "apikey": self._stock_keys[0]},
+                               "1Y": {"function": "TIME_SERIES_WEEKLY", "symbol": self._stock_symbol,
+                                      "outputsize": "full", "apikey": self._stock_keys[0]},
+                               "5Y": {"function": "TIME_SERIES_MONTHLY", "symbol": self._stock_symbol,
+                                      "outputsize": "full", "apikey": self._stock_keys[0]},
+                               "MAX": {"function": "TIME_SERIES_MONTHLY", "symbol": self._stock_symbol,
+                                       "outputsize": "full", "apikey": self._stock_keys[0]}}
         self._stock_range_ind = 0
-        self._stock_range = ["1D", "5D", "1M", "3M", "6M", "1Y", "5Y"]
+        self._stock_range = ["1D", "5D", "1M", "3M", "6M", "1Y", "5Y", "MAX"]
         self._current_range = self._stock_range[self._stock_range_ind]
         self._stock_info_queue = Queue.Queue(maxsize=1)
-        self._stock_info = {"intraday": None, "daily": None, "weekly": None, "monthly": None}
+        self._stock_info = {"intraday": None, "hourly": None, "daily": None, "weekly": None, "monthly": None}
         self._time_series_today = []
         self._loading_thread = None
 
@@ -662,13 +676,15 @@ class Stock(Widget):
         self._chart_widget = None
         if self.chart:
             self._chart_widget = Chart(self.parent, self.x, self.y + self.stock_font_height + self._input_widget.get_height() + 10,
-                                       label_font=self.stock_label_font, width=self.chart_width, height=self.chart_height, max_x=78)
+                                       label_font=self.stock_label_font, width=self.chart_width, height=self.chart_height)
             self._subwidgets.append(self._chart_widget)
 
-    def _search(self):
-        self.reset()
+    def _search(self, reset=True):
+        if reset:
+            self.reset()
         self._chart_widget.reset()
         self._stock_symbol = self._input_widget.get_text()
+        self._current_range = self._stock_range[self._stock_range_ind]
         self._load_stock()
 
     def _load_stock(self):
@@ -676,9 +692,9 @@ class Stock(Widget):
             return
 
         if not self._loading_thread:
-            self._current_range = self._stock_range[self._stock_range_ind]
-            self._stock_payload['symbol'] = self._stock_symbol
-            self._loading_thread = RequestThread(self._stock_info_queue, self._stock_url, self._stock_payload)
+            payload = self._stock_payload[self._current_range]
+            payload['symbol'] = self._stock_symbol
+            self._loading_thread = RequestThread(self._stock_info_queue, self._stock_url, payload)
             self._loading_thread.start()
 
     def _handle_widget_events(self, event):
@@ -688,17 +704,21 @@ class Stock(Widget):
             elif event.key == pygame.K_UP:
                 if self.chart:
                     self._range_up()
+                    self._search(reset=False)
             elif event.key == pygame.K_DOWN:
                 if self.chart:
                     self._range_down()
+                    self._search(reset=False)
 
     def _range_up(self):
         if self._stock_range_ind > 0:
             self._stock_range_ind -= 1
+            self._load_stock()
 
     def _range_down(self):
         if self._stock_range_ind < len(self._stock_range) - 1:
             self._stock_range_ind += 1
+            self._load_stock()
 
     def _on_enter(self):
         self._input_widget.set_active(True)
@@ -716,6 +736,8 @@ class Stock(Widget):
         if not self._stock_info_queue.empty():
             if self._current_range.endswith('D'):
                 self._stock_info['intraday'] = self._stock_info_queue.get()
+            elif self._current_range == "1M":
+                self._stock_info['hourly'] = self._stock_info_queue.get()
             elif self._current_range.endswith('M'):
                 self._stock_info['daily'] = self._stock_info_queue.get()
             elif self._current_range == "1Y":
@@ -732,10 +754,12 @@ class Stock(Widget):
 
     def _parse_stock_info(self):
         if self._current_range == "1D":
-            time_series_key = "Time Series ({})".format(self._stock_payload['interval'])
-            if not self._stock_info['intraday'] or not self._stock_info['intraday'].get(time_series_key):
+            if self._stock_info['intraday'] is None:
                 return
 
+            time_series_key = "Time Series (5min)"
+            if not self._stock_info['intraday'].get(time_series_key):
+                return
             time_series = self._stock_info['intraday'].get(time_series_key)
             time_series_list = []
             for key in sorted(time_series, reverse=True):
@@ -743,8 +767,40 @@ class Stock(Widget):
                 time_series_list.append(time_series[key])
             today_str = time_series_list[0]['timestamp'][:10]
             self._time_series_today = [element for element in time_series_list if element['timestamp'].startswith(today_str)]
+            self._chart_widget.set_x_range(0, 78)
+        elif self._current_range == "5D":
+            if self._stock_info['intraday'] is None:
+                return
+
+            time_series_key = "Time Series (5min)"
+            if not self._stock_info['intraday'].get(time_series_key):
+                return
+            time_series = self._stock_info['intraday'].get(time_series_key)
+            time_series_list = []
+            for key in sorted(time_series, reverse=True):
+                time_series[key]['timestamp'] = key
+                time_series_list.append(time_series[key])
+            today_str = time_series_list[0]['timestamp'][:10]
+            self._time_series_today = [element for element in time_series_list if element['timestamp'].startswith(today_str)]
+            self._chart_widget.set_x_range(0, 98)
+        elif self._current_range == "1M":
+            if self._stock_info['hourly'] is None:
+                return
+        elif self._current_range == "3M":
+            if self._stock_info['daily'] is None:
+                return
+        elif self._current_range == "6M":
+            if self._stock_info['daily'] is None:
+                return
+        elif self._current_range == "1Y":
+            if self._stock_info['weekly'] is None:
+                return
+        elif self._current_range == "5Y":
+            if self._stock_info['monthly'] is None:
+                return
         else:
-            return
+            if self._stock_info['monthly'] is None:
+                return
 
         if self.chart:
             price_info = [(float(element['2. high']) + float(element['3. low'])) / 2 for element in self._time_series_today]
@@ -794,7 +850,7 @@ class Stock(Widget):
         if not self.chart:
             return
 
-        range_x = self.x + self.chart_width + 20
+        range_x = self.x + self.chart_width + 10
         range_y = self.y + self.stock_font_height + self._input_widget.get_height() + 10
         range_unit_distance = self.chart_height / (len(self._stock_range) - 1)
         self.add_shape(Line(self.colors['white'], (range_x, range_y), (range_x, range_y + self.chart_height), width=3))
@@ -811,7 +867,7 @@ class Stock(Widget):
     def reset(self):
         self._stock_symbol = ""
         self._stock_info_queue = Queue.Queue(maxsize=1)
-        self._stock_info = {"intraday": None, "daily": None, "weekly": None, "monthly": None}
+        self._stock_info = {"intraday": None, "hourly": None, "daily": None, "weekly": None, "monthly": None}
         self._time_series_today = []
         self._loading_thread = None
 

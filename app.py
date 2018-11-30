@@ -44,7 +44,7 @@ class App:
         self._background_image_directory = os.path.join("images", "background")
         self._background_image_size = self._screen_height
         self._background_alpha = 180
-        self._background_speed_rate = 1.2
+        self._background_speed_rate = 0.1
         self._background_images = []
 
         self._setup()
@@ -101,7 +101,7 @@ class App:
     def _draw_background(self, screen):
         x_offset = (self._screen_width - self._background_image_size) / 2
         y_offset = (self._screen_height - self._background_image_size) / 2
-        current_time = int(time.time() * self._frame_rate)
+        current_time = int(time.time() * 100)
         background_surface = pygame.Surface((self._screen_width, self._screen_height))
         rotated_image_queue = Queue.Queue()
         threads = []
