@@ -638,14 +638,19 @@ class Stock(Widget):
         self.stock_font = pygame.font.Font("fonts/FreeSans.ttf", 15)
         self.stock_font_height = self.stock_font.render(' ', True, self.colors['white']).get_height()
         self.stock_footnote_font = pygame.font.Font("fonts/FreeSans.ttf", 10)
+        self.stock_label_font = pygame.font.Font("fonts/FreeSans.ttf", 12)
+        self.stock_range_font = pygame.font.Font("fonts/FreeSans.ttf", 13)
 
         self._stock_url = "https://www.alphavantage.co/query"
         self._stock_keys = ['T9O3IK0TF72YCBP8", "JEIP3D1ZI2UTJZUL", "TI8F72SY4LKSD23L']
         self._stock_symbol = ""
         self._stock_payload = {"function": "TIME_SERIES_INTRADAY", "symbol": self._stock_symbol,
                                "interval": "5min", "outputsize": "full", "apikey": self._stock_keys[0]}
+        self._stock_range_ind = 0
+        self._stock_range = ["1D", "5D", "1M", "3M", "6M", "1Y", "5Y"]
+        self._current_range = self._stock_range[self._stock_range_ind]
         self._stock_info_queue = Queue.Queue(maxsize=1)
-        self._stock_info = None
+        self._stock_info = {"intraday": None, "daily": None, "weekly": None, "monthly": None}
         self._time_series_today = []
         self._loading_thread = None
 
@@ -657,11 +662,12 @@ class Stock(Widget):
         self._chart_widget = None
         if self.chart:
             self._chart_widget = Chart(self.parent, self.x, self.y + self.stock_font_height + self._input_widget.get_height() + 10,
-                                       width=self.chart_width, height=self.chart_height, max_x=78)
+                                       label_font=self.stock_label_font, width=self.chart_width, height=self.chart_height, max_x=78)
             self._subwidgets.append(self._chart_widget)
 
     def _search(self):
         self.reset()
+        self._chart_widget.reset()
         self._stock_symbol = self._input_widget.get_text()
         self._load_stock()
 
@@ -670,6 +676,7 @@ class Stock(Widget):
             return
 
         if not self._loading_thread:
+            self._current_range = self._stock_range[self._stock_range_ind]
             self._stock_payload['symbol'] = self._stock_symbol
             self._loading_thread = RequestThread(self._stock_info_queue, self._stock_url, self._stock_payload)
             self._loading_thread.start()
@@ -678,6 +685,20 @@ class Stock(Widget):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RETURN:
                 self._input_widget.set_active(True)
+            elif event.key == pygame.K_UP:
+                if self.chart:
+                    self._range_up()
+            elif event.key == pygame.K_DOWN:
+                if self.chart:
+                    self._range_down()
+
+    def _range_up(self):
+        if self._stock_range_ind > 0:
+            self._stock_range_ind -= 1
+
+    def _range_down(self):
+        if self._stock_range_ind < len(self._stock_range) - 1:
+            self._stock_range_ind += 1
 
     def _on_enter(self):
         self._input_widget.set_active(True)
@@ -689,8 +710,18 @@ class Stock(Widget):
         self._input_widget.set_active(True)
 
     def _on_update(self):
+        self.clear_shapes()
+        self._add_range()
+
         if not self._stock_info_queue.empty():
-            self._stock_info = self._stock_info_queue.get()
+            if self._current_range.endswith('D'):
+                self._stock_info['intraday'] = self._stock_info_queue.get()
+            elif self._current_range.endswith('M'):
+                self._stock_info['daily'] = self._stock_info_queue.get()
+            elif self._current_range == "1Y":
+                self._stock_info['weekly'] = self._stock_info_queue.get()
+            else:
+                self._stock_info['monthly'] = self._stock_info_queue.get()
             self._loading_thread = None
 
         if not self._stock_info or self._time_series_today:
@@ -700,17 +731,20 @@ class Stock(Widget):
             self._parse_stock_info()
 
     def _parse_stock_info(self):
-        time_series_key = "Time Series ({})".format(self._stock_payload['interval'])
-        if not self._stock_info.get(time_series_key):
-            return
+        if self._current_range == "1D":
+            time_series_key = "Time Series ({})".format(self._stock_payload['interval'])
+            if not self._stock_info['intraday'] or not self._stock_info['intraday'].get(time_series_key):
+                return
 
-        time_series = self._stock_info.get(time_series_key)
-        time_series_list = []
-        for key in sorted(time_series, reverse=True):
-            time_series[key]['timestamp'] = key
-            time_series_list.append(time_series[key])
-        today_str = time_series_list[0]['timestamp'][:10]
-        self._time_series_today = [element for element in time_series_list if element['timestamp'].startswith(today_str)]
+            time_series = self._stock_info['intraday'].get(time_series_key)
+            time_series_list = []
+            for key in sorted(time_series, reverse=True):
+                time_series[key]['timestamp'] = key
+                time_series_list.append(time_series[key])
+            today_str = time_series_list[0]['timestamp'][:10]
+            self._time_series_today = [element for element in time_series_list if element['timestamp'].startswith(today_str)]
+        else:
+            return
 
         if self.chart:
             price_info = [(float(element['2. high']) + float(element['3. low'])) / 2 for element in self._time_series_today]
@@ -756,10 +790,28 @@ class Stock(Widget):
         screen.blit(symbol_text, (self.x, self.y + self._input_widget.get_height() + 5))
         screen.blit(price_text, (self.x + symbol_text.get_width() + 10, self.y + self._input_widget.get_height() + 5))
 
+    def _add_range(self):
+        if not self.chart:
+            return
+
+        range_x = self.x + self.chart_width + 20
+        range_y = self.y + self.stock_font_height + self._input_widget.get_height() + 10
+        range_unit_distance = self.chart_height / (len(self._stock_range) - 1)
+        self.add_shape(Line(self.colors['white'], (range_x, range_y), (range_x, range_y + self.chart_height), width=3))
+        for ind in range(len(self._stock_range)):
+            y = range_y + range_unit_distance * ind if ind < len(self._stock_range) - 1 else range_y + self.chart_height
+            if ind == self._stock_range_ind:
+                color = self.colors['green']
+            else:
+                color = self.colors['white']
+            rendered_text = self.stock_range_font.render(self._stock_range[ind], True, color)
+            self.add_shape(Line(self.colors['white'], (range_x, y), (range_x + 6, y)))
+            self.add_shape(Text(rendered_text, (range_x + 10, y - rendered_text.get_height() / 2)))
+
     def reset(self):
         self._stock_symbol = ""
         self._stock_info_queue = Queue.Queue(maxsize=1)
-        self._stock_info = None
+        self._stock_info = {"intraday": None, "daily": None, "weekly": None, "monthly": None}
         self._time_series_today = []
         self._loading_thread = None
 
@@ -1366,7 +1418,7 @@ class Input(Widget):
 
 
 class Chart(Widget):
-    def __init__(self, parent, x, y, info=None, constants=[], width=100, height=100,
+    def __init__(self, parent, x, y, info=None, label_font=None, constants=[], width=100, height=100,
                  max_x=100, max_y=100, min_x=0, min_y=0, info_colors=None,
                  x_unit=1, y_unit=1,
                  x_label_interval=None, y_label_interval=None,
@@ -1374,6 +1426,7 @@ class Chart(Widget):
         super(Chart, self).__init__(parent, x, y)
 
         self.info = info
+        self.label_font = label_font if label_font else pygame.font.Font("fonts/FreeSans.ttf", 12)
         self.constants = constants
         self.width = width
         self.height = height
@@ -1388,8 +1441,6 @@ class Chart(Widget):
         self.y_label_interval = y_label_interval
         self.background = background
         self.background_color = background_color
-
-        self._label_font = pygame.font.Font("fonts/FreeSans.ttf", 12)
 
     def _on_setup(self):
         pass
@@ -1408,7 +1459,7 @@ class Chart(Widget):
             x_label_interval_distance = self.width / (self.max_x / self.x_label_interval)
             for i in range(self.max_x / self.x_label_interval + 1):
                 label_text = str(i * self.x_label_interval)
-                rendered_label_text = self._label_font.render(label_text, True, self.colors['white'])
+                rendered_label_text = self.label_font.render(label_text, True, self.colors['white'])
                 text_width = rendered_label_text.get_width()
                 if i == self.max_x / self.x_label_interval:
                     x = self.x + self.width
@@ -1425,7 +1476,7 @@ class Chart(Widget):
             y_label_interval_distance = self.height / (self.max_y / self.y_label_interval)
             for i in range(self.max_y / self.y_label_interval + 1):
                 label_text = str(i * self.y_label_interval)
-                rendered_label_text = self._label_font.render(label_text, True, self.colors['white'])
+                rendered_label_text = self.label_font.render(label_text, True, self.colors['white'])
                 text_height = rendered_label_text.get_height()
                 if i == self.max_y / self.y_label_interval:
                     y = self.y
@@ -1473,7 +1524,10 @@ class Chart(Widget):
 
         for constant in self.constants:
             y = int(self.y + self.height - y_unit_distance * (constant - self.min_y))
+            rendered_label_text = self.label_font.render(str(constant), True, self.colors['white'])
             self.add_shape(DashLine(self.colors['white'], (self.x, y), (self.x + self.width, y)))
+            self.add_shape(Text(rendered_label_text, (self.x + self.width - rendered_label_text.get_width(),
+                                                      y - rendered_label_text.get_height())))
 
     def _on_draw(self, screen):
         pass

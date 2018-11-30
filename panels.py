@@ -237,7 +237,7 @@ class StockPanel(Panel):
         self._title_font = pygame.font.SysFont(self.default_font_name, 35)
 
         self.title_widget = Content(self, 10, 10, "Stock", font=self._title_font)
-        self.stock_widget = Stock(self, 20, 40, chart=True, chart_width=self._screen_width-80,
+        self.stock_widget = Stock(self, 25, 40, chart=True, chart_width=self._screen_width-80,
                                   chart_height=self._screen_height-120)
         self.widgets = [self.title_widget, self.stock_widget]
 
