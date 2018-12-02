@@ -238,6 +238,8 @@ class NewsList(News):
                 continue
 
             if image_url:
+                if not os.path.isdir(self._news_image_directory):
+                    os.mkdir(self._news_image_directory)
                 image_thread = ImageFetchThread(image_url, news, self._news_image_directory)
                 image_thread.daemon = True
                 image_thread.start()
