@@ -667,7 +667,9 @@ class Stock(Widget):
         self._current_range = self._stock_range[self._stock_range_ind]
         self._stock_info_queue = Queue.Queue(maxsize=1)
         self._stock_info = {"intraday": None, "hourly": None, "daily": None, "weekly": None, "monthly": None}
-        self._time_series_today = []
+        self._current_price = 0
+        self._today_open_price = 0
+        self._time_series = []
         self._loading_thread = None
 
         self._input_font = pygame.font.Font("fonts/FreeSans.ttf", 15)
@@ -691,6 +693,10 @@ class Stock(Widget):
 
     def _load_stock(self):
         if not self._stock_symbol:
+            return
+
+        if self._stock_info[self._get_range_key(self._current_range)]:
+            self._parse_stock_info()
             return
 
         if not self._loading_thread:
@@ -736,25 +742,24 @@ class Stock(Widget):
         self._add_range()
 
         if not self._stock_info_queue.empty():
-            if self._current_range.endswith('D'):
-                self._stock_info['intraday'] = self._stock_info_queue.get()
-            elif self._current_range == "1M":
-                self._stock_info['hourly'] = self._stock_info_queue.get()
-            elif self._current_range.endswith('M'):
-                self._stock_info['daily'] = self._stock_info_queue.get()
-            elif self._current_range == "1Y":
-                self._stock_info['weekly'] = self._stock_info_queue.get()
-            else:
-                self._stock_info['monthly'] = self._stock_info_queue.get()
+            self._stock_info[self._get_range_key(self._current_range)] = self._stock_info_queue.get()
             self._loading_thread = None
-
-        if not self._stock_info or self._time_series_today:
-            return
-
-        if not self._time_series_today:
             self._parse_stock_info()
 
+    def _get_range_key(self, range_):
+        if self._current_range.endswith('D'):
+            return "intraday"
+        elif self._current_range == "1M":
+            return "hourly"
+        elif self._current_range.endswith('M'):
+            return "daily"
+        elif self._current_range == "1Y":
+            return "weekly"
+        else:
+            return "monthly"
+
     def _parse_stock_info(self):
+        self._time_series = []
         if self._current_range == "1D":
             if self._stock_info['intraday'] is None:
                 return
@@ -768,7 +773,7 @@ class Stock(Widget):
                 time_series[key]['timestamp'] = key
                 time_series_list.append(time_series[key])
             today_str = time_series_list[0]['timestamp'][:10]
-            self._time_series_today = [element for element in time_series_list if element['timestamp'].startswith(today_str)]
+            self._time_series = [element for element in time_series_list if element['timestamp'].startswith(today_str)]
             self._chart_widget.set_x_range(0, 78)
         elif self._current_range == "5D":
             if self._stock_info['intraday'] is None:
@@ -783,7 +788,9 @@ class Stock(Widget):
                 time_series[key]['timestamp'] = key
                 time_series_list.append(time_series[key])
             today_str = time_series_list[0]['timestamp'][:10]
-            self._time_series_today = [element for element in time_series_list if element['timestamp'].startswith(today_str)]
+            quotes_today = [element for element in time_series_list if element['timestamp'].startswith(today_str)]
+            quotes_previous = time_series_list[len(quotes_today):78*5]
+            self._time_series = (quotes_today + quotes_previous)[::4]
             self._chart_widget.set_x_range(0, 98)
         elif self._current_range == "1M":
             if self._stock_info['hourly'] is None:
@@ -804,10 +811,13 @@ class Stock(Widget):
             if self._stock_info['monthly'] is None:
                 return
 
-        if self.chart:
-            price_info = [(float(element['2. high']) + float(element['3. low'])) / 2 for element in self._time_series_today]
+        if self.chart and self._time_series:
+            price_info = [(float(element['2. high']) + float(element['3. low'])) / 2 for element in self._time_series]
             self._chart_widget.set_info({"price": price_info})
-            self._chart_widget.set_constants([float(self._time_series_today[-1].get('1. open'))])
+            if self._current_range == "1D":
+                self._chart_widget.set_constants([float(self._time_series[-1].get('1. open'))])
+            else:
+                self._chart_widget.set_constants([])
             self._chart_widget.set_y_range(min(price_info) * 0.975, max(price_info) * 1.025)
             if price_info[0] - price_info[-1] < 0:
                 self._chart_widget.set_info_colors({"price": 'red'})
@@ -826,27 +836,35 @@ class Stock(Widget):
         self._draw_quote(screen)
 
     def _draw_quote(self, screen):
-        if not self._time_series_today:
+        if self._current_range == "1D":
+            self._current_price = float(self._time_series[0].get('4. close'))
+            self._today_open_price = float(self._time_series[-1].get('1. open'))
+        elif not self._current_price or not self._today_open_price:
             return
 
-        current_price = float(self._time_series_today[0].get('4. close'))
-        today_open_price = float(self._time_series_today[-1].get('1. open'))
-        change = current_price - today_open_price
-        percent = change / today_open_price * 100
+        change = self._current_price - self._today_open_price
+        percent = change / self._today_open_price * 100
         if change > 0:
             color = "green"
-            shape = u'▲'
+            arrow = u'▲'
         elif change < 0:
             color = "red"
-            shape = u'▼'
+            arrow = u'▼'
         else:
             color = "white"
-            shape = u'▬'
+            arrow = u'▬'
 
         symbol_text = self.stock_font.render(self._stock_symbol, True, self.colors['white'])
-        price_text = self.stock_font.render(u'{:.2f}  |  {:.2f}% {}'.format(current_price, percent, shape), True, self.colors[color])
-        screen.blit(symbol_text, (self.x, self.y + self._input_widget.get_height() + 5))
-        screen.blit(price_text, (self.x + symbol_text.get_width() + 10, self.y + self._input_widget.get_height() + 5))
+        price_text = self.stock_font.render('{:.2f}'.format(self._current_price), True, self.colors[color])
+        bar_text = self.stock_font.render('  |  ', True, self.colors['white'])
+        percent_text = self.stock_font.render(u'{:.2f}% {}'.format(percent, arrow), True, self.colors[color])
+        quote_x = self.x
+        quote_y = self.y + self._input_widget.get_height() + 5
+        screen.blit(symbol_text, (quote_x, quote_y))
+        quote_x += symbol_text.get_width() + 10
+        for text in [price_text, bar_text, percent_text]:
+            screen.blit(text, (quote_x, quote_y))
+            quote_x += text.get_width()
 
     def _add_range(self):
         if not self.chart:
@@ -868,9 +886,12 @@ class Stock(Widget):
 
     def reset(self):
         self._stock_symbol = ""
+        self._stock_range_ind = 0
         self._stock_info_queue = Queue.Queue(maxsize=1)
         self._stock_info = {"intraday": None, "hourly": None, "daily": None, "weekly": None, "monthly": None}
-        self._time_series_today = []
+        self._current_price = 0
+        self._today_open_price = 0
+        self._time_series = []
         self._loading_thread = None
 
     def clear(self):
