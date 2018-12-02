@@ -1,2 +1,3 @@
 *.pyc
+*.log
 news_images/*

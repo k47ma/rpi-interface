@@ -152,7 +152,7 @@ class News(Widget):
             self._news_index = 0
 
         self._news_last_update = time.time()
-        print "News updated at {}".format(get_timestr())
+        log_to_file("News updated")
 
     def _on_setup(self):
         self._get_news()
@@ -430,7 +430,7 @@ class Weather(Widget):
 
         self.weather_last_update = time.time()
 
-        print "Weather updated at {}".format(get_timestr())
+        log_to_file("Weather updated")
 
     def _load_icons(self):
         for icon_path in glob.glob(os.path.join(self._icon_directory, "*.png")):
@@ -552,7 +552,7 @@ class Calendar(Widget):
         self._parsed_calendar = self._add_days(self._parsed_calendar)
 
         self._calendar_last_update = current_day
-        print "Calendar updated at {}".format(get_timestr())
+        log_to_file("Calendar updated")
 
     def _add_days(self, calendar):
         try:
@@ -837,9 +837,11 @@ class Stock(Widget):
 
     def _draw_quote(self, screen):
         if self._current_range == "1D":
-            self._current_price = float(self._time_series[0].get('4. close'))
-            self._today_open_price = float(self._time_series[-1].get('1. open'))
-        elif not self._current_price or not self._today_open_price:
+            if self._time_series:
+                self._current_price = float(self._time_series[0].get('4. close'))
+                self._today_open_price = float(self._time_series[-1].get('1. open'))
+        
+        if not self._current_price or not self._today_open_price:
             return
 
         change = self._current_price - self._today_open_price

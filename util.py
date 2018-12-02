@@ -35,6 +35,7 @@ def get_timestr():
     return str(dt.now())[:19]
 
 def bytes_to_string(n):
+    """Convert bytes to human-readable units"""
     if n < 1000:
         return "{}B".format(n)
 
@@ -48,3 +49,7 @@ def bytes_to_string(n):
 
     n /= 1000.0
     return "{:.2f}G".format(n)
+
+def log_to_file(content):
+    """Output log information"""
+    print "[{}] {}".format(get_timestr(), content)
