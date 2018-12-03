@@ -656,18 +656,18 @@ class Stock(Widget):
                                       "outputsize": "full", "apikey": self._stock_keys[0]},
                                "6M": {"function": "TIME_SERIES_DAILY", "symbol": self._stock_symbol,
                                       "outputsize": "full", "apikey": self._stock_keys[0]},
-                               "1Y": {"function": "TIME_SERIES_WEEKLY", "symbol": self._stock_symbol,
+                               "1Y": {"function": "TIME_SERIES_DAILY", "symbol": self._stock_symbol,
                                       "outputsize": "full", "apikey": self._stock_keys[0]},
-                               "5Y": {"function": "TIME_SERIES_MONTHLY", "symbol": self._stock_symbol,
+                               "5Y": {"function": "TIME_SERIES_DAILY", "symbol": self._stock_symbol,
                                       "outputsize": "full", "apikey": self._stock_keys[0]},
-                               "MAX": {"function": "TIME_SERIES_MONTHLY", "symbol": self._stock_symbol,
+                               "MAX": {"function": "TIME_SERIES_DAILY", "symbol": self._stock_symbol,
                                        "outputsize": "full", "apikey": self._stock_keys[0]}}
         self._stock_range_ind = 0
         self._stock_range = ["1D", "5D", "1M", "3M", "6M", "1Y", "5Y", "MAX"]
         self._stock_info_queue = Queue.Queue(maxsize=1)
-        self._stock_info = {"intraday": None, "hourly": None, "daily": None, "weekly": None, "monthly": None}
+        self._stock_info = {"intraday": None, "hourly": None, "daily": None}
         self._current_price = 0
-        self._today_open_price = 0
+        self._last_close_price = 0
         self._time_series = []
         self._loading_thread = None
 
@@ -749,12 +749,19 @@ class Stock(Widget):
             return "intraday"
         elif current_range == "1M":
             return "hourly"
-        elif current_range.endswith('M'):
-            return "daily"
-        elif current_range == "1Y":
-            return "weekly"
         else:
-            return "monthly"
+            return "daily"
+
+    def _get_time_series(self, time_series_key):
+        range_key = self._get_range_key()
+        if not self._stock_info[range_key].get(time_series_key):
+            return None
+        time_series = self._stock_info[range_key].get(time_series_key)
+        time_series_list = []
+        for key in sorted(time_series, reverse=True):
+            time_series[key]['timestamp'] = key
+            time_series_list.append(time_series[key])
+        return time_series_list
 
     def _parse_stock_info(self):
         self._time_series = []
@@ -766,25 +773,19 @@ class Stock(Widget):
 
         if current_range == "1D":
             time_series_key = "Time Series (5min)"
-            if not self._stock_info[range_key].get(time_series_key):
+            time_series_list = self._get_time_series(time_series_key)
+            if not time_series_list:
                 return
-            time_series = self._stock_info[range_key].get(time_series_key)
-            time_series_list = []
-            for key in sorted(time_series, reverse=True):
-                time_series[key]['timestamp'] = key
-                time_series_list.append(time_series[key])
             today_str = time_series_list[0]['timestamp'][:10]
             self._time_series = [element for element in time_series_list if element['timestamp'].startswith(today_str)]
+            self._current_price = float(self._time_series[0].get('4. close'))
+            self._last_close_price = float(time_series_list[len(self._time_series)].get('4. close'))
             self._chart_widget.set_x_range(0, 78)
         elif current_range == "5D":
             time_series_key = "Time Series (5min)"
-            if not self._stock_info[range_key].get(time_series_key):
+            time_series_list = self._get_time_series(time_series_key)
+            if not time_series_list:
                 return
-            time_series = self._stock_info[range_key].get(time_series_key)
-            time_series_list = []
-            for key in sorted(time_series, reverse=True):
-                time_series[key]['timestamp'] = key
-                time_series_list.append(time_series[key])
             today_str = time_series_list[0]['timestamp'][:10]
             quotes_today = [element for element in time_series_list if element['timestamp'].startswith(today_str)]
             quotes_previous = time_series_list[len(quotes_today):78*5]
@@ -792,42 +793,67 @@ class Stock(Widget):
             self._chart_widget.set_x_range(0, 98)
         elif current_range == "1M":
             time_series_key = "Time Series (60min)"
-            if not self._stock_info[range_key].get(time_series_key):
+            time_series_list = self._get_time_series(time_series_key)
+            if not time_series_list:
                 return
-            time_series = self._stock_info[range_key].get(time_series_key)
-            time_series_list = []
-            for key in sorted(time_series, reverse=True):
-                time_series[key]['timestamp'] = key
-                time_series_list.append(time_series[key])
             self._time_series = time_series_list[:154:2]
             self._chart_widget.set_x_range(0, 77)
         elif current_range == "3M":
-            if self._stock_info['daily'] is None:
+            time_series_key = "Time Series (Daily)"
+            time_series_list = self._get_time_series(time_series_key)
+            if not time_series_list:
                 return
+            self._time_series = time_series_list[:66]
+            self._chart_widget.set_x_range(0, 66)
         elif current_range == "6M":
-            if self._stock_info['daily'] is None:
+            time_series_key = "Time Series (Daily)"
+            time_series_list = self._get_time_series(time_series_key)
+            if not time_series_list:
                 return
+            self._time_series = time_series_list[:132]
+            self._chart_widget.set_x_range(0, 132)
         elif current_range == "1Y":
-            if self._stock_info['weekly'] is None:
+            time_series_key = "Time Series (Daily)"
+            time_series_list = self._get_time_series(time_series_key)
+            if not time_series_list:
                 return
+            self._time_series = time_series_list[:260:2]
+            self._chart_widget.set_x_range(0, 130)
         elif current_range == "5Y":
-            if self._stock_info['monthly'] is None:
+            time_series_key = "Time Series (Daily)"
+            time_series_list = self._get_time_series(time_series_key)
+            if not time_series_list:
                 return
+            self._time_series = time_series_list[:1304:10]
+            self._chart_widget.set_x_range(0, 130)
         else:
-            if self._stock_info['monthly'] is None:
+            time_series_key = "Time Series (Daily)"
+            time_series_list = self._get_time_series(time_series_key)
+            if not time_series_list:
                 return
+            ratio = len(time_series_list) / 100
+            self._time_series = time_series_list[::ratio]
+            self._chart_widget.set_x_range(0, 100)
 
         if self.chart and self._time_series:
             price_info = [(float(element['2. high']) + float(element['3. low'])) / 2 for element in self._time_series]
             self._chart_widget.set_info({"price": price_info})
-            self._chart_widget.set_constants([float(self._time_series[-1].get('1. open'))])
+            if current_range == "1D":
+                self._chart_widget.set_constants([self._last_close_price])
+            else:
+                self._chart_widget.set_constants([float(self._time_series[-1].get('1. open'))])
             self._chart_widget.set_y_range(min(price_info) * 0.975, max(price_info) * 1.025)
-            if price_info[0] - price_info[-1] < 0:
+            change = price_info[0] - self._last_close_price if current_range == "1D" else price_info[0] - price_info[-1]
+            if change < 0:
                 self._chart_widget.set_info_colors({"price": 'red'})
             else:
                 self._chart_widget.set_info_colors({"price": 'green'})
 
     def _on_draw(self, screen):
+        if self._loading_thread and self._loading_thread.is_alive():
+            self._display_info(screen, "Loading stock info...")
+            return
+
         range_key = self._get_range_key()
         current_stock_info = self._stock_info[range_key]
         if current_stock_info is None:
@@ -839,10 +865,6 @@ class Stock(Widget):
             self._display_info(screen, "Invalid stock symbol!")
             return
 
-        if self._loading_thread and self._loading_thread.is_alive():
-            self._display_info(screen, "Loading stock info...")
-            return
-
         self._draw_quote(screen)
 
     def _display_info(self, screen, text):
@@ -850,17 +872,11 @@ class Stock(Widget):
         screen.blit(loading_text, (self.x, self.y + self._input_widget.get_height() + 5))
 
     def _draw_quote(self, screen):
-        current_range = self._stock_range[self._stock_range_ind]
-        if current_range == "1D":
-            if self._time_series:
-                self._current_price = float(self._time_series[0].get('4. close'))
-                self._today_open_price = float(self._time_series[-1].get('1. open'))
-        
-        if not self._current_price or not self._today_open_price:
+        if not self._current_price or not self._last_close_price:
             return
 
-        change = self._current_price - self._today_open_price
-        percent = change / self._today_open_price * 100
+        change = self._current_price - self._last_close_price
+        percent = change / self._last_close_price * 100
         if change > 0:
             color = "green"
             arrow = u'▲'
@@ -905,9 +921,9 @@ class Stock(Widget):
         self._stock_symbol = ""
         self._stock_range_ind = 0
         self._stock_info_queue = Queue.Queue(maxsize=1)
-        self._stock_info = {"intraday": None, "hourly": None, "daily": None, "weekly": None, "monthly": None}
+        self._stock_info = {"intraday": None, "hourly": None, "daily": None}
         self._current_price = 0
-        self._today_open_price = 0
+        self._last_close_price = 0
         self._time_series = []
         self._loading_thread = None
 
