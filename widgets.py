@@ -494,7 +494,7 @@ class Weather(Widget):
         for desc, timestamp, icon_id in change_info:
             rendered_change_text = self.change_font.render("{} -> {}".format(timestamp, desc), True, self.colors['white'])
             screen.blit(rendered_change_text, (x, y))
-            screen.blit(self._change_icons[icon_id], (x + rendered_change_text.get_width() + 5, y))
+            screen.blit(self._change_icons[icon_id], (x + rendered_change_text.get_width(), y))
             y += rendered_change_text.get_height()
 
         # draw last update time
