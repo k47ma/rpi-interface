@@ -1788,6 +1788,7 @@ class Map(Widget):
         self._direction_key = "AIzaSyDKl1oPieC1EwVdsnUJpg0btJV2Bwg0cd4"
         self._direction_payload = {"units": "metric", "mode": "driving", "key": self._direction_key,
                                    "origin": "", "destination": ""}
+        self._direction_info = None
 
         self._caption_font = pygame.font.Font("fonts/FreeSans.ttf", 15)
         self._from_text = self._caption_font.render("From: ", True, self.colors['white'])
