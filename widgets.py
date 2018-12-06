@@ -94,6 +94,8 @@ class Widget:
                     pygame.draw.lines(screen, shape.color, shape.closed, shape.pointlist, shape.width)
             else:
                 pygame.draw.lines(screen, shape.color, shape.closed, shape.pointlist, shape.width)
+            for point in shape.pointlist:
+                screen.set_at(point, shape.color)
         elif isinstance(shape, Text):
             screen.blit(shape.text_surface, shape.pos)
         elif isinstance(shape, Rectangle):
@@ -472,7 +474,7 @@ class Weather(Widget):
         forecast_text = self.forecast_font.render(forecast_str, True, self.colors['white'])
 
         screen.blit(desc_text, (self.x, self.y))
-        screen.blit(current_icon, (self.x + desc_text.get_width() + 5, self.y))
+        screen.blit(current_icon, (self.x + desc_text.get_width(), self.y))
         screen.blit(current_text, (self.x, self.y + desc_text.get_height()))
         screen.blit(forecast_text, (self.x, self.y + desc_text.get_height() + current_text.get_height()))
 
