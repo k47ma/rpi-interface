@@ -1786,13 +1786,18 @@ class Map(Widget):
 
         self._direction_url = "https://maps.googleapis.com/maps/api/directions/json"
         self._direction_key = "AIzaSyDKl1oPieC1EwVdsnUJpg0btJV2Bwg0cd4"
-        self._direction_payload = {"units": "metric", "key": self._direction_key, "origin": "", "destination": ""}
+        self._direction_payload = {"units": "metric", "mode": "driving", "key": self._direction_key,
+                                   "origin": "", "destination": ""}
+
+        self._caption_font = pygame.font.Font("fonts/FreeSans.ttf", 15)
+        self._from_text = self._caption_font.render("From: ", True, self.colors['white'])
+        self._to_text = self._caption_font.render("To: ", True, self.colors['white'])
 
         self._input_font = pygame.font.Font("fonts/FreeSans.ttf", 15)
-        self._origin_widget = Input(self.parent, self.x, self.y, font=self._input_font, width=200,
-                                    enter_key_event=self._search)
-        self._dest_widget = Input(self.parent, self.x, self.y + 30, font=self._input_font, width=200,
-                                  enter_key_event=self._search)
+        self._origin_widget = Input(self.parent, self.x + self._from_text.get_width() + 5, self.y,
+                                    font=self._input_font, width=200, enter_key_event=self._search)
+        self._dest_widget = Input(self.parent, self.x + self._from_text.get_width() + 5, self.y + 30,
+                                  font=self._input_font, width=200, enter_key_event=self._search)
 
         self._subwidgets = [self._origin_widget, self._dest_widget]
 
@@ -1809,7 +1814,16 @@ class Map(Widget):
         direction_res = requests.get(self._direction_url, params=self._direction_payload)
         self._direction_info = direction_res.json()
 
-        print self._direction_info
+    def _draw_texts(self, screen):
+        screen.blit(self._from_text, (self.x, self.y))
+        screen.blit(self._to_text, (self.x, self.y + 30))
+
+    def _draw_result(self, screen):
+        if not self._direction_info:
+            return
+
+        total_time = sum([step['duration']['value'] for step in self._direction_info['routes'][0]['legs'][0]['steps']])
+        total_distance = sum([step['distance']['value'] for step in self._direction_info['routes'][0]['legs'][0]['steps']])
 
     def _on_enter(self):
         self._origin_widget.set_active(True)
@@ -1821,7 +1835,8 @@ class Map(Widget):
         pass
 
     def _on_draw(self, screen):
-        pass
+        self._draw_texts(screen)
+        self._draw_result(screen)
 
     def _handle_widget_events(self, event):
         if event.type == pygame.KEYDOWN:
