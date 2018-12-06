@@ -641,7 +641,7 @@ class Traffic(Widget):
 
         self._traffic_url = "https://maps.googleapis.com/maps/api/distancematrix/json"
         self._traffic_keys = "AIzaSyDKl1oPieC1EwVdsnUJpg0btJV2Bwg0cd4"
-        self._traffic_payload = {"units": "matrics", "key": self._traffic_keys}
+        self._traffic_payload = {"units": "matrics", "key": self._traffic_keys, "origins": "", "destinations": ""}
 
         self._traffic_icon = None
         self._traffic_icon_path = os.path.join("images", "car.png")
@@ -1558,6 +1558,26 @@ class Input(Widget):
                 self._input('y')
             elif event.key == pygame.K_z:
                 self._input('z')
+            elif event.key == pygame.K_0 or event.key == pygame.K_KP0:
+                self._input('0')
+            elif event.key == pygame.K_1 or event.key == pygame.K_KP1:
+                self._input('1')
+            elif event.key == pygame.K_2 or event.key == pygame.K_KP2:
+                self._input('2')
+            elif event.key == pygame.K_3 or event.key == pygame.K_KP3:
+                self._input('3')
+            elif event.key == pygame.K_4 or event.key == pygame.K_KP4:
+                self._input('4')
+            elif event.key == pygame.K_5 or event.key == pygame.K_KP5:
+                self._input('5')
+            elif event.key == pygame.K_6 or event.key == pygame.K_KP6:
+                self._input('6')
+            elif event.key == pygame.K_7 or event.key == pygame.K_KP7:
+                self._input('7')
+            elif event.key == pygame.K_8 or event.key == pygame.K_KP8:
+                self._input('8')
+            elif event.key == pygame.K_9 or event.key == pygame.K_KP9:
+                self._input('9')
             elif event.key == pygame.K_SPACE:
                 self._input(' ')
             elif event.key == pygame.K_BACKSPACE:
@@ -1570,7 +1590,7 @@ class Input(Widget):
                     self._clear_str()
                 else:
                     self._delete()
-            elif event.key == pygame.K_RETURN:
+            elif event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
                 if self.enter_key_event:
                     self.enter_key_event()
             elif event.key == pygame.K_LEFT:
@@ -1758,3 +1778,64 @@ class ChartCaption(Widget):
 
     def _on_draw(self, screen):
         pass
+
+
+class Map(Widget):
+    def __init__(self, parent, x, y):
+        super(Map, self).__init__(parent, x, y)
+
+        self._direction_url = "https://maps.googleapis.com/maps/api/directions/json"
+        self._direction_key = "AIzaSyDKl1oPieC1EwVdsnUJpg0btJV2Bwg0cd4"
+        self._direction_payload = {"units": "metric", "key": self._direction_key, "origin": "", "destination": ""}
+
+        self._input_font = pygame.font.Font("fonts/FreeSans.ttf", 15)
+        self._origin_widget = Input(self.parent, self.x, self.y, font=self._input_font, width=200,
+                                    enter_key_event=self._search)
+        self._dest_widget = Input(self.parent, self.x, self.y + 30, font=self._input_font, width=200,
+                                  enter_key_event=self._search)
+
+        self._subwidgets = [self._origin_widget, self._dest_widget]
+
+    def _search(self):
+        origin_address = self._origin_widget.get_text()
+        dest_address = self._dest_widget.get_text()
+
+        if not origin_address or not dest_address:
+            return
+
+        self._direction_payload['origin'] = '+'.join(origin_address.split())
+        self._direction_payload['destination'] = '+'.join(dest_address.split())
+
+        direction_res = requests.get(self._direction_url, params=self._direction_payload)
+        self._direction_info = direction_res.json()
+
+        print self._direction_info
+
+    def _on_enter(self):
+        self._origin_widget.set_active(True)
+
+    def _on_setup(self):
+        pass
+
+    def _on_update(self):
+        pass
+
+    def _on_draw(self, screen):
+        pass
+
+    def _handle_widget_events(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_TAB:
+                self._toggle_input_widget()
+
+    def _toggle_input_widget(self):
+        if self._origin_widget.is_active:
+            self._origin_widget.set_active(False)
+            self._dest_widget.set_active(True)
+        else:
+            self._dest_widget.set_active(False)
+            self._origin_widget.set_active(True)
+
+    def reset(self):
+        self._origin_widget.reset()
+        self._dest_widget.reset()
