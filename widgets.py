@@ -406,9 +406,10 @@ class Weather(Widget):
         self.change_font = pygame.font.Font("fonts/FreeSans.ttf", 16)
         self.last_update_font = pygame.font.Font("fonts/FreeSans.ttf", 10)
 
-        self.weather_last_update = time.time()
-        self.current_weather = None
-        self.forecast_weather = None
+        self._weather_last_update = time.time()
+        self._current_weather = None
+        self._forecast_weather = None
+        self._weather_update_interval = 1800
 
         self._weather_key = "508b76be5129c25115e5e60848b4c20c"
         self._current_url = "http://api.openweathermap.org/data/2.5/weather"
@@ -425,12 +426,12 @@ class Weather(Widget):
 
     def _get_weather(self):
         current_res = requests.get(self._current_url, params=self._weather_payload)
-        self.current_weather = current_res.json()
+        self._current_weather = current_res.json()
 
         forecast_res = requests.get(self._forecase_url, params=self._weather_payload)
-        self.forecast_weather = forecast_res.json()
+        self._forecast_weather = forecast_res.json()
 
-        self.weather_last_update = time.time()
+        self._weather_last_update = time.time()
 
         log_to_file("Weather updated")
 
@@ -448,21 +449,21 @@ class Weather(Widget):
         self._get_weather()
 
     def _on_update(self):
-        if (time.time() - self.weather_last_update > 1800 or
-            self.current_weather is None or
-            self.forecast_weather is None):
+        if (time.time() - self._weather_last_update > self._weather_update_interval or
+            self._current_weather is None or
+            self._forecast_weather is None):
             self._get_weather()
 
     def _on_draw(self, screen):
         try:
-            current_desc = self.current_weather['weather'][0]['main']
-            current_temp = int(self.current_weather['main']['temp'])
+            current_desc = self._current_weather['weather'][0]['main']
+            current_temp = int(self._current_weather['main']['temp'])
             current_str = u"{} ℃".format(current_temp)
-            current_icon = self._current_icons[self.current_weather['weather'][0]['icon']]
-            forecast_temp = [int(pred['main']['temp']) for pred in self.forecast_weather['list'][:8]]
+            current_icon = self._current_icons[self._current_weather['weather'][0]['icon']]
+            forecast_temp = [int(pred['main']['temp']) for pred in self._forecast_weather['list'][:8]]
         except KeyError:
-            self.current_weather = None
-            self.forecast_weather = None
+            self._current_weather = None
+            self._forecast_weather = None
             return
 
         forecast_min = min(forecast_temp)
@@ -481,7 +482,7 @@ class Weather(Widget):
         # draw weather change text
         change_info = []
         change_count = 0
-        for pred in self.forecast_weather['list'][:8]:
+        for pred in self._forecast_weather['list'][:8]:
             if change_count == 3:
                 break
             pred_desc = pred['weather'][0]['main']
@@ -500,7 +501,7 @@ class Weather(Widget):
             y += rendered_change_text.get_height()
 
         # draw last update time
-        last_update_mins = int(time.time() - self.weather_last_update) / 60
+        last_update_mins = int(time.time() - self._weather_last_update) / 60
         last_update_text = "Last Update: {} min ago".format(last_update_mins)
         rendered_last_update_text = self.last_update_font.render(last_update_text, True, self.colors['white'])
         screen.blit(rendered_last_update_text, (x, y))
@@ -629,6 +630,62 @@ class Calendar(Widget):
                     self._calendar_selected_row = min(self._calendar_selected_row + 1, len(self._parsed_calendar) - 2)
             elif event.key == pygame.K_RETURN:
                 self._toggle_calendar_row_status(self._calendar_selected_row)
+
+
+class Traffic(Widget):
+    def __init__(self, parent, x, y):
+        super(Traffic, self).__init__(parent, x, y)
+
+        self.traffic_font = pygame.font.Font("fonts/FreeSans.ttf", 13)
+        self.traffic_font_height = self.traffic_font.render(' ', True, self.colors['white']).get_height()
+
+        self._traffic_url = "https://maps.googleapis.com/maps/api/distancematrix/json"
+        self._traffic_keys = "AIzaSyDKl1oPieC1EwVdsnUJpg0btJV2Bwg0cd4"
+        self._traffic_payload = {"units": "matrics", "key": self._traffic_keys}
+
+        self._traffic_icon = None
+        self._traffic_icon_path = os.path.join("images", "car.png")
+        self._traffic_icon_size = self.traffic_font_height
+
+        self._origin_address = "200 Westfield Pl Waterloo"
+        self._dest_address = "SAP Lab Waterloo"
+
+        self._traffic_last_update = time.time()
+        self._traffic_update_interval = 1800
+
+    def _load_traffic(self):
+        self._traffic_payload['origins'] = '+'.join(self._origin_address.split())
+        self._traffic_payload['destinations'] = '+'.join(self._dest_address.split())
+
+        traffic_info_res = requests.get(self._traffic_url, params=self._traffic_payload)
+        self._traffic_info = traffic_info_res.json()
+
+        self._traffic_last_update = time.time()
+        log_to_file("Traffic updated")
+
+    def _on_setup(self):
+        self._load_traffic()
+
+        icon = pygame.image.load(self._traffic_icon_path)
+        self._traffic_icon = pygame.transform.scale(icon, (self._traffic_icon_size, self._traffic_icon_size))
+
+    def _on_update(self):
+        if (time.time() - self._traffic_last_update > self._traffic_update_interval or
+            self._traffic_info is None):
+            self._load_traffic()
+
+    def _on_draw(self, screen):
+        if not self._traffic_info:
+            return
+
+        traffic_distance = self._traffic_info['rows'][0]['elements'][0]['distance']['text']
+        traffic_duration = self._traffic_info['rows'][0]['elements'][0]['duration']['text']
+
+        traffic_text = "{} {}".format(traffic_distance, traffic_duration)
+        rendered_text = self.traffic_font.render(traffic_text, True, self.colors['white'])
+
+        screen.blit(rendered_text, (self.x, self.y))
+        screen.blit(self._traffic_icon, (self.x + rendered_text.get_width() + 5, self.y))
 
 
 class Stock(Widget):

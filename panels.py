@@ -102,7 +102,9 @@ class MainPanel(Panel):
         self.calendar_widget = Calendar(self, 190, 100)
         self.stock_widget = Stock(self, 5, 5)
         self.systeminfo_widget = SystemInfo(self, 10, 10)
-        self.widgets = [self.news_widget, self.weather_widget, self.time_widget, self.calendar_widget, self.systeminfo_widget]
+        self.traffic_widget = Traffic(self, 180, 10)
+        self.widgets = [self.news_widget, self.weather_widget, self.time_widget,
+                        self.calendar_widget, self.systeminfo_widget, self.traffic_widget]
 
         self._night_image_path = "images/night.gif"
         self._night_image = pygame.transform.scale(pygame.image.load(self._night_image_path), (30, 30))
