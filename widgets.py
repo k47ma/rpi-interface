@@ -48,6 +48,7 @@ class Widget:
         self._on_update()
 
     def draw(self, screen):
+        self._draw_background(screen)
         for widget in self._subwidgets:
             widget.draw(screen)
         for shape in self._shapes:
@@ -64,6 +65,9 @@ class Widget:
 
     @abstractmethod
     def _on_draw(self, screen):
+        pass
+
+    def _draw_background(self, screen):
         pass
 
     def _handle_widget_events(self, event):
@@ -1421,9 +1425,11 @@ class Input(Widget):
 
         self.font = font if font is not None else self.default_font
         self.width = width
+        self.height = self.font.render(' ', True, self.colors['white']).get_height()
         self.enter_key_event = enter_key_event
         self.capital_lock = capital_lock
 
+        self._background_alpha = 180
         self._cursor_index = 0
         self._cursor_active_time = time.time()
         self._string = ""
@@ -1431,9 +1437,6 @@ class Input(Widget):
         self._subwidgets = [self._content_widget]
 
     def _draw_cursor(self, screen):
-        if not self.is_active:
-            return
-
         time_diff = time.time() - self._cursor_active_time
         if time_diff - math.floor(time_diff) > 0.5:
             return
@@ -1443,6 +1446,15 @@ class Input(Widget):
         end_pos = (self.x + rendered_text.get_width(),
                    self.y + rendered_text.get_height())
         pygame.draw.line(screen, self.colors['white'], start_pos, end_pos)
+
+    def _draw_background(self, screen):
+        if not self.is_active:
+            return
+
+        background_surface = pygame.Surface((self.width, self.height))
+        background_surface.fill(self.colors['lightgray'])
+        background_surface.set_alpha(self._background_alpha)
+        screen.blit(background_surface, (self.x, self.y))
 
     def _ctrl_pressed(self):
         pressed = pygame.key.get_pressed()
@@ -1503,7 +1515,8 @@ class Input(Widget):
         self.add_shape(Line(self.colors['white'], line_start_pos, line_end_pos))
 
     def _on_draw(self, screen):
-        self._draw_cursor(screen)
+        if self.is_active:
+            self._draw_cursor(screen)
 
     def _handle_widget_events(self, event):
         if event.type == pygame.KEYDOWN:
