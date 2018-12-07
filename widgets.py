@@ -1829,6 +1829,10 @@ class Map(Widget):
     def _on_enter(self):
         self._origin_widget.set_active(True)
 
+    def _on_exit(self):
+        self._origin_widget.set_active(False)
+        self._dest_widget.set_active(False)
+
     def _on_setup(self):
         pass
 
