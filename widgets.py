@@ -5,6 +5,7 @@ import Queue
 import re
 import glob
 import psutil
+import polyline
 from bs4 import BeautifulSoup
 from table import Table
 from threads import *
@@ -1781,20 +1782,33 @@ class ChartCaption(Widget):
 
 
 class Map(Widget):
-    def __init__(self, parent, x, y):
+    def __init__(self, parent, x, y, map_width=200, map_height=150, map_padding=0.15):
         super(Map, self).__init__(parent, x, y)
+
+        self.map_width = map_width
+        self.map_height = map_height
+        self.map_padding = map_padding
+
+        self._map_x = self.x + 30
+        self._map_y = self.y + 90
+
+        self._direction_info = None
+        self._total_distance = 0.0
+        self._total_time = 0.0
+        self._polyline_points = []
 
         self._direction_url = "https://maps.googleapis.com/maps/api/directions/json"
         self._direction_key = "AIzaSyDKl1oPieC1EwVdsnUJpg0btJV2Bwg0cd4"
         self._direction_payload = {"units": "metric", "mode": "driving", "key": self._direction_key,
                                    "origin": "", "destination": ""}
-        self._direction_info = None
 
         self._caption_font = pygame.font.Font("fonts/FreeSans.ttf", 15)
+        self._input_font = pygame.font.Font("fonts/FreeSans.ttf", 15)
+        self._result_font = pygame.font.Font("fonts/FreeSans.ttf", 16)
+
         self._from_text = self._caption_font.render("From: ", True, self.colors['white'])
         self._to_text = self._caption_font.render("To: ", True, self.colors['white'])
 
-        self._input_font = pygame.font.Font("fonts/FreeSans.ttf", 15)
         self._origin_widget = Input(self.parent, self.x + self._from_text.get_width() + 5, self.y,
                                     font=self._input_font, width=200, enter_key_event=self._search)
         self._dest_widget = Input(self.parent, self.x + self._from_text.get_width() + 5, self.y + 30,
@@ -1815,6 +1829,46 @@ class Map(Widget):
         direction_res = requests.get(self._direction_url, params=self._direction_payload)
         self._direction_info = direction_res.json()
 
+        self.clear_shapes()
+        self._parse_info()
+
+    def _parse_info(self):
+        if not self._direction_info:
+            return
+
+        self._total_time = sum([step['duration']['value'] for step in self._direction_info['routes'][0]['legs'][0]['steps']])
+        self._total_distance = sum([step['distance']['value'] for step in self._direction_info['routes'][0]['legs'][0]['steps']])
+
+
+        # parse overview polyline
+        polyline_width = int(self.map_width * (1 - self.map_padding))
+        polyline_height = int(self.map_height * (1 - self.map_padding))
+        polyline_x = self._map_x + (self.map_width - polyline_width) / 2
+        polyline_y = self._map_y + (self.map_height - polyline_height) / 2
+
+        points = polyline.decode(self._direction_info['routes'][0]['overview_polyline']['points'])
+        latitudes = [point[0] for point in points]
+        longitudes = [point[1] for point in points]
+        min_lat = min(latitudes)
+        max_lat = max(latitudes)
+        min_long = min(longitudes)
+        max_long = max(longitudes)
+
+        coords = [(long - min_long, lat - min_lat) for lat, long in points]
+        x_ratio = polyline_width / (max_long - min_long)
+        y_ratio = polyline_height / (max_lat - min_lat)
+        ratio = min(x_ratio, y_ratio)
+        coords = [(int(polyline_x + x * ratio), int(polyline_y + polyline_height - y * ratio)) for x, y in coords]
+
+        coords_x = [coord[0] for coord in coords]
+        coords_y = [coord[1] for coord in coords]
+        x_offset = polyline_width - (max(coords_x) - min(coords_x))
+        y_offset = polyline_height - (max(coords_y) - min(coords_y))
+        self._polyline_points = [(x + x_offset / 2, y - y_offset / 2) for x, y in coords]
+
+        self.add_shape(Lines(self.colors['green'], False, self._polyline_points, width=3, anti_alias=False))
+        self.add_shape(Rectangle(self.colors['white'], self._map_x, self._map_y, self.map_width, self.map_height))
+
     def _draw_texts(self, screen):
         screen.blit(self._from_text, (self.x, self.y))
         screen.blit(self._to_text, (self.x, self.y + 30))
@@ -1823,8 +1877,9 @@ class Map(Widget):
         if not self._direction_info:
             return
 
-        total_time = sum([step['duration']['value'] for step in self._direction_info['routes'][0]['legs'][0]['steps']])
-        total_distance = sum([step['distance']['value'] for step in self._direction_info['routes'][0]['legs'][0]['steps']])
+        result_text = "{:.1f} km - {:.1f} min".format(float(self._total_distance) / 1000, float(self._total_time) / 60)
+        rendered_result_text = self._result_font.render(result_text, True, self.colors['white'])
+        screen.blit(rendered_result_text, (self.x, self.y + 60))
 
     def _on_enter(self):
         self._origin_widget.set_active(True)
@@ -1857,5 +1912,10 @@ class Map(Widget):
             self._origin_widget.set_active(True)
 
     def reset(self):
+        self.clear_shapes()
         self._origin_widget.reset()
         self._dest_widget.reset()
+        self._direction_info = None
+        self._total_distance = 0.0
+        self._total_time = 0.0
+        self._polyline_points = []
