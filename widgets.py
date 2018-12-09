@@ -26,8 +26,10 @@ class Widget:
                        "lightgray": (75, 75, 75),
                        "green": (0, 255, 0),
                        "red": (255, 0, 0),
-                       "blue": (0, 0, 255),
-                       "yellow": (255, 255, 0)}
+                       "blue": (30, 144, 255),
+                       "lightblue": (0, 191, 255),
+                       "yellow": (255, 255, 0),
+                       "orange": (255, 165, 0)}
         self.default_font_name = pygame.font.get_default_font()
         self.default_font = pygame.font.SysFont(self.default_font_name, 25)
         self._screen_width = parent.app.get_width()
@@ -107,6 +109,8 @@ class Widget:
             pygame.draw.rect(screen, shape.color, shape.to_pygame_rect(), shape.line_width)
         elif isinstance(shape, Polygon):
             pygame.draw.polygon(screen, shape.color, shape.pointlist, shape.width)
+        elif isinstance(shape, Circle):
+            pygame.draw.circle(screen, shape.color, shape.pos, shape.radius, shape.width)
 
     def get_pos(self):
         return self.x, self.y
@@ -1822,10 +1826,11 @@ class Map(Widget):
         self._from_text = self._caption_font.render("From: ", True, self.colors['white'])
         self._to_text = self._caption_font.render("To: ", True, self.colors['white'])
 
+        self._input_width = 200
         self._origin_widget = Input(self.parent, self.x + self._from_text.get_width() + 5, self.y,
-                                    font=self._input_font, width=200, enter_key_event=self._search)
+                                    font=self._input_font, width=self._input_width, enter_key_event=self._search)
         self._dest_widget = Input(self.parent, self.x + self._from_text.get_width() + 5, self.y + 30,
-                                  font=self._input_font, width=200, enter_key_event=self._search)
+                                  font=self._input_font, width=self._input_width, enter_key_event=self._search)
 
         self._subwidgets = [self._origin_widget, self._dest_widget]
 
@@ -1851,7 +1856,6 @@ class Map(Widget):
 
         self._total_time = sum([step['duration']['value'] for step in self._direction_info['routes'][0]['legs'][0]['steps']])
         self._total_distance = sum([step['distance']['value'] for step in self._direction_info['routes'][0]['legs'][0]['steps']])
-
 
         # parse overview polyline
         polyline_width = int(self.map_width * (1 - self.map_padding))
@@ -1880,11 +1884,18 @@ class Map(Widget):
         self._polyline_points = [(x + x_offset / 2, y - y_offset / 2) for x, y in coords]
 
         self.add_shape(Lines(self.colors['green'], False, self._polyline_points, width=3, anti_alias=False))
+        self.add_shape(Circle(self.colors['orange'], self._polyline_points[0], 5))
+        self.add_shape(Circle(self.colors['lightblue'], self._polyline_points[-1], 5))
         self.add_shape(Rectangle(self.colors['white'], self._map_x, self._map_y, self.map_width, self.map_height))
 
     def _draw_texts(self, screen):
         screen.blit(self._from_text, (self.x, self.y))
         screen.blit(self._to_text, (self.x, self.y + 30))
+
+        if self._direction_info:
+            text_width = max(self._from_text.get_width(), self._to_text.get_width()) + self._input_width
+            self.add_shape(Circle(self.colors['orange'], (self.x + text_width, self.y), 5))
+            self.add_shape(Circle(self.colors['lightblue'], (self.x + text_width, self.y + 30), 5))
 
     def _draw_result(self, screen):
         if not self._direction_info:
