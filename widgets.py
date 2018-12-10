@@ -653,7 +653,7 @@ class Traffic(Widget):
         self._traffic_payload = {"units": "matrics", "key": self._traffic_keys, "origins": "", "destinations": ""}
 
         self._traffic_icon = None
-        self._traffic_icon_path = os.path.join("images", "car.png")
+        self._traffic_icon_path = os.path.join("images", "traffic", "traffic.png")
         self._traffic_icon_size = self.traffic_font_height
 
         self._origin_address = "200 Westfield Pl Waterloo"
@@ -1814,17 +1814,25 @@ class Map(Widget):
         self._total_time = 0.0
         self._polyline_points = []
 
-        self._direction_url = "https://maps.googleapis.com/maps/api/directions/json"
-        self._direction_key = "AIzaSyDKl1oPieC1EwVdsnUJpg0btJV2Bwg0cd4"
-        self._direction_payload = {"units": "metric", "mode": "driving", "key": self._direction_key,
-                                   "origin": "", "destination": ""}
-
         self._caption_font = pygame.font.Font("fonts/FreeSans.ttf", 15)
         self._input_font = pygame.font.Font("fonts/FreeSans.ttf", 15)
         self._result_font = pygame.font.Font("fonts/FreeSans.ttf", 16)
 
         self._from_text = self._caption_font.render("From: ", True, self.colors['white'])
         self._to_text = self._caption_font.render("To: ", True, self.colors['white'])
+        self._mode_text = self._caption_font.render("Mode: ", True, self.colors['white'])
+
+        self._mode_ind = 0
+        self._icon_size = 25
+        self._mode_rect_width = 2
+        self._modes = ["driving", "transit", "walking", "bicycling"]
+        self._icon_directory = os.path.join("images", "traffic")
+        self._icons = []
+
+        self._direction_url = "https://maps.googleapis.com/maps/api/directions/json"
+        self._direction_key = "AIzaSyDKl1oPieC1EwVdsnUJpg0btJV2Bwg0cd4"
+        self._direction_payload = {"units": "metric", "mode": "driving", "key": self._direction_key,
+                                   "origin": "", "destination": "", "mode": self._modes[self._mode_ind]}
 
         self._input_width = 200
         self._dot_radius = 5
@@ -1844,6 +1852,7 @@ class Map(Widget):
 
         self._direction_payload['origin'] = '+'.join(origin_address.split())
         self._direction_payload['destination'] = '+'.join(dest_address.split())
+        self._direction_payload['mode'] = self._modes[self._mode_ind]
 
         direction_res = requests.get(self._direction_url, params=self._direction_payload)
         self._direction_info = direction_res.json()
@@ -1899,13 +1908,35 @@ class Map(Widget):
             self.add_shape(Circle(self.colors['orange'], (self.x + text_width + self._dot_radius * 2, self.y + text_height / 2), self._dot_radius))
             self.add_shape(Circle(self.colors['lightblue'], (self.x + text_width + self._dot_radius * 2, self.y + text_height / 2 + 30), self._dot_radius))
 
+    def _draw_icons(self, screen):
+        x = self.x + 280
+        y = self.y + 30
+        screen.blit(self._mode_text, (x, self.y))
+        for ind, icon in enumerate(self._icons):
+            if ind == self._mode_ind:
+                rect_area = (x - self._mode_rect_width, y - self._mode_rect_width,
+                             icon.get_width() + 2 * self._mode_rect_width, icon.get_height() + 2 * self._mode_rect_width)
+                pygame.draw.rect(screen, self.colors['green'], rect_area, self._mode_rect_width)
+            screen.blit(icon, (x, y))
+            x += icon.get_width() + 20
+
+    def _calculate_time(self, total_time):
+        total_min = total_time / 60
+        if total_min < 60:
+            return "{:.1f} min".format(total_min)
+        elif total_min < 60 * 24:
+            return "{} h {} min".format(int(total_min / 60), int(total_min) % 60)
+        else:
+            total_hour = int(total_min / 60)
+            return "{} d {} h {} min".format(total_hour / 24, total_hour % 24, int(total_min) % 60)
+
     def _draw_result(self, screen):
         if not self._direction_info:
             return
 
-        result_text = "{:.1f} km - {:.1f} min".format(float(self._total_distance) / 1000, float(self._total_time) / 60)
+        result_text = "{:.1f} km - {}".format(float(self._total_distance) / 1000, self._calculate_time(float(self._total_time)))
         rendered_result_text = self._result_font.render(result_text, True, self.colors['white'])
-        screen.blit(rendered_result_text, (self.x, self.y + 60))
+        screen.blit(rendered_result_text, (self._map_x, self.y + 60))
 
     def _on_enter(self):
         self._origin_widget.set_active(True)
@@ -1915,7 +1946,11 @@ class Map(Widget):
         self._dest_widget.set_active(False)
 
     def _on_setup(self):
-        pass
+        for mode in self._modes:
+            image_path = os.path.join(self._icon_directory, mode + ".png")
+            image = pygame.image.load(image_path)
+            image = pygame.transform.scale(image, (self._icon_size, self._icon_size))
+            self._icons.append(image.convert_alpha())
 
     def _on_update(self):
         pass
@@ -1923,19 +1958,24 @@ class Map(Widget):
     def _on_draw(self, screen):
         self._draw_texts(screen)
         self._draw_result(screen)
+        self._draw_icons(screen)
 
     def _handle_widget_events(self, event):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_TAB:
-                self._toggle_input_widget()
+                self._toggle_mode()
+            elif event.key == pygame.K_UP:
+                self._origin_widget.set_active(True)
+                self._dest_widget.set_active(False)
+            elif event.key == pygame.K_DOWN:
+                self._origin_widget.set_active(False)
+                self._dest_widget.set_active(True)
 
-    def _toggle_input_widget(self):
-        if self._origin_widget.is_active:
-            self._origin_widget.set_active(False)
-            self._dest_widget.set_active(True)
+    def _toggle_mode(self):
+        if self._mode_ind < len(self._modes) - 1:
+            self._mode_ind += 1
         else:
-            self._dest_widget.set_active(False)
-            self._origin_widget.set_active(True)
+            self._mode_ind = 0
 
     def reset(self):
         self.clear_shapes()
@@ -1945,3 +1985,4 @@ class Map(Widget):
         self._total_distance = 0.0
         self._total_time = 0.0
         self._polyline_points = []
+        self._mode_ind = 0
