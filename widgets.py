@@ -1827,6 +1827,7 @@ class Map(Widget):
         self._to_text = self._caption_font.render("To: ", True, self.colors['white'])
 
         self._input_width = 200
+        self._dot_radius = 5
         self._origin_widget = Input(self.parent, self.x + self._from_text.get_width() + 5, self.y,
                                     font=self._input_font, width=self._input_width, enter_key_event=self._search)
         self._dest_widget = Input(self.parent, self.x + self._from_text.get_width() + 5, self.y + 30,
@@ -1884,8 +1885,8 @@ class Map(Widget):
         self._polyline_points = [(x + x_offset / 2, y - y_offset / 2) for x, y in coords]
 
         self.add_shape(Lines(self.colors['green'], False, self._polyline_points, width=3, anti_alias=False))
-        self.add_shape(Circle(self.colors['orange'], self._polyline_points[0], 5))
-        self.add_shape(Circle(self.colors['lightblue'], self._polyline_points[-1], 5))
+        self.add_shape(Circle(self.colors['orange'], self._polyline_points[0], self._dot_radius))
+        self.add_shape(Circle(self.colors['lightblue'], self._polyline_points[-1], self._dot_radius))
         self.add_shape(Rectangle(self.colors['white'], self._map_x, self._map_y, self.map_width, self.map_height))
 
     def _draw_texts(self, screen):
@@ -1893,9 +1894,10 @@ class Map(Widget):
         screen.blit(self._to_text, (self.x, self.y + 30))
 
         if self._direction_info:
+            text_height = self._input_font.render(' ', True, self.colors['white']).get_height()
             text_width = max(self._from_text.get_width(), self._to_text.get_width()) + self._input_width
-            self.add_shape(Circle(self.colors['orange'], (self.x + text_width, self.y), 5))
-            self.add_shape(Circle(self.colors['lightblue'], (self.x + text_width, self.y + 30), 5))
+            self.add_shape(Circle(self.colors['orange'], (self.x + text_width + self._dot_radius * 2, self.y + text_height / 2), self._dot_radius))
+            self.add_shape(Circle(self.colors['lightblue'], (self.x + text_width + self._dot_radius * 2, self.y + text_height / 2 + 30), self._dot_radius))
 
     def _draw_result(self, screen):
         if not self._direction_info:
