@@ -1829,10 +1829,13 @@ class Map(Widget):
         self._icon_directory = os.path.join("images", "traffic")
         self._icons = []
 
+        self._map_api_key = "AIzaSyDKl1oPieC1EwVdsnUJpg0btJV2Bwg0cd4"
         self._direction_url = "https://maps.googleapis.com/maps/api/directions/json"
-        self._direction_key = "AIzaSyDKl1oPieC1EwVdsnUJpg0btJV2Bwg0cd4"
-        self._direction_payload = {"units": "metric", "mode": "driving", "key": self._direction_key,
+        self._direction_payload = {"units": "metric", "mode": "driving", "key": self._map_api_key,
                                    "origin": "", "destination": "", "mode": self._modes[self._mode_ind]}
+
+        self._road_url = "https://roads.googleapis.com/v1/nearestRoads"
+        self._road_payload = {"points": "", "key": self._map_api_key}
 
         self._input_width = 200
         self._dot_radius = 5
@@ -1858,7 +1861,10 @@ class Map(Widget):
         self._direction_info = direction_res.json()
 
         self.clear_shapes()
-        self._parse_info()
+        points = self._parse_info()
+
+        if len(points) > 100:
+            points = points[::len(points) / 15]
 
     def _parse_info(self):
         if not self._direction_info:
@@ -1897,6 +1903,8 @@ class Map(Widget):
         self.add_shape(Circle(self.colors['orange'], self._polyline_points[0], self._dot_radius))
         self.add_shape(Circle(self.colors['lightblue'], self._polyline_points[-1], self._dot_radius))
         self.add_shape(Rectangle(self.colors['white'], self._map_x, self._map_y, self.map_width, self.map_height))
+
+        return points
 
     def _draw_texts(self, screen):
         screen.blit(self._from_text, (self.x, self.y))
