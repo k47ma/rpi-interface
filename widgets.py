@@ -1863,8 +1863,14 @@ class Map(Widget):
         self.clear_shapes()
         points = self._parse_info()
 
+        self._fetch_roads(points)
+
+    def _fetch_roads(self, points):
         if len(points) > 100:
             points = points[::len(points) / 15]
+
+        self._road_payload['points'] = '|'.join(['{},{}'.format(point[0], point[1]) for point in points])
+        road_res = requests.get(self._road_url, params=self._road_payload)
 
     def _parse_info(self):
         if not self._direction_info:
