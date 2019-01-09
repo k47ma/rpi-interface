@@ -89,7 +89,7 @@ class Table:
         # add contents to the table
         for r, row in enumerate(self.rows):
             for c, elem in enumerate(row):
-                if self.content_centered and self.content_centered[c]:
+                if r == 0 or (self.content_centered and self.content_centered[c]):
                     pos = (self.x + sum(widths[:c]) + (widths[c] - elem.get_width()) / 2 + self.x_padding,
                            self.y + sum(heights[:r]) + self.y_padding)
                 else:
