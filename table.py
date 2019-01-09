@@ -3,13 +3,14 @@ from shapes import *
 
 
 class Table:
-    def __init__(self, data, x=0, y=0, header_font=None, content_font=None,
+    def __init__(self, data, titles=None, x=0, y=0, header_font=None, content_font=None,
                  header_color=(255, 255, 255), content_color=(255, 255, 255),
                  line_color=(255, 255, 255), content_centered=None,
                  x_padding=0, y_padding=0, selected=False, selected_row=0,
                  selected_line_color=(0, 255, 0), row_status=None,
                  content_inactive_color=(125, 125, 125)):
         self.data = data
+        self.titles = titles
         self.x = x
         self.y = y
         self.pos = (x, y)
@@ -40,13 +41,19 @@ class Table:
         self._render_data()
 
     def _render_data(self):
-        # render title row
+        if self.titles:
+            # render titles
+            rendered_titles = []
+            for elem in self.titles:
+                rendered_title = self.header_font.render(elem, True, self.header_color)
+                rendered_titles.append(rendered_title)
+            self.rows.append(rendered_titles)
+
+        # render contents
         for row_ind, row in enumerate(self.data):
             rendered_row = []
-            for col_ind, elem in enumerate(row):
-                if row_ind == 0:
-                    rendered_text = self.header_font.render(elem, True, self.header_color)
-                elif self.row_status and not self.row_status[row_ind-1]:
+            for elem in row:
+                if self.row_status and not self.row_status[row_ind]:
                     rendered_text = self.content_font.render(elem, True, self.content_inactive_color)
                 else:
                     rendered_text = self.content_font.render(elem, True, self.content_color)
@@ -82,13 +89,13 @@ class Table:
         # add contents to the table
         for r, row in enumerate(self.rows):
             for c, elem in enumerate(row):
-                if r == 0 or (self.content_centered and self.content_centered[c]):
+                if self.content_centered and self.content_centered[c]:
                     pos = (self.x + sum(widths[:c]) + (widths[c] - elem.get_width()) / 2 + self.x_padding,
                            self.y + sum(heights[:r]) + self.y_padding)
                 else:
                     pos = (self.x + sum(widths[:c]) + self.x_padding,
                            self.y + sum(heights[:r]) + self.y_padding)
-                if self.row_status and not self.row_status[r-1]:
+                if r > 0 and self.row_status and not self.row_status[r-1]:
                     line_start_pos = (pos[0], pos[1] + elem.get_height() / 2)
                     line_end_pos = (pos[0] + elem.get_width(), pos[1] + elem.get_height() / 2)
                     self.shapes.append(Line(self.content_inactive_color, line_start_pos, line_end_pos))

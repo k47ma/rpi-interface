@@ -517,15 +517,16 @@ class Weather(Widget):
 
 
 class Calendar(Widget):
-    def __init__(self, parent, x, y):
+    def __init__(self, parent, x, y, max_rows=-1):
         super(Calendar, self).__init__(parent, x, y)
 
+        self.max_rows = max_rows
         self.header_font = pygame.font.Font("fonts/arial.ttf", 18)
         self.content_font = pygame.font.Font("fonts/arial.ttf", 16)
 
-        self._calendar_file = "calendar/calendar.html"
+        self._calendar_file = "calendars/calendar.html"
+        self._calendar_titles = []
         self._parsed_calendar = []
-        self._calendar_status = []
         self._calendar_table = None
         self._calendar_last_update = dt.now().day
         self._calendar_selected_row = 0
@@ -552,32 +553,33 @@ class Calendar(Widget):
 
         # add contents to list
         self._parsed_calendar = []
-        self._calendar_status = []
+        calendar_status = []
 
-        self._parsed_calendar.append([text for text in title_texts])
+        self._calendar_titles = [text for text in title_texts] + ["Days"]
         for status_tag in status_tags:
-            self._calendar_status.append(bool(int(status_tag.get_text())))
+            calendar_status.append(status_tag.get_text())
 
         for content_row in content_rows:
             self._parsed_calendar.append([content.get_text() for ind, content in enumerate(content_row)])
 
-        self._parsed_calendar = self._add_days(self._parsed_calendar)
+        self._add_days(self._parsed_calendar, calendar_status)
+
+        if self.max_rows != -1 and len(self._parsed_calendar) > self.max_rows:
+            self._parsed_calendar = sorted(self._parsed_calendar, key=lambda x: int(x[-2]))
+            self._parsed_calendar = [row for row in self._parsed_calendar if row[-1] == '1' or int(row[-2]) >= -3]
+            self._parsed_calendar = self._parsed_calendar[:self.max_rows]
 
         self._calendar_last_update = current_day
         log_to_file("Calendar updated")
 
-    def _add_days(self, calendar):
+    def _add_days(self, calendar, status):
         try:
-            time_ind = calendar[0].index("Due Date")
+            time_ind = self._calendar_titles.index("Due Date")
         except NameError:
-            return calendar
+            return
 
         curr_date = dt.today().replace(hour=0, minute=0, second=0, microsecond=0)
         for ind, row in enumerate(calendar):
-            if ind == 0:
-                row.append("Days")
-                continue
-
             # convert string to datetime object
             try:
                 date = dt.strptime(row[time_ind], "%Y-%m-%d")
@@ -587,14 +589,13 @@ class Calendar(Widget):
                 row.append(str(diff_date.days))
             except ValueError:
                 row.append("")
+                row.append(status[ind])
                 continue
 
-            row[time_ind] = row[time_ind]
-
-        return calendar
+            row.append(status[ind])
 
     def _toggle_calendar_row_status(self, row_index):
-        self._calendar_status[row_index] = not self._calendar_status[row_index]
+        self._parsed_calendar[row_index][-1] = "0" if bool(int(self._parsed_calendar[row_index][-1])) else "1"
 
         file = open(self._calendar_file, 'r')
         calendar_text = file.read()
@@ -604,9 +605,15 @@ class Calendar(Widget):
         soup = BeautifulSoup(calendar_text, "html.parser")
 
         # get table rows
-        status_tags = soup.find_all('div', class_="__status__")
-        for ind, status in enumerate(self._calendar_status):
-            status_tags[ind].string = "1" if self._calendar_status[ind] else "0"
+        calendar_rows = soup.find_all('tr')[1:]
+        for status in calendar_rows:
+            row_name = status.find('td').get_text()
+            names = [cal[0] for cal in self._parsed_calendar]
+            try:
+                target_ind = names.index(row_name)
+            except ValueError:
+                continue
+            status.find('div', class_="__status__").string = self._parsed_calendar[target_ind][-1]
 
         with open(self._calendar_file, 'w') as file:
             file.write(str(soup))
@@ -620,11 +627,13 @@ class Calendar(Widget):
         if not self._parsed_calendar or current_day != self._calendar_last_update:
             self._load_calendar()
 
-        self._calendar_table = Table(self._parsed_calendar, header_font=self.header_font,
+        calendar_contents = [row[:-1] for row in self._parsed_calendar]
+        calendar_status = [bool(int(row[-1])) for row in self._parsed_calendar]
+        self._calendar_table = Table(calendar_contents, titles=self._calendar_titles, header_font=self.header_font,
                                      content_font=self.content_font, x=self.x, y=self.y,
                                      content_centered=[False, False, True], x_padding=2,
                                      selected=self.is_active, selected_row=self._calendar_selected_row,
-                                     row_status=self._calendar_status)
+                                     row_status=calendar_status)
 
     def _on_draw(self, screen):
         if self._calendar_table:
@@ -636,7 +645,7 @@ class Calendar(Widget):
                 self._calendar_selected_row = max(self._calendar_selected_row - 1, 0)
             elif event.key == pygame.K_DOWN:
                 if self._parsed_calendar:
-                    self._calendar_selected_row = min(self._calendar_selected_row + 1, len(self._parsed_calendar) - 2)
+                    self._calendar_selected_row = min(self._calendar_selected_row + 1, len(self._parsed_calendar) - 1)
             elif event.key == pygame.K_RETURN:
                 self._toggle_calendar_row_status(self._calendar_selected_row)
 
