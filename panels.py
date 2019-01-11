@@ -100,6 +100,7 @@ class MainPanel(Panel):
         self.weather_widget = Weather(self, 10, 75)
         self.time_widget = Time(self)
         self.calendar_widget = Calendar(self, 215, 100, max_rows=9)
+        self.calendar_widget.set_align("right")
         self.stock_widget = Stock(self, 5, 5)
         self.systeminfo_widget = SystemInfo(self, 10, 10)
         self.traffic_widget = Traffic(self, 180, 10)

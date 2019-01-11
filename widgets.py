@@ -32,9 +32,12 @@ class Widget:
                        "orange": (255, 165, 0)}
         self.default_font_name = pygame.font.get_default_font()
         self.default_font = pygame.font.SysFont(self.default_font_name, 25)
+        self.is_active = False
+
         self._screen_width = parent.app.get_width()
         self._screen_height = parent.app.get_height()
-        self.is_active = False
+        self._screen_padding = 3
+        self._align = None
         self._shapes = []
         self._subwidgets = []
 
@@ -45,6 +48,7 @@ class Widget:
         self._on_setup()
 
     def update(self):
+        self._reload_pos()
         for widget in self._subwidgets:
             widget.update()
         self._on_update()
@@ -56,6 +60,22 @@ class Widget:
         for shape in self._shapes:
             self._draw_shape(screen, shape)
         self._on_draw(screen)
+
+    def set_align(self, align):
+        self._align = align
+
+    def _reload_pos(self):
+        if not self._align:
+            return
+
+        if self._align == "top":
+            self.y = self._screen_padding
+        elif self._align == "bottom":
+            self.y = self._screen_height - self.get_height() - self._screen_padding
+        elif self._align == "left":
+            self.x = self._screen_padding
+        elif self._align == "right":
+            self.x = self._screen_width - self.get_width() - self._screen_padding
 
     @abstractmethod
     def _on_setup(self):
@@ -136,6 +156,12 @@ class Widget:
                 self._on_enter()
             else:
                 self._on_exit()
+
+    def get_width(self):
+        return 0
+
+    def get_height(self):
+        return 0
 
 
 class News(Widget):
@@ -619,14 +645,7 @@ class Calendar(Widget):
             file.write(str(soup))
             file.close()
 
-    def _on_setup(self):
-        self._load_calendar()
-
-    def _on_update(self):
-        current_day = dt.now().day
-        if not self._parsed_calendar or current_day != self._calendar_last_update:
-            self._load_calendar()
-
+    def _load_table(self):
         calendar_contents = [row[:-1] for row in self._parsed_calendar]
         calendar_status = [bool(int(row[-1])) for row in self._parsed_calendar]
         self._calendar_table = Table(calendar_contents, titles=self._calendar_titles, header_font=self.header_font,
@@ -634,6 +653,17 @@ class Calendar(Widget):
                                      content_centered=[False, False, True], x_padding=2,
                                      selected=self.is_active, selected_row=self._calendar_selected_row,
                                      row_status=calendar_status)
+
+    def _on_setup(self):
+        self._load_calendar()
+        self._load_table()
+
+    def _on_update(self):
+        current_day = dt.now().day
+        if not self._parsed_calendar or current_day != self._calendar_last_update:
+            self._load_calendar()
+
+        self._load_table()
 
     def _on_draw(self, screen):
         if self._calendar_table:
@@ -649,6 +679,11 @@ class Calendar(Widget):
             elif event.key == pygame.K_RETURN:
                 self._toggle_calendar_row_status(self._calendar_selected_row)
 
+    def get_width(self):
+        return self._calendar_table.get_width() if self._calendar_table else 0
+
+    def _get_height(self):
+        return self._calendar_table.get_height() if self._calendar_table else 0
 
 class Traffic(Widget):
     def __init__(self, parent, x, y):
@@ -665,8 +700,8 @@ class Traffic(Widget):
         self._traffic_icon_path = os.path.join("images", "traffic", "traffic.png")
         self._traffic_icon_size = self.traffic_font_height
 
-        self._origin_address = "200 Westfield Pl Waterloo"
-        self._dest_address = "SAP Lab Waterloo"
+        self._origin_address = "254 Phillip St Waterloo"
+        self._dest_address = "University of Waterloo"
 
         self._traffic_last_update = time.time()
         self._traffic_update_interval = 1800

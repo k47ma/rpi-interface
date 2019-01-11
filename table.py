@@ -26,6 +26,9 @@ class Table:
         self.row_status = row_status
         self.content_inactive_color = content_inactive_color
 
+        self._total_width = 0
+        self._total_height = 0
+
         if header_font is None:
             self.header_font = pygame.font.Font("fonts/arial.ttf", 18)
         else:
@@ -40,7 +43,13 @@ class Table:
         self.shapes = []
         self._render_data()
 
+    def _reset(self):
+        self.rows = []
+        self.shapes = []
+
     def _render_data(self):
+        self._reset()
+
         if self.titles:
             # render titles
             rendered_titles = []
@@ -67,24 +76,24 @@ class Table:
 
         heights = [max([elem.get_height() + self.y_padding * 2 for elem in row]) for row in self.rows]
 
-        total_width = sum(widths)
-        total_height = sum(heights)
+        self._total_width = sum(widths)
+        self._total_height = sum(heights)
 
         # build the boundaries of table
         for r in range(len(self.rows) + 1):
             start_pos = (self.x, self.y + sum(heights[:r]))
-            end_pos = (self.x + total_width, self.y + sum(heights[:r]))
+            end_pos = (self.x + self._total_width, self.y + sum(heights[:r]))
             self.shapes.append(Line(self.line_color, start_pos, end_pos))
 
         for c in range(len(self.rows[0]) + 1):
             start_pos = (self.x + sum(widths[:c]), self.y)
-            end_pos = (self.x + sum(widths[:c]), self.y + total_height)
+            end_pos = (self.x + sum(widths[:c]), self.y + self._total_height)
             self.shapes.append(Line(self.line_color, start_pos, end_pos))
 
         # add selected row
         if self.selected:
             self.shapes.append(Rectangle(self.selected_line_color, self.x, self.y + sum(heights[:self.selected_row+1]),
-                                         total_width, heights[self.selected_row+1], line_width=3))
+                                         self._total_width, heights[self.selected_row+1], line_width=3))
 
         # add contents to the table
         for r, row in enumerate(self.rows):
@@ -112,3 +121,15 @@ class Table:
     def draw(self, screen):
         for shape in self.shapes:
             self._draw_shape(screen, shape)
+
+    def get_width(self):
+        return self._total_width
+
+    def get_height(self):
+        return self._total_height
+
+    def set_pos(self, x, y):
+        if self.x != x or self.y != y:
+            self.x = x
+            self.y = y
+            self._render_data()
