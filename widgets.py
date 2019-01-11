@@ -1875,11 +1875,11 @@ class Map(Widget):
 
         self._map_api_key = "AIzaSyDKl1oPieC1EwVdsnUJpg0btJV2Bwg0cd4"
         self._direction_url = "https://maps.googleapis.com/maps/api/directions/json"
-        self._direction_payload = {"units": "metric", "mode": "driving", "key": self._map_api_key,
+        self._direction_payload = {"units": "metric", "key": self._map_api_key,
                                    "origin": "", "destination": "", "mode": self._modes[self._mode_ind]}
 
-        self._road_url = "https://roads.googleapis.com/v1/nearestRoads"
-        self._road_payload = {"points": "", "key": self._map_api_key}
+        self._speed_api = "https://roads.googleapis.com/v1/speedLimits"
+        self._speed_payload = {"path": "", "key": self._map_api_key}
 
         self._input_width = 200
         self._dot_radius = 5
