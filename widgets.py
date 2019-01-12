@@ -1843,7 +1843,7 @@ class ChartCaption(Widget):
 
 
 class Map(Widget):
-    def __init__(self, parent, x, y, map_width=200, map_height=150, map_padding=0.15):
+    def __init__(self, parent, x, y, map_width=200, map_height=150, map_padding=0.075):
         super(Map, self).__init__(parent, x, y)
 
         self.map_width = map_width
@@ -1861,6 +1861,7 @@ class Map(Widget):
         self._caption_font = pygame.font.Font("fonts/FreeSans.ttf", 15)
         self._input_font = pygame.font.Font("fonts/FreeSans.ttf", 15)
         self._result_font = pygame.font.Font("fonts/FreeSans.ttf", 16)
+        self._address_font = pygame.font.Font("fonts/FreeSans.ttf", 12)
 
         self._from_text = self._caption_font.render("From: ", True, self.colors['white'])
         self._to_text = self._caption_font.render("To: ", True, self.colors['white'])
@@ -1877,9 +1878,6 @@ class Map(Widget):
         self._direction_url = "https://maps.googleapis.com/maps/api/directions/json"
         self._direction_payload = {"units": "metric", "key": self._map_api_key,
                                    "origin": "", "destination": "", "mode": self._modes[self._mode_ind]}
-
-        self._speed_api = "https://roads.googleapis.com/v1/speedLimits"
-        self._speed_payload = {"path": "", "key": self._map_api_key}
 
         self._input_width = 200
         self._dot_radius = 5
@@ -1905,16 +1903,7 @@ class Map(Widget):
         self._direction_info = direction_res.json()
 
         self.clear_shapes()
-        points = self._parse_info()
-
-        self._fetch_roads(points)
-
-    def _fetch_roads(self, points):
-        if len(points) > 100:
-            points = points[::len(points) / 15]
-
-        self._road_payload['points'] = '|'.join(['{},{}'.format(point[0], point[1]) for point in points])
-        road_res = requests.get(self._road_url, params=self._road_payload)
+        self._parse_info()
 
     def _parse_info(self):
         if not self._direction_info:
@@ -1924,8 +1913,8 @@ class Map(Widget):
         self._total_distance = sum([step['distance']['value'] for step in self._direction_info['routes'][0]['legs'][0]['steps']])
 
         # parse overview polyline
-        polyline_width = int(self.map_width * (1 - self.map_padding))
-        polyline_height = int(self.map_height * (1 - self.map_padding))
+        polyline_width = int(self.map_width * (1 - self.map_padding * 2))
+        polyline_height = int(self.map_height * (1 - self.map_padding * 2))
         polyline_x = self._map_x + (self.map_width - polyline_width) / 2
         polyline_y = self._map_y + (self.map_height - polyline_height) / 2
 
@@ -1949,12 +1938,46 @@ class Map(Widget):
         y_offset = polyline_height - (max(coords_y) - min(coords_y))
         self._polyline_points = [(x + x_offset / 2, y - y_offset / 2) for x, y in coords]
 
+        start_address = self._direction_info['routes'][0]['legs'][0]['start_address'].split(',')[0]
+        rendered_start_text = self._address_font.render(start_address, True, self.colors['white'])
+        start_text_x = self._polyline_points[0][0] - rendered_start_text.get_width() / 2
+        start_text_y = self._polyline_points[0][1] - rendered_start_text.get_height() - 5
+        start_text_x, start_text_y = self._adjust_text_pos(start_text_x, start_text_y, rendered_start_text)
+
+        end_address = self._direction_info['routes'][0]['legs'][0]['end_address'].split(',')[0]
+        rendered_end_text = self._address_font.render(end_address, True, self.colors['white'])
+        end_text_x = self._polyline_points[-1][0] - rendered_end_text.get_width() / 2
+        end_text_y = self._polyline_points[-1][1] - rendered_end_text.get_height() - 5
+        end_text_x, end_text_y = self._adjust_text_pos(end_text_x, end_text_y, rendered_end_text)
+
         self.add_shape(Lines(self.colors['green'], False, self._polyline_points, width=3, anti_alias=False))
         self.add_shape(Circle(self.colors['orange'], self._polyline_points[0], self._dot_radius))
         self.add_shape(Circle(self.colors['lightblue'], self._polyline_points[-1], self._dot_radius))
         self.add_shape(Rectangle(self.colors['white'], self._map_x, self._map_y, self.map_width, self.map_height))
+        self.add_shape(Text(rendered_start_text, (start_text_x, start_text_y)))
+        self.add_shape(Text(rendered_end_text, (end_text_x, end_text_y)))
 
         return points
+
+    def _adjust_text_pos(self, x, y, text):
+        text_width = text.get_width()
+        text_height = text.get_height()
+        x_padding = self.map_width * self.map_padding / 2
+        y_padding = self.map_height * self.map_padding / 2
+
+        if x < self._map_x + x_padding:
+            x = self._map_x + x_padding
+
+        if x + text_width > self._map_x + self.map_width - x_padding:
+            x = self._map_x + self.map_width - x_padding - text_width
+
+        if y < self._map_y + y_padding:
+            y = self._map_y + y_padding
+
+        if y + text_height > self._map_y + self.map_height - y_padding:
+            y = self._map_y + self.map_height - y_padding - text_height
+
+        return x, y
 
     def _draw_texts(self, screen):
         screen.blit(self._from_text, (self.x, self.y))

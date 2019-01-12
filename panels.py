@@ -263,7 +263,7 @@ class MapPanel(Panel):
         self._title_font = pygame.font.SysFont(self.default_font_name, 35)
 
         self.title_widget = Content(self, 10, 10, "Map", font=self._title_font)
-        self.map_widget = Map(self, 10, 45)
+        self.map_widget = Map(self, 10, 45, map_width=400, map_height=150)
         self.widgets = [self.title_widget, self.map_widget]
 
     def on_enter(self):
