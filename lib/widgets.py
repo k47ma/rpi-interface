@@ -693,15 +693,15 @@ class Traffic(Widget):
         self.traffic_font_height = self.traffic_font.render(' ', True, self.colors['white']).get_height()
 
         self._traffic_url = "https://maps.googleapis.com/maps/api/distancematrix/json"
-        self._traffic_keys = "AIzaSyDKl1oPieC1EwVdsnUJpg0btJV2Bwg0cd4"
-        self._traffic_payload = {"units": "matrics", "key": self._traffic_keys, "origins": "", "destinations": ""}
+        self._traffic_key = "AIzaSyDKl1oPieC1EwVdsnUJpg0btJV2Bwg0cd4"
+        self._traffic_payload = {"units": "matrics", "key": self._traffic_key, "origins": "", "destinations": ""}
 
         self._traffic_icon = None
         self._traffic_icon_path = os.path.join("images", "traffic", "traffic.png")
         self._traffic_icon_size = self.traffic_font_height
 
-        self._origin_address = "254 Phillip St Waterloo"
-        self._dest_address = "University of Waterloo"
+        self._origin_address = "University of Waterloo"
+        self._dest_address = "University of Toronto"
 
         self._traffic_last_update = time.time()
         self._traffic_update_interval = 1800
@@ -734,11 +734,12 @@ class Traffic(Widget):
         traffic_distance = self._traffic_info['rows'][0]['elements'][0]['distance']['text']
         traffic_duration = self._traffic_info['rows'][0]['elements'][0]['duration']['text']
 
-        traffic_text = "{} {}".format(traffic_distance, traffic_duration)
-        rendered_text = self.traffic_font.render(traffic_text, True, self.colors['white'])
+        distance_text = self.traffic_font.render(traffic_distance, True, self.colors['white'])
+        duration_text = self.traffic_font.render(traffic_duration, True, self.colors['white'])
 
-        screen.blit(rendered_text, (self.x, self.y))
-        screen.blit(self._traffic_icon, (self.x + rendered_text.get_width() + 5, self.y))
+        screen.blit(distance_text, (self.x + (duration_text.get_width() - distance_text.get_width()) / 2, self.y))
+        screen.blit(duration_text, (self.x, self.y + distance_text.get_height()))
+        screen.blit(self._traffic_icon, (self.x + duration_text.get_width() + 5, self.y + distance_text.get_height()))
 
 
 class Stock(Widget):
