@@ -600,7 +600,7 @@ class Calendar(Widget):
 
     def _add_days(self, calendar, status):
         try:
-            time_ind = self._calendar_titles.index("Due Date")
+            time_ind = self._calendar_titles.index("Date")
         except NameError:
             return
 
