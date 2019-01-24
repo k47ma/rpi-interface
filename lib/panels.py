@@ -279,3 +279,14 @@ class MapPanel(Panel):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RETURN:
                 self.set_active_widget(self.map_widget)
+
+
+class CameraPanel(Panel):
+    def __init__(self, app):
+        super(CameraPanel, self).__init__(app)
+
+        self.camera_widget = Camera(self, 0, 0)
+        self.widgets = [self.camera_widget]
+    
+    def on_enter(self):
+        self.set_active_widget(self.camera_widget)

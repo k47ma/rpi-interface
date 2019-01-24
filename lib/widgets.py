@@ -6,6 +6,9 @@ import re
 import glob
 import psutil
 import polyline
+import picamera
+from io import BytesIO
+from PIL import Image, ImageDraw
 from bs4 import BeautifulSoup
 from table import Table
 from threads import *
@@ -2084,3 +2087,34 @@ class Map(Widget):
         self._total_time = 0.0
         self._polyline_points = []
         self._mode_ind = 0
+
+
+class Camera(Widget):
+    def __init__(self, parent, x, y):
+        super(Camera, self).__init__(parent, x, y)
+
+        self._camera = picamera.PiCamera()
+        self._stream = None
+
+    def _on_setup(self):
+        pass
+
+    def _on_update(self):
+        if self._camera:
+            self._stream = BytesIO()
+            self._camera.capture(self._stream, format='jpeg', resize=(480, 320))
+
+    def _on_draw(self, screen):
+        try:
+            image = Image.open(self._stream)
+        except (IOError, AttributeError):
+            return
+
+        image_draw = ImageDraw.Draw(image)
+
+        mode = image.mode
+        size = image.size
+        data = image.tobytes()
+
+        rendered_image = pygame.image.fromstring(data, size, mode)
+        screen.blit(rendered_image, (0, 0))
