@@ -2094,6 +2094,8 @@ class Camera(Widget):
         super(Camera, self).__init__(parent, x, y)
 
         self._camera = picamera.PiCamera()
+        self._camera.rotation = 270
+        self._camera.resolution = (self._screen_width, self._screen_height)
         self._stream = None
 
     def _on_setup(self):
@@ -2102,7 +2104,7 @@ class Camera(Widget):
     def _on_update(self):
         if self._camera:
             self._stream = BytesIO()
-            self._camera.capture(self._stream, format='jpeg', resize=(480, 320))
+            self._camera.capture(self._stream, format='jpeg')
 
     def _on_draw(self, screen):
         try:
