@@ -26,10 +26,13 @@ class Panel:
         if self.widgets:
             self.active_widget = self.widgets[0]
 
-    def _set_active_widget(self, widget):
+    def set_active_widget(self, widget):
         if self.active_widget is not widget:
+            if self.active_widget is not None:
+                self.active_widget.set_active(False)
             self.active_widget = widget
-            widget.set_active(True)
+            if widget is not None:
+                widget.set_active(True)
 
     def _on_update(self):
         pass
@@ -116,7 +119,7 @@ class MainPanel(Panel):
     def handle_panel_events(self, event):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_c:
-                self._set_active_widget(self.calendar_widget)
+                self.set_active_widget(self.calendar_widget)
 
     def set_night_mode(self):
         self.app.set_active_panel(self.app.night_panel)
@@ -154,15 +157,15 @@ class NewsPanel(Panel):
                                         max_height=self._screen_height-60, title_widget=self.title_widget)
         self.widgets = [self.news_widget, self.title_widget, self.newslist_widget]
 
-        self._set_active_widget(self.newslist_widget)
+        self.set_active_widget(self.newslist_widget)
 
     def handle_panel_events(self, event):
         if event.type == pygame.KEYDOWN:
-            self._set_active_widget(self.newslist_widget)
+            self.set_active_widget(self.newslist_widget)
             self.active_widget.handle_events(event)
 
     def on_enter(self):
-        self._set_active_widget(self.newslist_widget)
+        self.set_active_widget(self.newslist_widget)
 
 
 class SearchPanel(Panel):
@@ -175,15 +178,15 @@ class SearchPanel(Panel):
                                           max_width=self._screen_width-40, max_height=self._screen_height-40)
         self.widgets = [self.search_widget]
 
-        self._set_active_widget(self.search_widget)
+        self.set_active_widget(self.search_widget)
 
     def handle_panel_events(self, event):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RETURN:
-                self._set_active_widget(self.search_widget)
+                self.set_active_widget(self.search_widget)
 
     def on_enter(self):
-        self._set_active_widget(self.search_widget)
+        self.set_active_widget(self.search_widget)
 
     def on_exit(self):
         self.search_widget.reset()
@@ -245,7 +248,7 @@ class StockPanel(Panel):
         self.widgets = [self.title_widget, self.stock_widget]
 
     def on_enter(self):
-        self._set_active_widget(self.stock_widget)
+        self.set_active_widget(self.stock_widget)
 
     def on_exit(self):
         self.stock_widget.clear()
@@ -253,7 +256,7 @@ class StockPanel(Panel):
     def handle_panel_events(self, event):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RETURN:
-                self._set_active_widget(self.stock_widget)
+                self.set_active_widget(self.stock_widget)
 
 
 class MapPanel(Panel):
@@ -267,7 +270,7 @@ class MapPanel(Panel):
         self.widgets = [self.title_widget, self.map_widget]
 
     def on_enter(self):
-        self._set_active_widget(self.map_widget)
+        self.set_active_widget(self.map_widget)
 
     def on_exit(self):
         self.map_widget.reset()
@@ -275,4 +278,4 @@ class MapPanel(Panel):
     def handle_panel_events(self, event):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RETURN:
-                self._set_active_widget(self.map_widget)
+                self.set_active_widget(self.map_widget)

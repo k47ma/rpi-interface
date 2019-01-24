@@ -38,6 +38,8 @@ class Widget:
         self._screen_height = parent.app.get_height()
         self._screen_padding = 3
         self._align = None
+        self._timeout = None
+        self._last_active = time.time()
         self._shapes = []
         self._subwidgets = []
 
@@ -48,6 +50,9 @@ class Widget:
         self._on_setup()
 
     def update(self):
+        if self._timeout is not None and self.is_active and time.time() - self._last_active > self._timeout:
+            self.parent.set_active_widget(None)
+
         self._reload_pos()
         for widget in self._subwidgets:
             widget.update()
@@ -63,6 +68,10 @@ class Widget:
 
     def set_align(self, align):
         self._align = align
+
+    def set_timeout(self, timeout):
+        if timeout > 0:
+            self._timeout = timeout
 
     def _reload_pos(self):
         if not self._align:
@@ -140,6 +149,8 @@ class Widget:
         self.y = y
 
     def handle_events(self, event):
+        self._last_active = time.time()
+
         for widget in self._subwidgets:
             if widget.is_active:
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
@@ -153,6 +164,7 @@ class Widget:
         if self.is_active != status:
             self.is_active = status
             if status:
+                self._last_active = time.time()
                 self._on_enter()
             else:
                 self._on_exit()
@@ -543,12 +555,13 @@ class Weather(Widget):
 
 
 class Calendar(Widget):
-    def __init__(self, parent, x, y, max_rows=-1):
+    def __init__(self, parent, x, y, max_rows=-1, timeout=10):
         super(Calendar, self).__init__(parent, x, y)
 
         self.max_rows = max_rows
         self.header_font = pygame.font.Font("fonts/arial.ttf", 18)
         self.content_font = pygame.font.Font("fonts/arial.ttf", 16)
+        self.set_timeout(timeout)
 
         self._calendar_file = "calendars/calendar.html"
         self._calendar_titles = []
@@ -556,6 +569,9 @@ class Calendar(Widget):
         self._calendar_table = None
         self._calendar_last_update = dt.now().day
         self._calendar_selected_row = 0
+
+    def _on_enter(self):
+        self._calendar_last_active = time.time()
 
     def _on_exit(self):
         self._calendar_selected_row = 0
