@@ -6,7 +6,8 @@ import re
 import glob
 import psutil
 import polyline
-import picamera
+import cv2
+import numpy as np
 from io import BytesIO
 from PIL import Image, ImageDraw
 from bs4 import BeautifulSoup
@@ -2093,26 +2094,26 @@ class Camera(Widget):
     def __init__(self, parent, x, y):
         super(Camera, self).__init__(parent, x, y)
 
-        self._camera = picamera.PiCamera()
-        self._camera.rotation = 270
-        self._camera.resolution = (self._screen_width, self._screen_height)
-        self._stream = None
+        self._camera = cv2.VideoCapture(0)
+        self._camera_rotation = 0
+        self._camera_resolution = (self._screen_width, self._screen_height)
+        self._frame = None
 
     def _on_setup(self):
         pass
 
     def _on_update(self):
         if self._camera:
-            self._stream = BytesIO()
-            self._camera.capture(self._stream, format='jpeg')
+            ret, self._frame = self._camera.read()
 
     def _on_draw(self, screen):
-        try:
-            image = Image.open(self._stream)
-        except (IOError, AttributeError):
+        if self._frame is None or not self._frame.any():
             return
 
-        image_draw = ImageDraw.Draw(image)
+        image_arr = cv2.cvtColor(self._frame, cv2.COLOR_BGR2RGB)
+
+        image = Image.fromarray(image_arr)
+        image = image.rotate(self._camera_rotation).resize(self._camera_resolution)
 
         mode = image.mode
         size = image.size
