@@ -2099,9 +2099,14 @@ class Camera(Widget):
         super(Camera, self).__init__(parent, x, y)
 
         self.camera = camera
+
+        self._camera_font = pygame.font.Font("fonts/FreeSans.ttf", 12)
         self._camera_rotation = 0
         self._camera_resolution = (self._screen_width, self._screen_height)
+        self._camera_framerate = 0
         self._frame = None
+        self._frame_last_update = time.time()
+        self._text_last_update = time.time()
 
     def _on_setup(self):
         pass
@@ -2125,3 +2130,18 @@ class Camera(Widget):
 
         rendered_image = pygame.image.fromstring(data, size, mode)
         screen.blit(rendered_image, (0, 0))
+
+        self._add_framerate(screen)
+
+    def _add_framerate(self, screen):
+        current_time = time.time()
+        update_interval = time.time() - self._frame_last_update
+        camera_framerate_inst = int(1.0 / update_interval)
+        self._frame_last_update = current_time
+
+        if current_time - self._text_last_update > 1:
+            self._camera_framerate = camera_framerate_inst
+            self._text_last_update = current_time
+
+        framerate_text = self._camera_font.render("fps: {}".format(self._camera_framerate), True, self._get_color('green'))
+        screen.blit(framerate_text, (10, 10))
