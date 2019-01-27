@@ -282,10 +282,10 @@ class MapPanel(Panel):
 
 
 class CameraPanel(Panel):
-    def __init__(self, app):
+    def __init__(self, app, camera):
         super(CameraPanel, self).__init__(app)
 
-        self.camera_widget = Camera(self, 0, 0)
+        self.camera_widget = Camera(self, 0, 0, camera)
         self.widgets = [self.camera_widget]
     
     def on_enter(self):

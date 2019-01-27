@@ -7,9 +7,7 @@ import glob
 import psutil
 import polyline
 import cv2
-import numpy as np
-from io import BytesIO
-from PIL import Image, ImageDraw
+from PIL import Image
 from bs4 import BeautifulSoup
 from table import Table
 from threads import *
@@ -24,16 +22,16 @@ class Widget:
         self.x = x
         self.y = y
 
-        self.colors = {"black": (0, 0, 0),
-                       "white": (255, 255, 255),
-                       "gray": (100, 100, 100),
-                       "lightgray": (75, 75, 75),
-                       "green": (0, 255, 0),
-                       "red": (255, 0, 0),
-                       "blue": (30, 144, 255),
-                       "lightblue": (0, 191, 255),
-                       "yellow": (255, 255, 0),
-                       "orange": (255, 165, 0)}
+        self._colors = {"black": (0, 0, 0),
+                        "white": (255, 255, 255),
+                        "gray": (100, 100, 100),
+                        "lightgray": (75, 75, 75),
+                        "green": (0, 255, 0),
+                        "red": (255, 0, 0),
+                        "blue": (30, 144, 255),
+                        "lightblue": (0, 191, 255),
+                        "yellow": (255, 255, 0),
+                        "orange": (255, 165, 0)}
         self.default_font_name = pygame.font.get_default_font()
         self.default_font = pygame.font.SysFont(self.default_font_name, 25)
         self.is_active = False
@@ -76,6 +74,12 @@ class Widget:
     def set_timeout(self, timeout):
         if timeout > 0:
             self._timeout = timeout
+
+    def _get_color(self, color):
+        color_code = self._colors.get(color)
+        if color_code is None:
+            return 255, 255, 255
+        return color_code
 
     def _reload_pos(self):
         if not self._align:
@@ -223,26 +227,26 @@ class News(Widget):
         if self._news_info:
             article = self._news_info[self._news_index]
             title = article.get("title")
-            title_text = self._news_font.render(title, True, self.colors['white'])
+            title_text = self._news_font.render(title, True, self._get_color('white'))
             if title_text.get_width() > self._title_max_width:
                 words = title.split(' ')
                 brief_title = words[0]
-                current_width = self._news_font.render(brief_title, True, self.colors['white']).get_width()
-                space_width = self._news_font.render(' ', True, self.colors['white']).get_width()
-                dots_width = self._news_font.render('...', True, self.colors['white']).get_width()
+                current_width = self._news_font.render(brief_title, True, self._get_color('white')).get_width()
+                space_width = self._news_font.render(' ', True, self._get_color('white')).get_width()
+                dots_width = self._news_font.render('...', True, self._get_color('white')).get_width()
                 for word in words[1:]:
-                    word_width = self._news_font.render(word, True, self.colors['white']).get_width()
+                    word_width = self._news_font.render(word, True, self._get_color('white')).get_width()
                     if current_width + word_width + space_width + dots_width < self._title_max_width:
                         brief_title += ' ' + word
                         current_width += word_width + space_width
                     else:
                         break
-                title_text = self._news_font.render(brief_title + "...", True, self.colors['white'])
+                title_text = self._news_font.render(brief_title + "...", True, self._get_color('white'))
 
             screen.blit(title_text, (self.x + 20, self.y))
 
             percent = (float(time.time()) - self._news_index_last_update) / self._news_line_update_interval
-            pygame.draw.arc(screen, self.colors['green'], (self.x + 5, self.y + 5, 10, 10), math.pi * (0.5 - percent * 2), math.pi * 0.5, 2)
+            pygame.draw.arc(screen, self._get_color('green'), (self.x + 5, self.y + 5, 10, 10), math.pi * (0.5 - percent * 2), math.pi * 0.5, 2)
 
 
 class NewsList(News):
@@ -311,11 +315,11 @@ class NewsList(News):
                     break
                 self._display_lines.append(content_line)
                 if self._active_news and title_ind + self._start_index == self._active_index:
-                    prefix_length = self._news_title_font.render(self._prefix, True, self.colors['white']).get_width()
+                    prefix_length = self._news_title_font.render(self._prefix, True, self._get_color('white')).get_width()
                     text_length = content_line.get_width()
                     start_pos = (self.x + prefix_length, self.y + total_height)
                     end_pos = (self.x + text_length, self.y + total_height)
-                    self.add_shape(Line(self.colors['green'], start_pos, end_pos))
+                    self.add_shape(Line(self._get_color('green'), start_pos, end_pos))
                 if line_ind == len(content.get_lines()) - 1:
                     self._display_count += 1
             if is_full:
@@ -370,17 +374,17 @@ class NewsList(News):
             sidebar_end = (self.x + self.max_width, self.y + pre_length + self._sidebar_length)
             if sidebar_end[1] > self.y + self.max_height:
                 sidebar_end = (sidebar_end[0], self.y + self.max_height)
-            pygame.draw.line(screen, self.colors['white'], sidebar_start, sidebar_end, self._sidebar_width)
-            pygame.draw.line(screen, self.colors['white'], (self.x + self.max_width - self._sidebar_width / 2, self.y),
+            pygame.draw.line(screen, self._get_color('white'), sidebar_start, sidebar_end, self._sidebar_width)
+            pygame.draw.line(screen, self._get_color('white'), (self.x + self.max_width - self._sidebar_width / 2, self.y),
                             (self.x + self.max_width + self._sidebar_width / 2, self.y), 1)
-            pygame.draw.line(screen, self.colors['white'], (self.x + self.max_width - self._sidebar_width / 2, self.y + self.max_height),
+            pygame.draw.line(screen, self._get_color('white'), (self.x + self.max_width - self._sidebar_width / 2, self.y + self.max_height),
                             (self.x + self.max_width + self._sidebar_width / 2, self.y + self.max_height), 1)
 
         # draw image
         if self._display_image:
             if self.title_widget:
                 self.title_widget.set_text(self._news_info[self._active_index]['title'])
-            pygame.draw.rect(screen, self.colors['blue'], (self.x, self.y, self.max_width, self.max_height), 3)
+            pygame.draw.rect(screen, self._get_color('blue'), (self.x, self.y, self.max_width, self.max_height), 3)
             image = None
             image_url = self._news_info[self._active_index]['urlToImage']
             if image_url:
@@ -408,8 +412,8 @@ class NewsList(News):
             self.title_widget.set_text("")
 
     def _draw_no_image_message(self, screen):
-        pygame.draw.rect(screen, self.colors['black'], (self.x, self.y, self.max_width, self.max_height), 0)
-        message_text = self._message_font.render("No image to show here...", True, self.colors['white'])
+        pygame.draw.rect(screen, self._get_color('black'), (self.x, self.y, self.max_width, self.max_height), 0)
+        message_text = self._message_font.render("No image to show here...", True, self._get_color('white'))
         screen.blit(message_text, (self.x + (self.max_width - message_text.get_width()) / 2,
                                              self.y + (self.max_height - message_text.get_height()) / 2))
 
@@ -521,9 +525,9 @@ class Weather(Widget):
         forecast_max = max(forecast_temp)
         forecast_str = u"{} - {} ℃".format(forecast_min, forecast_max)
 
-        desc_text = self.desc_font.render(current_desc, True, self.colors['white'])
-        current_text = self.weather_font.render(current_str, True, self.colors['white'])
-        forecast_text = self.forecast_font.render(forecast_str, True, self.colors['white'])
+        desc_text = self.desc_font.render(current_desc, True, self._get_color('white'))
+        current_text = self.weather_font.render(current_str, True, self._get_color('white'))
+        forecast_text = self.forecast_font.render(forecast_str, True, self._get_color('white'))
 
         screen.blit(desc_text, (self.x, self.y))
         screen.blit(current_icon, (self.x + desc_text.get_width(), self.y))
@@ -546,7 +550,7 @@ class Weather(Widget):
         x = self.x
         y = self.y + desc_text.get_height() + current_text.get_height() + forecast_text.get_height() + 5
         for desc, timestamp, icon_id in change_info:
-            rendered_change_text = self.change_font.render("{} -> {}".format(timestamp, desc), True, self.colors['white'])
+            rendered_change_text = self.change_font.render("{} -> {}".format(timestamp, desc), True, self._get_color('white'))
             screen.blit(rendered_change_text, (x, y))
             screen.blit(self._change_icons[icon_id], (x + rendered_change_text.get_width(), y))
             y += rendered_change_text.get_height()
@@ -554,7 +558,7 @@ class Weather(Widget):
         # draw last update time
         last_update_mins = int(time.time() - self._weather_last_update) / 60
         last_update_text = "Last Update: {} min ago".format(last_update_mins)
-        rendered_last_update_text = self.last_update_font.render(last_update_text, True, self.colors['white'])
+        rendered_last_update_text = self.last_update_font.render(last_update_text, True, self._get_color('white'))
         screen.blit(rendered_last_update_text, (x, y))
 
 
@@ -710,7 +714,7 @@ class Traffic(Widget):
         super(Traffic, self).__init__(parent, x, y)
 
         self.traffic_font = pygame.font.Font("fonts/FreeSans.ttf", 13)
-        self.traffic_font_height = self.traffic_font.render(' ', True, self.colors['white']).get_height()
+        self.traffic_font_height = self.traffic_font.render(' ', True, self._get_color('white')).get_height()
 
         self._traffic_url = "https://maps.googleapis.com/maps/api/distancematrix/json"
         self._traffic_key = "AIzaSyDKl1oPieC1EwVdsnUJpg0btJV2Bwg0cd4"
@@ -754,8 +758,8 @@ class Traffic(Widget):
         traffic_distance = self._traffic_info['rows'][0]['elements'][0]['distance']['text']
         traffic_duration = self._traffic_info['rows'][0]['elements'][0]['duration']['text']
 
-        distance_text = self.traffic_font.render(traffic_distance, True, self.colors['white'])
-        duration_text = self.traffic_font.render(traffic_duration, True, self.colors['white'])
+        distance_text = self.traffic_font.render(traffic_distance, True, self._get_color('white'))
+        duration_text = self.traffic_font.render(traffic_duration, True, self._get_color('white'))
 
         screen.blit(distance_text, (self.x + (duration_text.get_width() - distance_text.get_width()) / 2, self.y))
         screen.blit(duration_text, (self.x, self.y + distance_text.get_height()))
@@ -771,7 +775,7 @@ class Stock(Widget):
         self.chart_height = chart_height
 
         self.stock_font = pygame.font.Font("fonts/FreeSans.ttf", 15)
-        self.stock_font_height = self.stock_font.render(' ', True, self.colors['white']).get_height()
+        self.stock_font_height = self.stock_font.render(' ', True, self._get_color('white')).get_height()
         self.stock_footnote_font = pygame.font.Font("fonts/FreeSans.ttf", 10)
         self.stock_label_font = pygame.font.Font("fonts/FreeSans.ttf", 12)
         self.stock_range_font = pygame.font.Font("fonts/FreeSans.ttf", 13)
@@ -1001,7 +1005,7 @@ class Stock(Widget):
         self._draw_quote(screen)
 
     def _display_info(self, screen, text):
-        loading_text = self.stock_font.render(text, True, self.colors['white'])
+        loading_text = self.stock_font.render(text, True, self._get_color('white'))
         screen.blit(loading_text, (self.x, self.y + self._input_widget.get_height() + 5))
 
     def _draw_quote(self, screen):
@@ -1020,10 +1024,10 @@ class Stock(Widget):
             color = "white"
             arrow = u'▬'
 
-        symbol_text = self.stock_font.render(self._stock_symbol, True, self.colors['white'])
-        price_text = self.stock_font.render('{:.2f}'.format(self._current_price), True, self.colors[color])
-        bar_text = self.stock_font.render('  |  ', True, self.colors['white'])
-        percent_text = self.stock_font.render(u'{:.2f}% {}'.format(percent, arrow), True, self.colors[color])
+        symbol_text = self.stock_font.render(self._stock_symbol, True, self._get_color('white'))
+        price_text = self.stock_font.render('{:.2f}'.format(self._current_price), True, self._get_color(color))
+        bar_text = self.stock_font.render('  |  ', True, self._get_color('white'))
+        percent_text = self.stock_font.render(u'{:.2f}% {}'.format(percent, arrow), True, self._get_color(color))
         quote_x = self.x
         quote_y = self.y + self._input_widget.get_height() + 5
         screen.blit(symbol_text, (quote_x, quote_y))
@@ -1039,15 +1043,15 @@ class Stock(Widget):
         range_x = self.x + self.chart_width + 10
         range_y = self.y + self.stock_font_height + self._input_widget.get_height() + 10
         range_unit_distance = self.chart_height / (len(self._stock_range) - 1)
-        self.add_shape(Line(self.colors['white'], (range_x, range_y), (range_x, range_y + self.chart_height), width=3))
+        self.add_shape(Line(self._get_color('white'), (range_x, range_y), (range_x, range_y + self.chart_height), width=3))
         for ind in range(len(self._stock_range)):
             y = range_y + range_unit_distance * ind if ind < len(self._stock_range) - 1 else range_y + self.chart_height
             if ind == self._stock_range_ind:
-                color = self.colors['green']
+                color = self._get_color('green')
             else:
-                color = self.colors['white']
+                color = self._get_color('white')
             rendered_text = self.stock_range_font.render(self._stock_range[ind], True, color)
-            self.add_shape(Line(self.colors['white'], (range_x, y), (range_x + 6, y)))
+            self.add_shape(Line(self._get_color('white'), (range_x, y), (range_x + 6, y)))
             self.add_shape(Text(rendered_text, (range_x + 10, y - rendered_text.get_height() / 2)))
 
     def reset(self):
@@ -1076,7 +1080,7 @@ class SystemInfo(Widget):
         self.disk_info = disk_info
         self.internet_info = internet_info
         self.percent_bar = percent_bar
-        self._info_text_height = self.font.render(' ', True, self.colors['white']).get_height()
+        self._info_text_height = self.font.render(' ', True, self._get_color('white')).get_height()
 
         self._cpu_percent = 0.0
         self._memory_percent = 0.0
@@ -1115,13 +1119,13 @@ class SystemInfo(Widget):
 
     def _add_percent_bar(self, percent, x, y):
         if percent <= 60:
-            color = self.colors['green']
+            color = self._get_color('green')
         elif percent <= 80:
-            color = self.colors['yellow']
+            color = self._get_color('yellow')
         else:
-            color = self.colors['red']
+            color = self._get_color('red')
         width = int(self._percent_bar_width * percent / 100)
-        self.add_shape(Rectangle(self.colors['lightgray'], x, y, self._percent_bar_width, self._percent_bar_height, line_width=0))
+        self.add_shape(Rectangle(self._get_color('lightgray'), x, y, self._percent_bar_width, self._percent_bar_height, line_width=0))
         self.add_shape(Rectangle(color, x, y, width, self._percent_bar_height, line_width=0))
 
     def _on_setup(self):
@@ -1135,14 +1139,14 @@ class SystemInfo(Widget):
 
     def _on_draw(self, screen):
         self.clear_shapes()
-        rendered_cpu_text = self.font.render("CPU: ", True, self.colors['white'])
-        rendered_memory_text = self.font.render("Memory: ", True, self.colors['white'])
-        rendered_disk_text = self.font.render("Disk: ", True, self.colors['white'])
+        rendered_cpu_text = self.font.render("CPU: ", True, self._get_color('white'))
+        rendered_memory_text = self.font.render("Memory: ", True, self._get_color('white'))
+        rendered_disk_text = self.font.render("Disk: ", True, self._get_color('white'))
         percent_bar_x = self.x + max(rendered_cpu_text.get_width(), rendered_memory_text.get_width())
         percent_bar_y = self.y + (self._info_text_height - self._percent_bar_height) / 2
-        rendered_cpu_percent_text = self.font.render(" {:.2f}%".format(self._cpu_percent), True, self.colors['white'])
-        rendered_memory_percent_text = self.font.render(" {:.2f}%".format(self._memory_percent), True, self.colors['white'])
-        rendered_disk_percent_text = self.font.render(" {:.2f}%".format(self._disk_percent), True, self.colors['white'])
+        rendered_cpu_percent_text = self.font.render(" {:.2f}%".format(self._cpu_percent), True, self._get_color('white'))
+        rendered_memory_percent_text = self.font.render(" {:.2f}%".format(self._memory_percent), True, self._get_color('white'))
+        rendered_disk_percent_text = self.font.render(" {:.2f}%".format(self._disk_percent), True, self._get_color('white'))
 
         if self.percent_bar:
             self._add_percent_bar(self._cpu_percent, percent_bar_x, percent_bar_y)
@@ -1151,7 +1155,7 @@ class SystemInfo(Widget):
 
         upload_speed = bytes_to_string(self._net_sent_speed)
         download_speed = bytes_to_string(self._net_recv_speed)
-        rendered_net_text = self.font.render(u"Internet: \u2193{}/s \u2191{}/s".format(download_speed, upload_speed), True, self.colors['white'])
+        rendered_net_text = self.font.render(u"Internet: \u2193{}/s \u2191{}/s".format(download_speed, upload_speed), True, self._get_color('white'))
 
         y = self.y
         if self.cpu_info:
@@ -1191,8 +1195,8 @@ class Time(Widget):
         self.time_str = dt.now().strftime("%H:%M")
 
     def _on_draw(self, screen):
-        date_text = self.date_font.render(self.date_str, True, self.colors['white'])
-        time_text = self.time_font.render(self.time_str, True, self.colors['white'])
+        date_text = self.date_font.render(self.date_str, True, self._get_color('white'))
+        time_text = self.time_font.render(self.time_str, True, self._get_color('white'))
         screen.blit(date_text, (self._screen_width - date_text.get_width() - 5, 10))
         screen.blit(time_text, (self._screen_width - time_text.get_width() - 5,
                                      date_text.get_height() + 15))
@@ -1207,8 +1211,8 @@ class NightTime(Time):
         self.night_time_font = pygame.font.SysFont(self.default_font_name, 150)
 
     def _on_draw(self, screen):
-        time_text = self.night_time_font.render(self.time_str, True, self.colors['gray'])
-        date_text = self.night_date_font.render(self.date_str, True, self.colors['gray'])
+        time_text = self.night_time_font.render(self.time_str, True, self._get_color('gray'))
+        date_text = self.night_date_font.render(self.date_str, True, self._get_color('gray'))
         time_pos = ((self._screen_width - time_text.get_width()) / 2,
                     (self._screen_height - time_text.get_height()) / 2 - 30)
         date_pos = ((self._screen_width - date_text.get_width()) / 2,
@@ -1410,7 +1414,7 @@ class SearchWidget(Widget):
     def _draw_footnote(self, screen):
         # draw page number
         page_text = "page: {}/{}".format(self._page_index + 1, len(self._search_result_pages))
-        rendered_page_text = self._page_footnote_font.render(page_text, True, self.colors['white'])
+        rendered_page_text = self._page_footnote_font.render(page_text, True, self._get_color('white'))
         page_text_pos = (self.x + self.max_width - rendered_page_text.get_width(),
                          self.y + self.max_height)
         if self._search_result_pages:
@@ -1418,7 +1422,7 @@ class SearchWidget(Widget):
 
         # draw source string
         source_text = "source: bestbuy.ca"
-        rendered_source_text = self._page_footnote_font.render(source_text, True, self.colors['white'])
+        rendered_source_text = self._page_footnote_font.render(source_text, True, self._get_color('white'))
         source_text_pos = (self.x + self.max_width - rendered_source_text.get_width(),
                            self.y + self.max_height + rendered_page_text.get_height())
         screen.blit(rendered_source_text, source_text_pos)
@@ -1494,7 +1498,7 @@ class Input(Widget):
 
         self.font = font if font is not None else self.default_font
         self.width = width
-        self.height = self.font.render(' ', True, self.colors['white']).get_height()
+        self.height = self.font.render(' ', True, self._get_color('white')).get_height()
         self.enter_key_event = enter_key_event
         self.capital_lock = capital_lock
 
@@ -1502,7 +1506,7 @@ class Input(Widget):
         self._cursor_index = 0
         self._cursor_active_time = time.time()
         self._string = ""
-        self._content_widget = Content(self.parent, self.x, self.y, self._string, font=self.font, color=self.colors['white'])
+        self._content_widget = Content(self.parent, self.x, self.y, self._string, font=self.font, color=self._get_color('white'))
         self._subwidgets = [self._content_widget]
 
     def _draw_cursor(self, screen):
@@ -1510,18 +1514,18 @@ class Input(Widget):
         if time_diff - math.floor(time_diff) > 0.5:
             return
 
-        rendered_text = self.font.render(self._string[:self._cursor_index], True, self.colors['white'])
+        rendered_text = self.font.render(self._string[:self._cursor_index], True, self._get_color('white'))
         start_pos = (self.x + rendered_text.get_width(), self.y)
         end_pos = (self.x + rendered_text.get_width(),
                    self.y + rendered_text.get_height())
-        pygame.draw.line(screen, self.colors['white'], start_pos, end_pos)
+        pygame.draw.line(screen, self._get_color('white'), start_pos, end_pos)
 
     def _draw_background(self, screen):
         if not self.is_active:
             return
 
         background_surface = pygame.Surface((self.width, self.height))
-        background_surface.fill(self.colors['lightgray'])
+        background_surface.fill(self._get_color('lightgray'))
         background_surface.set_alpha(self._background_alpha)
         screen.blit(background_surface, (self.x, self.y))
 
@@ -1581,7 +1585,7 @@ class Input(Widget):
 
         line_start_pos = (self.x, self.y + self._content_widget.get_height())
         line_end_pos = (self.x + self.width, self.y + self._content_widget.get_height())
-        self.add_shape(Line(self.colors['white'], line_start_pos, line_end_pos))
+        self.add_shape(Line(self._get_color('white'), line_start_pos, line_end_pos))
 
     def _on_draw(self, screen):
         if self.is_active:
@@ -1688,7 +1692,7 @@ class Input(Widget):
         return self._string
 
     def get_height(self):
-        return self.font.render(' ', True, self.colors['white']).get_height()
+        return self.font.render(' ', True, self._get_color('white')).get_height()
 
 
 class Chart(Widget):
@@ -1733,12 +1737,12 @@ class Chart(Widget):
             x_label_interval_distance = self.width / (self.max_x / self.x_label_interval)
             for i in range(self.max_x / self.x_label_interval + 1):
                 label_text = str(i * self.x_label_interval)
-                rendered_label_text = self.label_font.render(label_text, True, self.colors['white'])
+                rendered_label_text = self.label_font.render(label_text, True, self._get_color('white'))
                 text_width = rendered_label_text.get_width()
                 if i == self.max_x / self.x_label_interval:
                     x = self.x + self.width
                 if i > 0:
-                    self.add_shape(Line(self.colors['lightgray'], (x, self.y), (x, y)))
+                    self.add_shape(Line(self._get_color('lightgray'), (x, self.y), (x, y)))
                     self.add_shape(Text(rendered_label_text, (x - text_width / 2, y + 2)))
                 else:
                     self.add_shape(Text(rendered_label_text, (x, y + 2)))
@@ -1750,19 +1754,19 @@ class Chart(Widget):
             y_label_interval_distance = self.height / (self.max_y / self.y_label_interval)
             for i in range(self.max_y / self.y_label_interval + 1):
                 label_text = str(i * self.y_label_interval)
-                rendered_label_text = self.label_font.render(label_text, True, self.colors['white'])
+                rendered_label_text = self.label_font.render(label_text, True, self._get_color('white'))
                 text_height = rendered_label_text.get_height()
                 if i == self.max_y / self.y_label_interval:
                     y = self.y
                 if i > 0:
-                    self.add_shape(Line(self.colors['lightgray'], (x, y), (x + self.width, y)))
+                    self.add_shape(Line(self._get_color('lightgray'), (x, y), (x + self.width, y)))
                 self.add_shape(Text(rendered_label_text, (x - rendered_label_text.get_width() - 3, y - text_height / 2)))
                 y -= y_label_interval_distance
 
     def _add_axis(self):
-        self.add_shape(Line(self.colors['white'], (self.x, self.y),
+        self.add_shape(Line(self._get_color('white'), (self.x, self.y),
                             (self.x, self.y + self.height), width=2))
-        self.add_shape(Line(self.colors['white'], (self.x, self.y + self.height),
+        self.add_shape(Line(self._get_color('white'), (self.x, self.y + self.height),
                             (self.x + self.width, self.y + self.height), width=2))
 
     def _add_curves(self):
@@ -1786,9 +1790,9 @@ class Chart(Widget):
                     points.append((pos_x, pos_y))
 
             color_name = self.info_colors.get(key) if self.info_colors else "white"
-            color = self.colors.get(color_name)
+            color = self._get_color(color_name)
             if not color:
-                color = self.colors['white']
+                color = self._get_color('white')
             curve = Lines(color, False, points, anti_alias=True)
             self.add_shape(curve)
 
@@ -1798,8 +1802,8 @@ class Chart(Widget):
 
         for constant in self.constants:
             y = int(self.y + self.height - y_unit_distance * (constant - self.min_y))
-            rendered_label_text = self.label_font.render(str(constant), True, self.colors['white'])
-            self.add_shape(DashLine(self.colors['white'], (self.x, y), (self.x + self.width, y)))
+            rendered_label_text = self.label_font.render(str(constant), True, self._get_color('white'))
+            self.add_shape(DashLine(self._get_color('white'), (self.x, y), (self.x + self.width, y)))
             self.add_shape(Text(rendered_label_text, (self.x + self.width - rendered_label_text.get_width(),
                                                       y - rendered_label_text.get_height())))
 
@@ -1854,7 +1858,7 @@ class ChartCaption(Widget):
         for content_widget in content_widgets:
             name = content_widget.get_text()
             line_y = content_widget.get_pos()[1] + content_widget.get_height() / 2
-            self.add_shape(Line(self.colors.get(self.info_colors[name]), (line_x, line_y), (line_x + self.line_length, line_y), width=2))
+            self.add_shape(Line(self._get_color(self.info_colors[name]), (line_x, line_y), (line_x + self.line_length, line_y), width=2))
 
     def _on_update(self):
         pass
@@ -1884,9 +1888,9 @@ class Map(Widget):
         self._result_font = pygame.font.Font("fonts/FreeSans.ttf", 16)
         self._address_font = pygame.font.Font("fonts/FreeSans.ttf", 12)
 
-        self._from_text = self._caption_font.render("From: ", True, self.colors['white'])
-        self._to_text = self._caption_font.render("To: ", True, self.colors['white'])
-        self._mode_text = self._caption_font.render("Mode: ", True, self.colors['white'])
+        self._from_text = self._caption_font.render("From: ", True, self._get_color('white'))
+        self._to_text = self._caption_font.render("To: ", True, self._get_color('white'))
+        self._mode_text = self._caption_font.render("Mode: ", True, self._get_color('white'))
 
         self._mode_ind = 0
         self._icon_size = 25
@@ -1960,21 +1964,21 @@ class Map(Widget):
         self._polyline_points = [(x + x_offset / 2, y - y_offset / 2) for x, y in coords]
 
         start_address = self._direction_info['routes'][0]['legs'][0]['start_address'].split(',')[0]
-        rendered_start_text = self._address_font.render(start_address, True, self.colors['white'])
+        rendered_start_text = self._address_font.render(start_address, True, self._get_color('white'))
         start_text_x = self._polyline_points[0][0] - rendered_start_text.get_width() / 2
         start_text_y = self._polyline_points[0][1] - rendered_start_text.get_height() - 5
         start_text_x, start_text_y = self._adjust_text_pos(start_text_x, start_text_y, rendered_start_text)
 
         end_address = self._direction_info['routes'][0]['legs'][0]['end_address'].split(',')[0]
-        rendered_end_text = self._address_font.render(end_address, True, self.colors['white'])
+        rendered_end_text = self._address_font.render(end_address, True, self._get_color('white'))
         end_text_x = self._polyline_points[-1][0] - rendered_end_text.get_width() / 2
         end_text_y = self._polyline_points[-1][1] - rendered_end_text.get_height() - 5
         end_text_x, end_text_y = self._adjust_text_pos(end_text_x, end_text_y, rendered_end_text)
 
-        self.add_shape(Lines(self.colors['green'], False, self._polyline_points, width=3, anti_alias=False))
-        self.add_shape(Circle(self.colors['orange'], self._polyline_points[0], self._dot_radius))
-        self.add_shape(Circle(self.colors['lightblue'], self._polyline_points[-1], self._dot_radius))
-        self.add_shape(Rectangle(self.colors['white'], self._map_x, self._map_y, self.map_width, self.map_height))
+        self.add_shape(Lines(self._get_color('green'), False, self._polyline_points, width=3, anti_alias=False))
+        self.add_shape(Circle(self._get_color('orange'), self._polyline_points[0], self._dot_radius))
+        self.add_shape(Circle(self._get_color('lightblue'), self._polyline_points[-1], self._dot_radius))
+        self.add_shape(Rectangle(self._get_color('white'), self._map_x, self._map_y, self.map_width, self.map_height))
         self.add_shape(Text(rendered_start_text, (start_text_x, start_text_y)))
         self.add_shape(Text(rendered_end_text, (end_text_x, end_text_y)))
 
@@ -2005,10 +2009,10 @@ class Map(Widget):
         screen.blit(self._to_text, (self.x, self.y + 30))
 
         if self._direction_info:
-            text_height = self._input_font.render(' ', True, self.colors['white']).get_height()
+            text_height = self._input_font.render(' ', True, self._get_color('white')).get_height()
             text_width = max(self._from_text.get_width(), self._to_text.get_width()) + self._input_width
-            self.add_shape(Circle(self.colors['orange'], (self.x + text_width + self._dot_radius * 2, self.y + text_height / 2), self._dot_radius))
-            self.add_shape(Circle(self.colors['lightblue'], (self.x + text_width + self._dot_radius * 2, self.y + text_height / 2 + 30), self._dot_radius))
+            self.add_shape(Circle(self._get_color('orange'), (self.x + text_width + self._dot_radius * 2, self.y + text_height / 2), self._dot_radius))
+            self.add_shape(Circle(self._get_color('lightblue'), (self.x + text_width + self._dot_radius * 2, self.y + text_height / 2 + 30), self._dot_radius))
 
     def _draw_icons(self, screen):
         x = self.x + 280
@@ -2018,7 +2022,7 @@ class Map(Widget):
             if ind == self._mode_ind:
                 rect_area = (x - self._mode_rect_width, y - self._mode_rect_width,
                              icon.get_width() + 2 * self._mode_rect_width, icon.get_height() + 2 * self._mode_rect_width)
-                pygame.draw.rect(screen, self.colors['green'], rect_area, self._mode_rect_width)
+                pygame.draw.rect(screen, self._get_color('green'), rect_area, self._mode_rect_width)
             screen.blit(icon, (x, y))
             x += icon.get_width() + 20
 
@@ -2037,7 +2041,7 @@ class Map(Widget):
             return
 
         result_text = "{:.1f} km - {}".format(float(self._total_distance) / 1000, self._calculate_time(float(self._total_time)))
-        rendered_result_text = self._result_font.render(result_text, True, self.colors['white'])
+        rendered_result_text = self._result_font.render(result_text, True, self._get_color('white'))
         screen.blit(rendered_result_text, (self._map_x, self.y + 60))
 
     def _on_enter(self):
@@ -2091,10 +2095,10 @@ class Map(Widget):
 
 
 class Camera(Widget):
-    def __init__(self, parent, x, y):
+    def __init__(self, parent, x, y, camera):
         super(Camera, self).__init__(parent, x, y)
 
-        self._camera = cv2.VideoCapture(0)
+        self.camera = camera
         self._camera_rotation = 0
         self._camera_resolution = (self._screen_width, self._screen_height)
         self._frame = None
@@ -2103,8 +2107,8 @@ class Camera(Widget):
         pass
 
     def _on_update(self):
-        if self._camera:
-            ret, self._frame = self._camera.read()
+        if self.camera:
+            ret, self._frame = self.camera.read()
 
     def _on_draw(self, screen):
         if self._frame is None or not self._frame.any():
