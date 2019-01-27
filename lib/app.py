@@ -58,6 +58,7 @@ class App:
 
         self._brightness_last_update = time.time()
         self._brightness_update_interval = 0.5
+        self._brightness_thres = 100
         self._brightness = 1.0
 
         self._setup()
@@ -145,9 +146,12 @@ class App:
         screen.blit(background_surface.convert(), (0, 0))
 
     def _apply_brightness(self, screen):
+        if self.active_panel is self.camera_panel:
+            return
+
         brightness_surface = pygame.Surface((self._screen_width, self._screen_height))
         brightness_surface.fill((0, 0, 0))
-        alpha_factor = min((1 - self._brightness), 0.5)
+        alpha_factor = min((1 - self._brightness), 0.3)
         brightness_surface.set_alpha(int(alpha_factor * 255))
         screen.blit(brightness_surface.convert(), (0, 0))
 
@@ -156,10 +160,11 @@ class App:
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         samples = random.sample(np.ravel(gray), 100)
         samples_avg = sum(samples) / len(samples)
-        if samples_avg >= 150:
+        print samples_avg
+        if samples_avg >= self._brightness_thres:
             self._brightness = 1.0
         else:
-            self._brightness = float(samples_avg) / 150
+            self._brightness = float(samples_avg) / self._brightness_thres
 
     def set_active_panel(self, panel):
         if self.active_panel is not panel:
