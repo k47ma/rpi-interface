@@ -616,7 +616,7 @@ class Calendar(Widget):
 
         if self.max_rows != -1 and len(self._parsed_calendar) > self.max_rows:
             self._parsed_calendar = sorted(self._parsed_calendar, key=lambda x: int(x[-2]))
-            self._parsed_calendar = [row for row in self._parsed_calendar if row[-1] == '1' or int(row[-2]) >= -3]
+            self._parsed_calendar = [row for row in self._parsed_calendar if row[-1] == '1' or int(row[-2]) >= -2]
             self._parsed_calendar = self._parsed_calendar[:self.max_rows]
 
         self._calendar_last_update = current_day
@@ -2100,9 +2100,9 @@ class Camera(Widget):
 
         self.camera = camera
 
-        self._camera_font = pygame.font.Font("fonts/FreeSans.ttf", 12)
-        self._camera_rotation = 0
-        self._camera_resolution = (self._screen_width, self._screen_height)
+        self._camera_font = pygame.font.Font("fonts/FreeSans.ttf", 15)
+        self._camera_rotation = 90
+        self._camera_resolution = (self._screen_height, self._screen_width)
         self._camera_framerate = 0
         self._frame = None
         self._frame_last_update = time.time()
@@ -2122,14 +2122,15 @@ class Camera(Widget):
         image_arr = cv2.cvtColor(self._frame, cv2.COLOR_BGR2RGB)
 
         image = Image.fromarray(image_arr)
-        image = image.rotate(self._camera_rotation).resize(self._camera_resolution)
+        image = image.resize(self._camera_resolution)
 
         mode = image.mode
         size = image.size
         data = image.tobytes()
 
         rendered_image = pygame.image.fromstring(data, size, mode)
-        screen.blit(rendered_image, (0, 0))
+        rotated_image = pygame.transform.rotate(rendered_image, self._camera_rotation)
+        screen.blit(rotated_image, (0, 0))
 
         self._add_framerate(screen)
 
