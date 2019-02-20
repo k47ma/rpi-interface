@@ -7,6 +7,7 @@ import glob
 import psutil
 import polyline
 import cv2
+from string import printable
 from PIL import Image
 from bs4 import BeautifulSoup
 from table import Table
@@ -1228,7 +1229,7 @@ class Content(Widget):
                  underline=False):
         super(Content, self).__init__(parent, x, y)
 
-        self.text = text
+        self.text = filter(lambda x: x in printable, text)
         self.font = font
         self.color = color
         self.max_width = max_width
@@ -2102,7 +2103,7 @@ class Camera(Widget):
 
         self._camera_font = pygame.font.Font("fonts/FreeSans.ttf", 15)
         self._camera_rotation = 90
-        self._camera_resolution = (self._screen_height, self._screen_width)
+        self._camera_resolution = (self._screen_width, self._screen_height)
         self._camera_framerate = 0
         self._frame = None
         self._frame_last_update = time.time()
@@ -2122,7 +2123,7 @@ class Camera(Widget):
         image_arr = cv2.cvtColor(self._frame, cv2.COLOR_BGR2RGB)
 
         image = Image.fromarray(image_arr)
-        image = image.resize(self._camera_resolution)
+        #image = image.resize(self._camera_resolution)
 
         mode = image.mode
         size = image.size
