@@ -131,12 +131,19 @@ class NightPanel(Panel):
 
         self.time_widget = NightTime(self)
         self.widgets = [self.time_widget]
+        self._curr_hour = dt.now().hour
+        self._curr_minute = dt.now().minute
 
     def _on_update(self):
-        curr_hour = dt.now().hour
-        curr_minute = dt.now().minute
-        if curr_hour == 6 and curr_minute == 0:
+        self.curr_hour = dt.now().hour
+        self.curr_minute = dt.now().minute
+        self._auto_set_night()
+
+    def _auto_set_night(self):
+        if self.curr_hour == 6 and self.curr_minute == 0:
             self.app.set_active_panel(self.app.main_panel)
+        elif self.curr_hour == 0 and self.curr_minute == 0:
+            self.app_set_active_panel(self)
 
     def handle_panel_events(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
