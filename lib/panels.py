@@ -143,7 +143,7 @@ class NightPanel(Panel):
         if self.curr_hour == 6 and self.curr_minute == 0:
             self.app.set_active_panel(self.app.main_panel)
         elif self.curr_hour == 0 and self.curr_minute == 0:
-            self.app_set_active_panel(self)
+            self.app.set_active_panel(self)
 
     def handle_panel_events(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
