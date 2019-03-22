@@ -616,7 +616,7 @@ class Calendar(Widget):
         self._add_days(self._parsed_calendar, calendar_status)
 
         if self.max_rows != -1 and len(self._parsed_calendar) > self.max_rows:
-            self._parsed_calendar = sorted(self._parsed_calendar, key=lambda x: int(x[-2]))
+            self._parsed_calendar = sorted(self._parsed_calendar, key=lambda x: (int(x[-2]), int(x[-1])))
             self._parsed_calendar = [row for row in self._parsed_calendar if row[-1] == '1' or int(row[-2]) >= -2]
             self._parsed_calendar = self._parsed_calendar[:self.max_rows]
 
@@ -2123,7 +2123,6 @@ class Camera(Widget):
         image_arr = cv2.cvtColor(self._frame, cv2.COLOR_BGR2RGB)
 
         image = Image.fromarray(image_arr)
-        #image = image.resize(self._camera_resolution)
 
         mode = image.mode
         size = image.size
