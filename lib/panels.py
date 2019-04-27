@@ -210,6 +210,7 @@ class SystemInfoPanel(Panel):
         self._max_size = 60
         self._update_interval = 0.5
         self._cpu_info = Queue.Queue(maxsize=self._max_size)
+        self._last_cpu_info = 0
         self._memory_info = Queue.Queue(maxsize=self._max_size)
         self._system_info = {"CPU": self._cpu_info, "Memory": self._memory_info}
         self._info_colors = {"CPU": "green", "Memory": "yellow"}
@@ -237,7 +238,12 @@ class SystemInfoPanel(Panel):
         if self._memory_info.full():
             self._memory_info.get_nowait()
 
-        self._cpu_info.put(psutil.cpu_percent())
+        cpu_info = psutil.cpu_percent()
+        if cpu_info == 0:
+            cpu_info = self._last_cpu_info
+        else:
+            self._last_cpu_info = cpu_info
+        self._cpu_info.put(cpu_info)
         self._memory_info.put(psutil.virtual_memory().percent)
 
         self._last_update = current_time

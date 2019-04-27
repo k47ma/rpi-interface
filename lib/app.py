@@ -58,7 +58,7 @@ class App:
         self._background_images = []
 
         self._brightness_last_update = time.time()
-        self._brightness_update_interval = 0.5
+        self._brightness_update_interval = 1
         self._brightness_thres = 80
         self._brightness = 1.0
 
@@ -115,7 +115,7 @@ class App:
 
     def _on_update(self):
         if self.camera and time.time() - self._brightness_last_update > self._brightness_update_interval:
-            self._update_brightness()
+            #self._update_brightness()
             self._brightness_last_update = time.time()
 
         for panel in self.panels:
@@ -190,3 +190,6 @@ class App:
             self._update_screen()
             self._on_update()
             self.clock.tick(self._frame_rate)
+        
+        if self.camera:
+            self.camera.release()
