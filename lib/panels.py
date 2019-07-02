@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from widgets import *
-from button import Button
+from lib.widgets import *
+from lib.button import Button
 from datetime import datetime as dt
 from abc import ABCMeta
 
@@ -209,9 +209,9 @@ class SystemInfoPanel(Panel):
 
         self._max_size = 60
         self._update_interval = 0.5
-        self._cpu_info = Queue.Queue(maxsize=self._max_size)
+        self._cpu_info = queue.Queue(maxsize=self._max_size)
         self._last_cpu_info = 0
-        self._memory_info = Queue.Queue(maxsize=self._max_size)
+        self._memory_info = queue.Queue(maxsize=self._max_size)
         self._system_info = {"CPU": self._cpu_info, "Memory": self._memory_info}
         self._info_colors = {"CPU": "green", "Memory": "yellow"}
 

@@ -81,7 +81,7 @@ class Chart:
         # values on the axis
         anchor_length = 2
         anchors = 5
-        anchor_distance = (y_axis_end[1] - y_axis_start[1]) / 5
+        anchor_distance = int((y_axis_end[1] - y_axis_start[1]) / 5)
         mid_point = (0, 0)
         for i in range(anchors):
             start_pos = (y_axis_start[0], y_axis_start[1] + anchor_distance * (i + 1))

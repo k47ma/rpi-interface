@@ -1,5 +1,5 @@
 import pygame
-from shapes import *
+from lib.shapes import *
 
 
 class Table:

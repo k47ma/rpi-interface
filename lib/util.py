@@ -15,7 +15,7 @@ def in_sorted(target, sorted_list):
 
 def split_list(a, n):
     """Split the given list into n parts and return a list of parts"""
-    part_len = len(a) / n
+    part_len = int(len(a) / n)
     parts = []
     for i in range(n):
         start_ind = i * part_len
@@ -52,4 +52,4 @@ def bytes_to_string(n):
 
 def log_to_file(content):
     """Output log information"""
-    print "[{}] {}".format(get_timestr(), content)
+    print("[{}] {}".format(get_timestr(), content))

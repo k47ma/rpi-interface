@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import numpy as np
-from panels import *
+from lib.panels import *
 
 
 class App:
@@ -123,11 +123,11 @@ class App:
                 panel.update()
 
     def _draw_background(self, screen):
-        x_offset = (self._screen_width - self._background_image_size) / 2
-        y_offset = (self._screen_height - self._background_image_size) / 2
+        x_offset = int((self._screen_width - self._background_image_size) / 2)
+        y_offset = int((self._screen_height - self._background_image_size) / 2)
         current_time = int(time.time() * 100)
         background_surface = pygame.Surface((self._screen_width, self._screen_height))
-        rotated_image_queue = Queue.Queue()
+        rotated_image_queue = queue.Queue()
         threads = []
         for ind, image in enumerate(self._background_images):
             image_center = image.get_rect().center
@@ -163,7 +163,7 @@ class App:
         ret, frame = self.camera.read()
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         samples = random.sample(np.ravel(gray), 100)
-        samples_avg = sum(samples) / len(samples)
+        samples_avg = int(sum(samples) / len(samples))
         if samples_avg >= self._brightness_thres:
             self._brightness = 1.0
         else:
@@ -190,6 +190,6 @@ class App:
             self._update_screen()
             self._on_update()
             self.clock.tick(self._frame_rate)
-        
+
         if self.camera:
             self.camera.release()

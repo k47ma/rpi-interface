@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import time
-import Queue
+import queue
 import re
 import glob
 import psutil
@@ -10,9 +10,9 @@ import cv2
 from string import printable
 from PIL import Image
 from bs4 import BeautifulSoup
-from table import Table
-from threads import *
-from shapes import *
+from lib.table import Table
+from lib.threads import *
+from lib.shapes import *
 
 
 class Widget:
@@ -557,7 +557,7 @@ class Weather(Widget):
             y += rendered_change_text.get_height()
 
         # draw last update time
-        last_update_mins = int(time.time() - self._weather_last_update) / 60
+        last_update_mins = int((time.time() - self._weather_last_update) / 60)
         last_update_text = "Last Update: {} min ago".format(last_update_mins)
         rendered_last_update_text = self.last_update_font.render(last_update_text, True, self._get_color('white'))
         screen.blit(rendered_last_update_text, (x, y))
@@ -685,7 +685,7 @@ class Calendar(Widget):
 
     def _on_update(self):
         current_day = dt.now().day
-        if not self._parsed_calendar or current_day != self._calendar_last_update:
+        if current_day != self._calendar_last_update:
             self._load_calendar()
 
         self._load_table()
@@ -802,7 +802,7 @@ class Stock(Widget):
                                        "outputsize": "full", "apikey": self._stock_keys[0]}}
         self._stock_range_ind = 0
         self._stock_range = ["1D", "5D", "1M", "3M", "6M", "1Y", "5Y", "MAX"]
-        self._stock_info_queue = Queue.Queue(maxsize=1)
+        self._stock_info_queue = queue.Queue(maxsize=1)
         self._stock_info = {"intraday": None, "hourly": None, "daily": None}
         self._current_price = 0
         self._last_close_price = 0
@@ -969,7 +969,7 @@ class Stock(Widget):
             time_series_list = self._get_time_series(time_series_key)
             if not time_series_list:
                 return
-            ratio = len(time_series_list) / 100
+            ratio = int(len(time_series_list) / 100)
             self._time_series = time_series_list[::ratio]
             self._chart_widget.set_x_range(0, 100)
 
@@ -1058,7 +1058,7 @@ class Stock(Widget):
     def reset(self):
         self._stock_symbol = ""
         self._stock_range_ind = 0
-        self._stock_info_queue = Queue.Queue(maxsize=1)
+        self._stock_info_queue = queue.Queue(maxsize=1)
         self._stock_info = {"intraday": None, "hourly": None, "daily": None}
         self._current_price = 0
         self._last_close_price = 0
@@ -1229,7 +1229,7 @@ class Content(Widget):
                  underline=False):
         super(Content, self).__init__(parent, x, y)
 
-        self.text = filter(lambda x: x in printable, text)
+        self.text = ''.join([c for c in text if c in printable])
         self.font = font
         self.color = color
         self.max_width = max_width
@@ -1258,7 +1258,7 @@ class Content(Widget):
             x += self.prefix_width
             self.max_width -= self.prefix_width
 
-        content_text = self.font.render(self.text, True, self.color)
+        content_text = self.font.render(str(self.text), True, self.color)
         if self.max_width <= 0 or content_text.get_width() <= self.max_width:
             self.content_texts.append((self.text, (x, y)))
             return
@@ -1326,17 +1326,17 @@ class Content(Widget):
 
     def get_width(self):
         if self.prefix:
-            return self.prefix_width + self.font.render(self.content_texts[1][0], True, self.color).get_width()
+            return self.prefix_width + self.font.render(str(self.content_texts[1][0]), True, self.color).get_width()
         elif self.content_texts:
-            return self.font.render(self.content_texts[0][0], True, self.color).get_width()
+            return self.font.render(str(self.content_texts[0][0]), True, self.color).get_width()
         else:
             return 0
 
     def get_height(self):
         if self.prefix:
-            return sum([self.font.render(text, True, self.color).get_height() for text, pos in self.content_texts[1:]])
+            return sum([self.font.render(str(text), True, self.color).get_height() for text, pos in self.content_texts[1:]])
         elif self.content_texts:
-            return sum([self.font.render(text, True, self.color).get_height() for text, pos in self.content_texts])
+            return sum([self.font.render(str(text), True, self.color).get_height() for text, pos in self.content_texts])
         else:
             return 0
 
@@ -1346,9 +1346,9 @@ class Content(Widget):
         for ind in range(start_index, len(self.content_texts)):
             text, pos = self.content_texts[ind]
             if self.prefix and ind == 1:
-                line = self.font.render(self.prefix + text, True, self.color)
+                line = self.font.render(str(self.prefix) + str(text), True, self.color)
             else:
-                line = self.font.render(len(self.prefix) * ' ' + text, True, self.color)
+                line = self.font.render(str(len(self.prefix) * ' ') + str(text), True, self.color)
             lines.append(line)
         return lines
 
@@ -1735,12 +1735,12 @@ class Chart(Widget):
         if self.x_label_interval:
             x = self.x
             y = self.y + self.height
-            x_label_interval_distance = self.width / (self.max_x / self.x_label_interval)
-            for i in range(self.max_x / self.x_label_interval + 1):
+            x_label_interval_distance = int(self.width / (self.max_x / self.x_label_interval))
+            for i in range(int(self.max_x / self.x_label_interval) + 1):
                 label_text = str(i * self.x_label_interval)
                 rendered_label_text = self.label_font.render(label_text, True, self._get_color('white'))
                 text_width = rendered_label_text.get_width()
-                if i == self.max_x / self.x_label_interval:
+                if i == int(self.max_x / self.x_label_interval):
                     x = self.x + self.width
                 if i > 0:
                     self.add_shape(Line(self._get_color('lightgray'), (x, self.y), (x, y)))
@@ -1752,12 +1752,12 @@ class Chart(Widget):
         if self.y_label_interval:
             x = self.x
             y = self.y + self.height
-            y_label_interval_distance = self.height / (self.max_y / self.y_label_interval)
-            for i in range(self.max_y / self.y_label_interval + 1):
+            y_label_interval_distance = int(self.height / (self.max_y / self.y_label_interval))
+            for i in range(int(self.max_y / self.y_label_interval) + 1):
                 label_text = str(i * self.y_label_interval)
                 rendered_label_text = self.label_font.render(label_text, True, self._get_color('white'))
                 text_height = rendered_label_text.get_height()
-                if i == self.max_y / self.y_label_interval:
+                if i == int(self.max_y / self.y_label_interval):
                     y = self.y
                 if i > 0:
                     self.add_shape(Line(self._get_color('lightgray'), (x, y), (x + self.width, y)))
@@ -1776,8 +1776,8 @@ class Chart(Widget):
 
         x_unit_distance = float(self.width) / (self.max_x - self.min_x - 1) * self.x_unit
         y_unit_distance = float(self.height) / (self.max_y - self.min_y) * self.y_unit
-        for key, vals in self.info.iteritems():
-            if isinstance(vals, Queue.Queue) and vals.qsize() <= 1:
+        for key, vals in self.info.items():
+            if isinstance(vals, queue.Queue) and vals.qsize() <= 1:
                 continue
             elif isinstance(vals, list) and len(vals) <= 1:
                 continue
@@ -1859,7 +1859,7 @@ class ChartCaption(Widget):
         for content_widget in content_widgets:
             name = content_widget.get_text()
             line_y = content_widget.get_pos()[1] + content_widget.get_height() / 2
-            self.add_shape(Line(self._get_color(self.info_colors[name]), (line_x, line_y), (line_x + self.line_length, line_y), width=2))
+            self.add_shape(Line(self._get_color(self.info_colors.get(name)), (line_x, line_y), (line_x + self.line_length, line_y), width=2))
 
     def _on_update(self):
         pass

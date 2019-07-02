@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from pygame import Rect
-from util import *
+from lib.util import *
 
 
 class Shape:
