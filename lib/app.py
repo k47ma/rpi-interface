@@ -1,5 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+import copy
+import random
 import numpy as np
 from lib.panels import *
 
@@ -56,6 +58,14 @@ class App:
         self._background_alpha = 180
         self._background_speed_rate = 0.1
         self._background_images = []
+        self._background_type = 1
+        self._background2_total_points = 30
+        self._background2_total_triangles = 10
+        self._background2_points = []
+        self._background2_target_points = []
+        self._background2_triangles = []
+        self._background2_triangle_alpha = 80
+        self._background2_repeat_interval = 20
 
         self._brightness_last_update = time.time()
         self._brightness_update_interval = 1
@@ -65,6 +75,12 @@ class App:
         self._setup()
 
     def _setup(self):
+        self._background_setup()
+
+        for panel in self.panels:
+            panel.setup()
+
+    def _background_setup(self):
         self._background_image_sets = []
         for image_path in glob.glob(os.path.join(self._background_image_directory, "*.png")):
             image = pygame.image.load(image_path)
@@ -72,8 +88,9 @@ class App:
             self._background_images.append(image)
         self._background_images.reverse()
 
-        for panel in self.panels:
-            panel.setup()
+        self._background2_points = [[random.choice(range(self._screen_width)), random.choice(range(self._screen_height))] for _ in range(self._background2_total_points)]
+        self._background2_target_points = [[random.choice(range(self._screen_width)), random.choice(range(self._screen_height))] for _ in range(self._background2_total_points)]
+        self._background2_triangles = [random.choices(self._background2_points, k=3) for _ in range(self._background2_total_triangles)]
 
     def _handle_events(self):
         for event in pygame.event.get():
@@ -96,6 +113,8 @@ class App:
                     self.set_active_panel(self.map_panel)
                 elif event.key == pygame.K_v:
                     self.set_active_panel(self.camera_panel)
+                elif event.key == pygame.K_p:
+                    self._toggle_background_type()
 
         pressed = pygame.key.get_pressed()
         if pressed[pygame.K_q] and (pressed[pygame.K_LCTRL] or pressed[pygame.K_RCTRL]):
@@ -122,26 +141,54 @@ class App:
             if panel == self.active_panel or panel.is_always_update():
                 panel.update()
 
+    def _toggle_background_type(self):
+        self._background_type += 1
+        if self._background_type > 3:
+            self._background_type = 1
+
     def _draw_background(self, screen):
-        x_offset = int((self._screen_width - self._background_image_size) / 2)
-        y_offset = int((self._screen_height - self._background_image_size) / 2)
-        current_time = int(time.time() * 100)
         background_surface = pygame.Surface((self._screen_width, self._screen_height))
-        rotated_image_queue = queue.Queue()
-        threads = []
-        for ind, image in enumerate(self._background_images):
-            image_center = image.get_rect().center
-            image_center = (image_center[0] + x_offset, image_center[1] + y_offset)
-            degree = int(current_time / (2 ** ind) * self._background_speed_rate) % 360
-            thread = ImageRotateThread(image, image_center, degree, rotated_image_queue)
-            threads.append(thread)
-            thread.start()
 
-        for thread in threads:
-            thread.join()
+        if self._background_type == 1:
+            x_offset = int((self._screen_width - self._background_image_size) / 2)
+            y_offset = int((self._screen_height - self._background_image_size) / 2)
+            current_time = int(time.time() * 100)
 
-        for rotated_image, rect in rotated_image_queue.queue:
-            background_surface.blit(rotated_image, rect)
+            rotated_image_queue = queue.Queue()
+            threads = []
+            for ind, image in enumerate(self._background_images):
+                image_center = image.get_rect().center
+                image_center = (image_center[0] + x_offset, image_center[1] + y_offset)
+                degree = int(current_time / (2 ** ind) * self._background_speed_rate) % 360
+                thread = ImageRotateThread(image, image_center, degree, rotated_image_queue)
+                threads.append(thread)
+                thread.start()
+
+            for thread in threads:
+                thread.join()
+
+            for rotated_image, rect in rotated_image_queue.queue:
+                background_surface.blit(rotated_image, rect)
+        elif self._background_type == 2:
+            curr_time = time.time()
+            for triangle in self._background2_triangles:
+                triangle_copy = copy.deepcopy(triangle)
+                for ind, point in enumerate(triangle):
+                    weighted_point = [0, 0]
+                    target_point = self._background2_target_points[self._background2_points.index(point)]
+                    curr_ind = curr_time - int(curr_time / self._background2_repeat_interval) * self._background2_repeat_interval
+                    half_interval = self._background2_repeat_interval // 2
+                    if curr_ind < half_interval:
+                        weight = curr_ind / half_interval
+                    else:
+                        weight = 1 - (curr_ind - half_interval) / half_interval
+                    triangle_copy[ind][0] = weight * point[0] + (1 - weight) * target_point[0]
+                    triangle_copy[ind][1] = weight * point[1] + (1 - weight) * target_point[1]
+
+                triangle_surface = pygame.Surface((self._screen_width, self._screen_height))
+                pygame.draw.polygon(triangle_surface, (0, 255, 0), triangle_copy)
+                triangle_surface.set_alpha(self._background2_triangle_alpha)
+                background_surface.blit(triangle_surface.convert(), (0, 0))
 
         background_surface.set_alpha(self._background_alpha)
         screen.blit(background_surface.convert(), (0, 0))
