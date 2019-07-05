@@ -71,22 +71,27 @@ class DynamicImage(Background):
 
 
 class MovePoint:
-    def __init__(self, max_x, max_y, speed=3):
+    def __init__(self, min_x, min_y, max_x, max_y, radius=20, speed=3):
+        self.min_x = min_x
+        self.min_y = min_y
         self.max_x = max_x
         self.max_y = max_y
+        self.radius = radius
         self.speed = speed
 
-        self.x = random.randrange(self.max_x)
-        self.y = random.randrange(self.max_y)
+        self.x = random.randrange(self.min_x, self.max_x)
+        self.y = random.randrange(self.min_x, self.max_y)
 
-        self.target_x = random.randrange(self.max_x)
-        self.target_y = random.randrange(self.max_y)
+        self.target_x = random.randrange(self.min_x, self.max_x)
+        self.target_y = random.randrange(self.min_x, self.max_y)
 
     def update(self):
         dist = distance((self.x, self.y), (self.target_x, self.target_y))
         if dist < self.speed:
-            self.target_x = random.randrange(self.max_x)
-            self.target_y = random.randrange(self.max_y)
+            self.target_x = random.randrange(int(max(self.x - self.radius, self.min_x)),
+                                             int(min(self.x + self.radius, self.max_x)))
+            self.target_y = random.randrange(int(max(self.y - self.radius, self.min_y)),
+                                             int(min(self.y + self.radius, self.max_y)))
             return
 
         ratio = self.speed / dist
@@ -111,7 +116,11 @@ class DynamicTriangle(Background):
         self.total_triangles = total_triangles
         self.repeat_interval = repeat_interval
 
-        self.points = [MovePoint(self.width, self.height, speed=2) for _ in range(self.total_points)]
+        self.points_padding = 25
+        self.points = [MovePoint(self.points_padding, self.points_padding,
+                                 self.width - self.points_padding,
+                                 self.height - self.points_padding,
+                                 radius=50, speed=2) for _ in range(self.total_points)]
         self.triangles = [Triangle(random.choices(self.points, k=3)) for _ in range(self.total_triangles)]
 
     def update(self):
@@ -126,7 +135,7 @@ class DynamicTriangle(Background):
             #pygame.draw.polygon(triangle_surface, self.color, triangle_copy)
             pygame.draw.lines(triangle_surface, self.color, True, points, 2)
             for point in points:
-                pygame.draw.circle(triangle_surface, (0, 255, 0), point, 4)
+                pygame.draw.circle(triangle_surface, self.color, point, 4)
 
             triangle_surface.set_alpha(self.alpha)
             triangle_surface.set_colorkey((0, 0, 0))

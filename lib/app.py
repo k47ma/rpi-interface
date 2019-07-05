@@ -60,7 +60,7 @@ class App:
                                              alpha=180, speed=0.1)
         self.triangle_background = DynamicTriangle(width=self._screen_width,
                                                    height=self._screen_height,
-                                                   color=(0, 255, 0), alpha=80,
+                                                   color=(255, 165, 0), alpha=130,
                                                    total_points=30,
                                                    total_triangles=10,
                                                    repeat_interval=20)
