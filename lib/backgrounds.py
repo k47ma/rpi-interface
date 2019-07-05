@@ -78,24 +78,20 @@ class DynamicTriangle(Background):
         self.total_triangles = total_triangles
         self.repeat_interval = repeat_interval
 
-        self.total_points = 30
-        self.total_triangles = 10
-        self.repeat_interval = 20
-
-        self._background2_points = [[random.choice(range(self.width)), random.choice(range(self.height))] for _ in range(self.total_points)]
-        self._background2_target_points = [[random.choice(range(self.width)), random.choice(range(self.height))] for _ in range(self.total_points)]
-        self._background2_triangles = [random.choices(self._background2_points, k=3) for _ in range(self.total_triangles)]
+        self.points = [[random.choice(range(self.width)), random.choice(range(self.height))] for _ in range(self.total_points)]
+        self.target_points = [[random.choice(range(self.width)), random.choice(range(self.height))] for _ in range(self.total_points)]
+        self.triangles = [random.choices(self.points, k=3) for _ in range(self.total_triangles)]
 
     def update(self):
         pass
 
     def draw(self, surface):
         curr_time = time.time()
-        for triangle in self._background2_triangles:
+        for triangle in self.triangles:
             triangle_copy = copy.deepcopy(triangle)
             for ind, point in enumerate(triangle):
                 weighted_point = [0, 0]
-                target_point = self._background2_target_points[self._background2_points.index(point)]
+                target_point = self.target_points[self.points.index(point)]
                 curr_ind = curr_time - int(curr_time / self.repeat_interval) * self.repeat_interval
                 half_interval = self.repeat_interval // 2
                 if curr_ind < half_interval:
@@ -106,6 +102,8 @@ class DynamicTriangle(Background):
                 triangle_copy[ind][1] = weight * point[1] + (1 - weight) * target_point[1]
 
             triangle_surface = pygame.Surface((self.width, self.height))
-            pygame.draw.polygon(triangle_surface, self.color, triangle_copy)
+            #pygame.draw.polygon(triangle_surface, self.color, triangle_copy)
+            pygame.draw.lines(triangle_surface, self.color, True, triangle_copy, 2)
             triangle_surface.set_alpha(self.alpha)
-            surface.blit(triangle_surface.convert(), (0, 0))
+            triangle_surface.set_colorkey((0, 0, 0))
+            surface.blit(triangle_surface.convert_alpha(), (0, 0))

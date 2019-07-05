@@ -370,16 +370,16 @@ class NewsList(News):
 
         # draw sidebar
         if len(self._display_lines) < sum([len(content.get_lines()) for content in self._title_contents]):
-            pre_length = self._start_index * self.max_height / len(self._news_info)
+            pre_length = self._start_index * self.max_height // len(self._news_info)
             sidebar_start = (self.x + self.max_width, self.y + pre_length)
             sidebar_end = (self.x + self.max_width, self.y + pre_length + self._sidebar_length)
             if sidebar_end[1] > self.y + self.max_height:
                 sidebar_end = (sidebar_end[0], self.y + self.max_height)
             pygame.draw.line(screen, self._get_color('white'), sidebar_start, sidebar_end, self._sidebar_width)
-            pygame.draw.line(screen, self._get_color('white'), (self.x + self.max_width - self._sidebar_width / 2, self.y),
-                            (self.x + self.max_width + self._sidebar_width / 2, self.y), 1)
-            pygame.draw.line(screen, self._get_color('white'), (self.x + self.max_width - self._sidebar_width / 2, self.y + self.max_height),
-                            (self.x + self.max_width + self._sidebar_width / 2, self.y + self.max_height), 1)
+            pygame.draw.line(screen, self._get_color('white'), (self.x + self.max_width - self._sidebar_width // 2, self.y),
+                            (self.x + self.max_width + self._sidebar_width // 2, self.y), 1)
+            pygame.draw.line(screen, self._get_color('white'), (self.x + self.max_width - self._sidebar_width // 2, self.y + self.max_height),
+                            (self.x + self.max_width + self._sidebar_width // 2, self.y + self.max_height), 1)
 
         # draw image
         if self._display_image:
@@ -415,8 +415,8 @@ class NewsList(News):
     def _draw_no_image_message(self, screen):
         pygame.draw.rect(screen, self._get_color('black'), (self.x, self.y, self.max_width, self.max_height), 0)
         message_text = self._message_font.render("No image to show here...", True, self._get_color('white'))
-        screen.blit(message_text, (self.x + (self.max_width - message_text.get_width()) / 2,
-                                             self.y + (self.max_height - message_text.get_height()) / 2))
+        screen.blit(message_text, (self.x + (self.max_width - message_text.get_width()) // 2,
+                                             self.y + (self.max_height - message_text.get_height()) // 2))
 
     def _parse_image_name(self, image_url):
         image_name = image_url.split('/')[-1]
@@ -557,7 +557,7 @@ class Weather(Widget):
             y += rendered_change_text.get_height()
 
         # draw last update time
-        last_update_mins = int((time.time() - self._weather_last_update) / 60)
+        last_update_mins = (time.time() - self._weather_last_update) // 60
         last_update_text = "Last Update: {} min ago".format(last_update_mins)
         rendered_last_update_text = self.last_update_font.render(last_update_text, True, self._get_color('white'))
         screen.blit(rendered_last_update_text, (x, y))
@@ -762,7 +762,7 @@ class Traffic(Widget):
         distance_text = self.traffic_font.render(traffic_distance, True, self._get_color('white'))
         duration_text = self.traffic_font.render(traffic_duration, True, self._get_color('white'))
 
-        screen.blit(distance_text, (self.x + (duration_text.get_width() - distance_text.get_width()) / 2, self.y))
+        screen.blit(distance_text, (self.x + (duration_text.get_width() - distance_text.get_width()) // 2, self.y))
         screen.blit(duration_text, (self.x, self.y + distance_text.get_height()))
         screen.blit(self._traffic_icon, (self.x + duration_text.get_width() + 5, self.y + distance_text.get_height()))
 
@@ -969,12 +969,12 @@ class Stock(Widget):
             time_series_list = self._get_time_series(time_series_key)
             if not time_series_list:
                 return
-            ratio = int(len(time_series_list) / 100)
+            ratio = len(time_series_list) // 100
             self._time_series = time_series_list[::ratio]
             self._chart_widget.set_x_range(0, 100)
 
         if self.chart and self._time_series:
-            price_info = [(float(element['2. high']) + float(element['3. low'])) / 2 for element in self._time_series]
+            price_info = [(float(element['2. high']) + float(element['3. low'])) // 2 for element in self._time_series]
             self._chart_widget.set_info({"price": price_info})
             if current_range == "1D":
                 self._chart_widget.set_constants([self._last_close_price])
@@ -1014,7 +1014,7 @@ class Stock(Widget):
             return
 
         change = self._current_price - self._last_close_price
-        percent = change / self._last_close_price * 100
+        percent = change // self._last_close_price * 100
         if change > 0:
             color = "green"
             arrow = u'▲'
@@ -1043,7 +1043,7 @@ class Stock(Widget):
 
         range_x = self.x + self.chart_width + 10
         range_y = self.y + self.stock_font_height + self._input_widget.get_height() + 10
-        range_unit_distance = self.chart_height / (len(self._stock_range) - 1)
+        range_unit_distance = self.chart_height // (len(self._stock_range) - 1)
         self.add_shape(Line(self._get_color('white'), (range_x, range_y), (range_x, range_y + self.chart_height), width=3))
         for ind in range(len(self._stock_range)):
             y = range_y + range_unit_distance * ind if ind < len(self._stock_range) - 1 else range_y + self.chart_height
@@ -1053,7 +1053,7 @@ class Stock(Widget):
                 color = self._get_color('white')
             rendered_text = self.stock_range_font.render(self._stock_range[ind], True, color)
             self.add_shape(Line(self._get_color('white'), (range_x, y), (range_x + 6, y)))
-            self.add_shape(Text(rendered_text, (range_x + 10, y - rendered_text.get_height() / 2)))
+            self.add_shape(Text(rendered_text, (range_x + 10, y - rendered_text.get_height() // 2)))
 
     def reset(self):
         self._stock_symbol = ""
@@ -1214,9 +1214,9 @@ class NightTime(Time):
     def _on_draw(self, screen):
         time_text = self.night_time_font.render(self.time_str, True, self._get_color('gray'))
         date_text = self.night_date_font.render(self.date_str, True, self._get_color('gray'))
-        time_pos = ((self._screen_width - time_text.get_width()) / 2,
-                    (self._screen_height - time_text.get_height()) / 2 - 30)
-        date_pos = ((self._screen_width - date_text.get_width()) / 2,
+        time_pos = ((self._screen_width - time_text.get_width()) // 2,
+                    (self._screen_height - time_text.get_height()) // 2 - 30)
+        date_pos = ((self._screen_width - date_text.get_width()) // 2,
                     time_pos[1] + time_text.get_height() + 10)
         screen.blit(time_text, time_pos)
         screen.blit(date_text, date_pos)
@@ -1858,7 +1858,7 @@ class ChartCaption(Widget):
         line_x = self.x + max([widget.get_width() for widget in content_widgets]) + 5
         for content_widget in content_widgets:
             name = content_widget.get_text()
-            line_y = content_widget.get_pos()[1] + content_widget.get_height() / 2
+            line_y = content_widget.get_pos()[1] + content_widget.get_height() // 2
             self.add_shape(Line(self._get_color(self.info_colors.get(name)), (line_x, line_y), (line_x + self.line_length, line_y), width=2))
 
     def _on_update(self):
@@ -1941,8 +1941,8 @@ class Map(Widget):
         # parse overview polyline
         polyline_width = int(self.map_width * (1 - self.map_padding * 2))
         polyline_height = int(self.map_height * (1 - self.map_padding * 2))
-        polyline_x = self._map_x + (self.map_width - polyline_width) / 2
-        polyline_y = self._map_y + (self.map_height - polyline_height) / 2
+        polyline_x = self._map_x + (self.map_width - polyline_width) // 2
+        polyline_y = self._map_y + (self.map_height - polyline_height) // 2
 
         points = polyline.decode(self._direction_info['routes'][0]['overview_polyline']['points'])
         latitudes = [point[0] for point in points]
@@ -1953,8 +1953,8 @@ class Map(Widget):
         max_long = max(longitudes)
 
         coords = [(long - min_long, lat - min_lat) for lat, long in points]
-        x_ratio = polyline_width / (max_long - min_long)
-        y_ratio = polyline_height / (max_lat - min_lat)
+        x_ratio = polyline_width // (max_long - min_long)
+        y_ratio = polyline_height // (max_lat - min_lat)
         ratio = min(x_ratio, y_ratio)
         coords = [(int(polyline_x + x * ratio), int(polyline_y + polyline_height - y * ratio)) for x, y in coords]
 
@@ -1962,17 +1962,17 @@ class Map(Widget):
         coords_y = [coord[1] for coord in coords]
         x_offset = polyline_width - (max(coords_x) - min(coords_x))
         y_offset = polyline_height - (max(coords_y) - min(coords_y))
-        self._polyline_points = [(x + x_offset / 2, y - y_offset / 2) for x, y in coords]
+        self._polyline_points = [(x + x_offset // 2, y - y_offset // 2) for x, y in coords]
 
         start_address = self._direction_info['routes'][0]['legs'][0]['start_address'].split(',')[0]
         rendered_start_text = self._address_font.render(start_address, True, self._get_color('white'))
-        start_text_x = self._polyline_points[0][0] - rendered_start_text.get_width() / 2
+        start_text_x = self._polyline_points[0][0] - rendered_start_text.get_width() // 2
         start_text_y = self._polyline_points[0][1] - rendered_start_text.get_height() - 5
         start_text_x, start_text_y = self._adjust_text_pos(start_text_x, start_text_y, rendered_start_text)
 
         end_address = self._direction_info['routes'][0]['legs'][0]['end_address'].split(',')[0]
         rendered_end_text = self._address_font.render(end_address, True, self._get_color('white'))
-        end_text_x = self._polyline_points[-1][0] - rendered_end_text.get_width() / 2
+        end_text_x = self._polyline_points[-1][0] - rendered_end_text.get_width() // 2
         end_text_y = self._polyline_points[-1][1] - rendered_end_text.get_height() - 5
         end_text_x, end_text_y = self._adjust_text_pos(end_text_x, end_text_y, rendered_end_text)
 
@@ -1988,8 +1988,8 @@ class Map(Widget):
     def _adjust_text_pos(self, x, y, text):
         text_width = text.get_width()
         text_height = text.get_height()
-        x_padding = self.map_width * self.map_padding / 2
-        y_padding = self.map_height * self.map_padding / 2
+        x_padding = self.map_width * self.map_padding // 2
+        y_padding = self.map_height * self.map_padding // 2
 
         if x < self._map_x + x_padding:
             x = self._map_x + x_padding
@@ -2012,8 +2012,8 @@ class Map(Widget):
         if self._direction_info:
             text_height = self._input_font.render(' ', True, self._get_color('white')).get_height()
             text_width = max(self._from_text.get_width(), self._to_text.get_width()) + self._input_width
-            self.add_shape(Circle(self._get_color('orange'), (self.x + text_width + self._dot_radius * 2, self.y + text_height / 2), self._dot_radius))
-            self.add_shape(Circle(self._get_color('lightblue'), (self.x + text_width + self._dot_radius * 2, self.y + text_height / 2 + 30), self._dot_radius))
+            self.add_shape(Circle(self._get_color('orange'), (self.x + text_width + self._dot_radius * 2, self.y + text_height // 2), self._dot_radius))
+            self.add_shape(Circle(self._get_color('lightblue'), (self.x + text_width + self._dot_radius * 2, self.y + text_height // 2 + 30), self._dot_radius))
 
     def _draw_icons(self, screen):
         x = self.x + 280
@@ -2028,20 +2028,20 @@ class Map(Widget):
             x += icon.get_width() + 20
 
     def _calculate_time(self, total_time):
-        total_min = total_time / 60
+        total_min = total_time // 60
         if total_min < 60:
             return "{:.1f} min".format(total_min)
         elif total_min < 60 * 24:
             return "{} h {} min".format(int(total_min / 60), int(total_min) % 60)
         else:
             total_hour = int(total_min / 60)
-            return "{} d {} h {} min".format(total_hour / 24, total_hour % 24, int(total_min) % 60)
+            return "{} d {} h {} min".format(total_hour // 24, total_hour % 24, int(total_min) % 60)
 
     def _draw_result(self, screen):
         if not self._direction_info:
             return
 
-        result_text = "{:.1f} km - {}".format(float(self._total_distance) / 1000, self._calculate_time(float(self._total_time)))
+        result_text = "{:.1f} km | {}".format(float(self._total_distance) / 1000, self._calculate_time(float(self._total_time)))
         rendered_result_text = self._result_font.render(result_text, True, self._get_color('white'))
         screen.blit(rendered_result_text, (self._map_x, self.y + 60))
 

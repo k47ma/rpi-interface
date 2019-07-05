@@ -22,8 +22,8 @@ class App:
         else:
             self.display = pygame.display.set_mode(self._screen_size)
 
-        self._pygame_icon = pygame.image.load(os.path.join('images', 'icon', 'small-rpi.png')).convert_alpha()
-        pygame.display.set_icon(self._pygame_icon)
+        self._window_icon = pygame.image.load(os.path.join('images', 'icon', 'small-rpi.png')).convert_alpha()
+        pygame.display.set_icon(self._window_icon)
         pygame.display.set_caption("rpi interface")
 
         self.screen = pygame.Surface(self._screen_size)
