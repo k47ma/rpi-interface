@@ -8,6 +8,7 @@ import glob
 import time
 import copy
 from lib.threads import ImageRotateThread
+from lib.util import *
 
 
 class Background:
@@ -69,6 +70,38 @@ class DynamicImage(Background):
         surface.set_alpha(self.alpha)
 
 
+class MovePoint:
+    def __init__(self, max_x, max_y, speed=3):
+        self.max_x = max_x
+        self.max_y = max_y
+        self.speed = speed
+
+        self.x = random.randrange(self.max_x)
+        self.y = random.randrange(self.max_y)
+
+        self.target_x = random.randrange(self.max_x)
+        self.target_y = random.randrange(self.max_y)
+
+    def update(self):
+        dist = distance((self.x, self.y), (self.target_x, self.target_y))
+        if dist < self.speed:
+            self.target_x = random.randrange(self.max_x)
+            self.target_y = random.randrange(self.max_y)
+            return
+
+        ratio = self.speed / dist
+        self.x += (self.target_x - self.x) * ratio
+        self.y += (self.target_y - self.y) * ratio
+
+
+class Triangle:
+    def __init__(self, points):
+        self.points = points
+
+    def get_points(self):
+        return [(int(point.x), int(point.y)) for point in self.points]
+
+
 class DynamicTriangle(Background):
     def __init__(self, width=480, height=320, color=(0, 0, 0), alpha=255,
                  total_points=30, total_triangles=10, repeat_interval=20):
@@ -78,32 +111,23 @@ class DynamicTriangle(Background):
         self.total_triangles = total_triangles
         self.repeat_interval = repeat_interval
 
-        self.points = [[random.choice(range(self.width)), random.choice(range(self.height))] for _ in range(self.total_points)]
-        self.target_points = [[random.choice(range(self.width)), random.choice(range(self.height))] for _ in range(self.total_points)]
-        self.triangles = [random.choices(self.points, k=3) for _ in range(self.total_triangles)]
+        self.points = [MovePoint(self.width, self.height, speed=2) for _ in range(self.total_points)]
+        self.triangles = [Triangle(random.choices(self.points, k=3)) for _ in range(self.total_triangles)]
 
     def update(self):
-        pass
+        for point in self.points:
+            point.update()
 
     def draw(self, surface):
         curr_time = time.time()
         for triangle in self.triangles:
-            triangle_copy = copy.deepcopy(triangle)
-            for ind, point in enumerate(triangle):
-                weighted_point = [0, 0]
-                target_point = self.target_points[self.points.index(point)]
-                curr_ind = curr_time - int(curr_time / self.repeat_interval) * self.repeat_interval
-                half_interval = self.repeat_interval // 2
-                if curr_ind < half_interval:
-                    weight = curr_ind / half_interval
-                else:
-                    weight = 1 - (curr_ind - half_interval) / half_interval
-                triangle_copy[ind][0] = weight * point[0] + (1 - weight) * target_point[0]
-                triangle_copy[ind][1] = weight * point[1] + (1 - weight) * target_point[1]
-
+            points = triangle.get_points()
             triangle_surface = pygame.Surface((self.width, self.height))
             #pygame.draw.polygon(triangle_surface, self.color, triangle_copy)
-            pygame.draw.lines(triangle_surface, self.color, True, triangle_copy, 2)
+            pygame.draw.lines(triangle_surface, self.color, True, points, 2)
+            for point in points:
+                pygame.draw.circle(triangle_surface, (0, 255, 0), point, 4)
+
             triangle_surface.set_alpha(self.alpha)
             triangle_surface.set_colorkey((0, 0, 0))
             surface.blit(triangle_surface.convert_alpha(), (0, 0))
