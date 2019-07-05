@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 from lib.widgets import *
 from lib.button import Button
@@ -300,6 +300,6 @@ class CameraPanel(Panel):
 
         self.camera_widget = Camera(self, 0, 0, camera)
         self.widgets = [self.camera_widget]
-    
+
     def on_enter(self):
         self.set_active_widget(self.camera_widget)

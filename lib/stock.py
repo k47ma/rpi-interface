@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 import sys
 import requests
@@ -12,7 +12,7 @@ if __name__ == '__main__':
     url = "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={}&apikey=T9O3IK0TF72YCBP8".format(symbol)
 
     while True:
-        time.sleep(5)    
+        time.sleep(5)
         response = requests.get(url)
         res = response.json()
 
@@ -28,7 +28,7 @@ if __name__ == '__main__':
         change = quote.get("09. change")
         percent = quote.get("10. change percent")
         price_range = float(high_price) - float(low_price)
-        
+
         change_num = float(change)
         if change_num > 0:
             color = "green"
