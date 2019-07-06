@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 from lib.panels import *
-from lib.backgrounds import Background, DynamicImage, DynamicTriangle
+from lib.backgrounds import Background, DynamicImage, DynamicTriangle, DynamicTrace
 
 
 class App:
@@ -64,7 +64,13 @@ class App:
                                                    total_points=30,
                                                    total_triangles=10,
                                                    repeat_interval=20)
-        self.backgrounds = [self.image_background, self.triangle_background, self.blank_background]
+        self.trace_background = DynamicTrace(width=self._screen_width,
+                                             height=self._screen_height,
+                                             alpha=160, color1=(255, 215, 0),
+                                             color2=(135, 200, 255),
+                                             steps=50, radius=4, trace_length=75)
+        self.backgrounds = [self.image_background, self.triangle_background,
+                            self.trace_background, self.blank_background]
         self._background_type = 0
 
         self._brightness_last_update = time.time()
@@ -161,11 +167,11 @@ class App:
         ret, frame = self.camera.read()
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         samples = random.sample(np.ravel(gray), 100)
-        samples_avg = int(sum(samples) / len(samples))
+        samples_avg = sum(samples) / len(samples)
         if samples_avg >= self._brightness_thres:
             self._brightness = 1.0
         else:
-            self._brightness = float(samples_avg) / self._brightness_thres
+            self._brightness = samples_avg / self._brightness_thres
 
     def set_active_panel(self, panel):
         if self.active_panel is not panel:
