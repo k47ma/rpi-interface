@@ -25,6 +25,12 @@ class Background:
         surface.fill(self.color)
         surface.set_alpha(self.alpha)
 
+    def on_enter(self):
+        pass
+
+    def on_leave(self):
+        pass
+
 
 class DynamicImage(Background):
     def __init__(self, width=480, height=320, color=(0, 0, 0), alpha=255, speed=0.1):
@@ -117,18 +123,26 @@ class DynamicTriangle(Background):
         self.repeat_interval = repeat_interval
 
         self.points_padding = 25
+        self.points = []
+        self.triangles = []
+
+        self.points_setup()
+
+    def points_setup(self):
         self.points = [MovePoint(self.points_padding, self.points_padding,
                                  self.width - self.points_padding,
                                  self.height - self.points_padding,
-                                 radius=50, speed=2) for _ in range(self.total_points)]
+                                 radius=50, speed=1) for _ in range(self.total_points)]
         self.triangles = [Triangle(random.choices(self.points, k=3)) for _ in range(self.total_triangles)]
+
+    def on_enter(self):
+        self.points_setup()
 
     def update(self):
         for point in self.points:
             point.update()
 
     def draw(self, surface):
-        curr_time = time.time()
         for triangle in self.triangles:
             points = triangle.get_points()
             triangle_surface = pygame.Surface((self.width, self.height))

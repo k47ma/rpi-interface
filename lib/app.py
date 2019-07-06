@@ -60,7 +60,7 @@ class App:
                                              alpha=180, speed=0.1)
         self.triangle_background = DynamicTriangle(width=self._screen_width,
                                                    height=self._screen_height,
-                                                   color=(255, 165, 0), alpha=130,
+                                                   color=(255, 165, 0), alpha=120,
                                                    total_points=30,
                                                    total_triangles=10,
                                                    repeat_interval=20)
@@ -130,9 +130,14 @@ class App:
                 panel.update()
 
     def _toggle_background_type(self):
+        if len(self.backgrounds) == 1:
+            return
+
+        self.backgrounds[self._background_type].on_leave()
         self._background_type += 1
         if self._background_type >= len(self.backgrounds):
             self._background_type = 0
+        self.backgrounds[self._background_type].on_enter()
 
     def _draw_background(self, screen):
         background_surface = pygame.Surface((self._screen_width, self._screen_height))

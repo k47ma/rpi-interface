@@ -7,6 +7,7 @@ import glob
 import psutil
 import polyline
 import cv2
+import pygame
 from string import printable
 from PIL import Image
 from bs4 import BeautifulSoup
@@ -149,6 +150,8 @@ class Widget:
             pygame.draw.polygon(screen, shape.color, shape.pointlist, shape.width)
         elif isinstance(shape, Circle):
             pygame.draw.circle(screen, shape.color, shape.pos, shape.radius, shape.width)
+        elif isinstance(shape, ScreenSurface):
+            screen.blit(shape.surface, shape.pos)
 
     def get_pos(self):
         return self.x, self.y
@@ -1869,15 +1872,19 @@ class ChartCaption(Widget):
 
 
 class Map(Widget):
-    def __init__(self, parent, x, y, map_width=200, map_height=150, map_padding=0.075):
+    def __init__(self, parent, x, y, map_width=200, map_height=150, map_padding=0.075, background_alpha=100):
         super(Map, self).__init__(parent, x, y)
 
         self.map_width = map_width
         self.map_height = map_height
         self.map_padding = map_padding
+        self.background_alpha = background_alpha
 
         self._map_x = self.x + 30
         self._map_y = self.y + 90
+
+        self._background_surface = pygame.Surface((self.map_width, self.map_height))
+        self._background_surface.set_alpha(self.background_alpha)
 
         self._direction_info = None
         self._total_distance = 0.0
@@ -1976,6 +1983,7 @@ class Map(Widget):
         end_text_y = self._polyline_points[-1][1] - rendered_end_text.get_height() - 5
         end_text_x, end_text_y = self._adjust_text_pos(end_text_x, end_text_y, rendered_end_text)
 
+        self.add_shape(ScreenSurface(self._background_surface, (self._map_x, self._map_y)))
         self.add_shape(Lines(self._get_color('green'), False, self._polyline_points, width=3, anti_alias=False))
         self.add_shape(Circle(self._get_color('orange'), self._polyline_points[0], self._dot_radius))
         self.add_shape(Circle(self._get_color('lightblue'), self._polyline_points[-1], self._dot_radius))

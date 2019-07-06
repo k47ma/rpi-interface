@@ -145,3 +145,15 @@ class Polygon(Shape):
         for point in self.pointlist:
             temp_pointlist.append((point[0] + x_offset, point[1] + y_offset))
         self.pointlist = temp_pointlist
+
+
+class ScreenSurface(Shape):
+    def __init__(self, surface, pos):
+        super(ScreenSurface, self).__init__()
+
+        self.surface = surface
+        self.pos = pos
+
+    def add_offset(self, x_offset, y_offset):
+        x, y = self.pos
+        self.pos = (x + x_offset, y + y_offset)

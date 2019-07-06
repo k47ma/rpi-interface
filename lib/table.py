@@ -69,6 +69,11 @@ class Table:
                 rendered_row.append(rendered_text)
             self.rows.append(rendered_row)
 
+        if not self.data:
+            text = self.content_font.render("No active event", True, self.line_color)
+            self.shapes.append(Text(text, (self.x - text.get_width() - 20, self.y)))
+            return
+
         widths = []
         for i in range(len(self.rows[0])):
             col = [row[i] for row in self.rows]

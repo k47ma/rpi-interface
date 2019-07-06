@@ -1,3 +1,4 @@
 *.pyc
 *.log
 news_images/*
+search_response.html
