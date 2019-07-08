@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 from lib.widgets import *
+from lib.games import *
 from lib.button import Button
 from datetime import datetime as dt
 from abc import ABCMeta
@@ -76,13 +77,9 @@ class Panel:
                 self.handle_panel_events(event)
 
         if self.active_widget:
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    self.active_widget.set_active(False)
-                    self.active_widget = None
-                    return
-                else:
-                    self.active_widget.handle_events(event)
+            self.active_widget.handle_events(event)
+            if not self.active_widget.is_active:
+                self.active_widget = None
         else:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
@@ -90,6 +87,9 @@ class Panel:
                     return
                 else:
                     self.handle_panel_events(event)
+
+    def get_screen_size(self):
+        return self._screen_width, self._screen_height
 
     def handle_panel_events(self, event):
         pass
@@ -304,3 +304,36 @@ class CameraPanel(Panel):
 
     def on_enter(self):
         self.set_active_widget(self.camera_widget)
+
+
+class GamePanel(Panel):
+    def __init__(self, app):
+        super(GamePanel, self).__init__(app)
+
+        self._title_font = pygame.font.SysFont(self.default_font_name, 35)
+        self.title_widget = Content(self, 10, 10, "Game", font=self._title_font)
+
+        self.snake_widget = GameSnake(self, self.exit_game)
+        self.games = {"Snake": self.snake_widget}
+        self.game_names = sorted(self.games.keys())
+
+        self.menu_widget = List(self, 10, 45, items=self.game_names,
+                                max_width=400, max_height=260, selectable=True,
+                                select_event=self.select_game)
+        self.widgets = [self.title_widget, self.menu_widget, self.snake_widget]
+
+
+    def on_enter(self):
+        self.set_active_widget(self.menu_widget)
+
+    def select_game(self):
+        selected_game = self.games.get(self.game_names[self.menu_widget.get_selected()])
+        self.set_active_widget(selected_game)
+
+    def exit_game(self):
+        self.set_active_widget(self.menu_widget)
+
+    def handle_panel_events(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN:
+                self.set_active_widget(self.menu_widget)

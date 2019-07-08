@@ -165,11 +165,12 @@ class Widget:
 
         for widget in self._subwidgets:
             if widget.is_active:
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                    widget.set_active(False)
-                    return
-                else:
-                    widget.handle_events(event)
+                widget.handle_events(event)
+                return
+
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and self.is_active:
+            self.set_active(False)
+            return
         self._handle_widget_events(event)
 
     def set_active(self, status):
@@ -2154,3 +2155,79 @@ class Camera(Widget):
 
         framerate_text = self._camera_font.render("fps: {}".format(self._camera_framerate), True, self._get_color('green'))
         screen.blit(framerate_text, (10, 10))
+
+
+class List(Widget):
+    def __init__(self, parent, x, y, items=[], max_width=480, max_height=320, selectable=False, select_event=None, line_padding=5):
+        super(List, self).__init__(parent, x, y)
+
+        self.items = items
+        self.max_width = max_width
+        self.max_height = max_height
+        self.selectable = selectable
+        self.select_event = select_event
+        self.line_padding = line_padding
+
+        self.item_font = pygame.font.Font("fonts/FreeSans.ttf", 17)
+
+        self._selected_ind = 0
+        self._rendered_texts = []
+        self._selector_color = self._get_color("lightblue")
+        self._selector_size = 10
+
+    def _on_setup(self):
+        self._render_texts()
+
+    def _on_enter(self):
+        self._selected_ind = 0
+
+    def _render_texts(self):
+        self._rendered_texts = []
+        for item in self.items:
+            rendered_item = self.item_font.render(item, True, self._get_color("white"))
+            self._rendered_texts.append(rendered_item)
+
+    def _on_update(self):
+        pass
+
+    def _on_draw(self, screen):
+        if not self.items:
+            return
+
+        x, y = self.x, self.y
+        for ind, text in enumerate(self._rendered_texts):
+            if not self.selectable:
+                screen.blit(text, (x, y))
+            else:
+                if ind == self._selected_ind and self.is_active:
+                    font_height = text.get_height()
+                    selector_x = x + self._selector_size // 2
+                    selector_y = y + (font_height - self._selector_size) // 2
+                    pygame.draw.rect(screen, self._selector_color, (selector_x, selector_y, self._selector_size, self._selector_size))
+                screen.blit(text, (x + 2 * self._selector_size + 5, y))
+            y += text.get_height() + self.line_padding
+
+    def _handle_widget_events(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_UP:
+                self._row_up()
+            elif event.key == pygame.K_DOWN:
+                self._row_down()
+            elif event.key == pygame.K_RETURN:
+                if self.select_event is not None:
+                    self.select_event()
+
+    def _row_up(self):
+        if not self.items or self._selected_ind == 0:
+            return
+
+        self._selected_ind -= 1
+
+    def _row_down(self):
+        if not self.items or self._selected_ind == len(self.items) - 1:
+            return
+
+        self._selected_ind += 1
+
+    def get_selected(self):
+        return self._selected_ind
