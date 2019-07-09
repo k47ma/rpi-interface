@@ -320,6 +320,7 @@ class GamePanel(Panel):
         self.menu_widget = List(self, 10, 45, items=self.game_names,
                                 max_width=400, max_height=260, selectable=True,
                                 select_event=self.select_game)
+        self.menu_widget._subwidgets.append(self.snake_widget)
         self.widgets = [self.title_widget, self.menu_widget, self.snake_widget]
 
 
