@@ -313,7 +313,7 @@ class GamePanel(Panel):
         self._title_font = pygame.font.SysFont(self.default_font_name, 35)
         self.title_widget = Content(self, 10, 10, "Game", font=self._title_font)
 
-        self.snake_widget = GameSnake(self, self.exit_game)
+        self.snake_widget = GameSnake(self, self.exit_game, total_rows=16, total_cols=18)
         self.games = {"Snake": self.snake_widget}
         self.game_names = sorted(self.games.keys())
 

@@ -78,13 +78,13 @@ class DynamicImage(Background):
 
 
 class MovePoint:
-    def __init__(self, min_x, min_y, max_x, max_y, radius=20, speed=3):
+    def __init__(self, min_x, min_y, max_x, max_y, radius=20, speed=1, speed_variant=0):
         self.min_x = min_x
         self.min_y = min_y
         self.max_x = max_x
         self.max_y = max_y
         self.radius = radius
-        self.speed = speed
+        self.speed = speed * random.uniform(1 - speed_variant, 1 + speed_variant)
 
         self.x = random.randrange(self.min_x, self.max_x)
         self.y = random.randrange(self.min_x, self.max_y)
@@ -127,21 +127,29 @@ class DynamicTriangle(Background):
         self.points = []
         self.triangles = []
 
+        self._update_interval = 0.1
+        self._last_update = time.time()
+
         self.points_setup()
 
     def points_setup(self):
         self.points = [MovePoint(self.points_padding, self.points_padding,
                                  self.width - self.points_padding,
                                  self.height - self.points_padding,
-                                 radius=50, speed=1) for _ in range(self.total_points)]
+                                 radius=50, speed=1, speed_variant=0.2) for _ in range(self.total_points)]
         self.triangles = [Triangle(random.choices(self.points, k=3)) for _ in range(self.total_triangles)]
 
     def on_enter(self):
         self.points_setup()
 
     def update(self):
+        current_time = time.time()
+        if current_time - self._last_update < self._update_interval:
+            return
+
         for point in self.points:
             point.update()
+        self._last_update = time.time()
 
     def draw(self, surface):
         for triangle in self.triangles:

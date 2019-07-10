@@ -14,7 +14,9 @@ class App:
         self._screen_width = 480
         self._screen_height = 320
         self._screen_size = (self._screen_width, self._screen_height)
-        self._frame_rate = 10
+        self._normal_frame_rate = 10
+        self._game_frame_rate = 30
+        self._frame_rate = self._normal_frame_rate
         self._fullscreen = self.args.fullscreen if self.args else False
 
         if self._fullscreen:
@@ -191,6 +193,13 @@ class App:
 
     def get_height(self):
         return self._screen_height
+
+    def game_frame_rate(self, status):
+        if status:
+            self._frame_rate = self._game_frame_rate
+        else:
+            self._frame_rate = self._normal_frame_rate
+        print("Adjust frame rate to:", self._frame_rate)
 
     def start(self):
         while not self._done:
