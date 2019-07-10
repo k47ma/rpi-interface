@@ -2158,7 +2158,8 @@ class Camera(Widget):
 
 
 class List(Widget):
-    def __init__(self, parent, x, y, items=[], max_width=480, max_height=320, selectable=False, select_event=None, line_padding=5):
+    def __init__(self, parent, x, y, items=[], max_width=480, max_height=320,
+                 selectable=False, select_event=None, line_padding=5, reset_on_exit=True):
         super(List, self).__init__(parent, x, y)
 
         self.items = items
@@ -2167,6 +2168,7 @@ class List(Widget):
         self.selectable = selectable
         self.select_event = select_event
         self.line_padding = line_padding
+        self.reset_on_exit = reset_on_exit
 
         self.item_font = pygame.font.Font("fonts/FreeSans.ttf", 17)
 
@@ -2178,8 +2180,9 @@ class List(Widget):
     def _on_setup(self):
         self._render_texts()
 
-    def _on_enter(self):
-        self._selected_ind = 0
+    def _on_exit(self):
+        if self.reset_on_exit:
+            self.reset()
 
     def _render_texts(self):
         self._rendered_texts = []
@@ -2231,3 +2234,6 @@ class List(Widget):
 
     def get_selected(self):
         return self._selected_ind
+
+    def reset(self):
+        self._selected_ind = 0

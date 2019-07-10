@@ -295,7 +295,7 @@ class GameSnake(Game):
             self._win = True
             return True
 
-        if not self._auto_play and self._snake[0] in self._snake[1:]:
+        if self._snake[0] in self._snake[1:]:
             self._win = False
             return True
 

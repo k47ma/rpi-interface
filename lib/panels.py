@@ -310,22 +310,24 @@ class GamePanel(Panel):
     def __init__(self, app):
         super(GamePanel, self).__init__(app)
 
-        self._title_font = pygame.font.SysFont(self.default_font_name, 35)
-        self.title_widget = Content(self, 10, 10, "Game", font=self._title_font)
+        self.title_font = pygame.font.SysFont(self.default_font_name, 35)
+        self.title_widget = Content(self, 10, 10, "Game", font=self.title_font)
 
-        self.snake_widget = GameSnake(self, self.exit_game, total_rows=16, total_cols=18)
-        self.games = {"Snake": self.snake_widget}
-        self.game_names = sorted(self.games.keys())
-
+        self.game_names = []
         self.menu_widget = List(self, 10, 45, items=self.game_names,
                                 max_width=400, max_height=260, selectable=True,
-                                select_event=self.select_game)
-        self.menu_widget._subwidgets.append(self.snake_widget)
-        self.widgets = [self.title_widget, self.menu_widget, self.snake_widget]
+                                select_event=self.select_game, reset_on_exit=False)
+        self.widgets = [self.title_widget, self.menu_widget]
 
+        self.games = {}
+        self._add_game("Snake", GameSnake(self, self.exit_game, total_rows=16, total_cols=18))
+        self._add_game("Base Game", Game(self, self.exit_game))
 
-    def on_enter(self):
-        self.set_active_widget(self.menu_widget)
+    def _add_game(self, name, game):
+        self.game_names.append(name)
+        self.games[name] = game
+        self.widgets.append(game)
+        self.menu_widget._subwidgets.append(game)
 
     def select_game(self):
         selected_game = self.games.get(self.game_names[self.menu_widget.get_selected()])
@@ -333,6 +335,12 @@ class GamePanel(Panel):
 
     def exit_game(self):
         self.set_active_widget(self.menu_widget)
+
+    def on_enter(self):
+        self.set_active_widget(self.menu_widget)
+
+    def on_exit(self):
+        self.menu_widget.reset()
 
     def handle_panel_events(self, event):
         if event.type == pygame.KEYDOWN:
