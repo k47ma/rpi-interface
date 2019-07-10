@@ -170,6 +170,8 @@ class GameSnake(Game):
         self._snake_extend = False
         self._auto_play = False
         self._win = False
+        self._snake_lastmove = self._start_time
+        self._progress_time = self._start_time
         self._add_apple()
 
     def _add_apple(self):
