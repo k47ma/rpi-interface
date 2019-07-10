@@ -127,6 +127,8 @@ class GameSnake(Game):
 
             if not self._started:
                 if event.key in [pygame.K_LEFT, pygame.K_RIGHT, pygame.K_UP, pygame.K_DOWN]:
+                    if not self._score == 0:
+                        self._init_board()
                     self._start_game()
 
             if self._started and not self._auto_play:

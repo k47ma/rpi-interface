@@ -199,7 +199,6 @@ class App:
             self._frame_rate = self._game_frame_rate
         else:
             self._frame_rate = self._normal_frame_rate
-        print("Adjust frame rate to:", self._frame_rate)
 
     def start(self):
         while not self._done:
