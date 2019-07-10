@@ -2146,14 +2146,13 @@ class Camera(Widget):
     def _add_framerate(self, screen):
         current_time = time.time()
         update_interval = time.time() - self._frame_last_update
-        camera_framerate_inst = int(1.0 / update_interval)
         self._frame_last_update = current_time
 
         if current_time - self._text_last_update > 1:
-            self._camera_framerate = camera_framerate_inst
+            self._camera_framerate = int(1.0 / update_interval)
             self._text_last_update = current_time
 
-        framerate_text = self._camera_font.render("fps: {}".format(self._camera_framerate), True, self._get_color('green'))
+        framerate_text = self._camera_font.render("FPS: {}".format(self._camera_framerate), True, self._get_color('green'))
         screen.blit(framerate_text, (10, 10))
 
 

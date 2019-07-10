@@ -14,10 +14,12 @@ class App:
         self._screen_width = 480
         self._screen_height = 320
         self._screen_size = (self._screen_width, self._screen_height)
-        self._normal_frame_rate = 10
-        self._game_frame_rate = 30
+        self._performance_mode = self.args.performance if self.args else False
+        self._normal_frame_rate = 60 if self._performance_mode else 10
+        self._game_frame_rate = 60 if self._performance_mode else 30
         self._frame_rate = self._normal_frame_rate
         self._fullscreen = self.args.fullscreen if self.args else False
+        self._debug_mode = self.args.debug if self.args else False
 
         if self._fullscreen:
             self.display = pygame.display.set_mode(self._screen_size, pygame.FULLSCREEN)
@@ -82,6 +84,11 @@ class App:
         self._brightness_thres = 80
         self._brightness = 1.0
 
+        self._frame_rate_font = pygame.font.Font("fonts/FreeSans.ttf", 15)
+        self._actual_frame_rate = 0
+        self._frame_last_update = time.time()
+        self._frame_text_last_update = time.time()
+
         self._setup()
 
     def _setup(self):
@@ -124,6 +131,8 @@ class App:
         self._draw_background(self.screen)
         self.active_panel.draw(self.screen)
         self._apply_brightness(self.screen)
+        if self._debug_mode:
+            self._draw_frame_rate(self.screen)
         if self._invert_screen:
             self.screen = pygame.transform.rotate(self.screen, 180)
         self.display.blit(self.screen, (0, 0))
@@ -178,6 +187,19 @@ class App:
             self._brightness = 1.0
         else:
             self._brightness = samples_avg / self._brightness_thres
+
+    def _draw_frame_rate(self, screen):
+        current_time = time.time()
+        update_interval = time.time() - self._frame_last_update
+        self._frame_last_update = current_time
+
+        if current_time - self._frame_text_last_update > 1:
+            self._actual_frame_rate = int(1 / update_interval)
+            self._frame_text_last_update = current_time
+
+        framerate_text = self._frame_rate_font.render("FPS: {}".format(self._actual_frame_rate), True, (0, 255, 0))
+        pygame.draw.rect(screen, (0, 0, 0), (10, 10, framerate_text.get_width(), framerate_text.get_height()))
+        screen.blit(framerate_text, (10, 10))
 
     def set_active_panel(self, panel):
         if self.active_panel is not panel:
