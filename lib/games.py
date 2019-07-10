@@ -73,7 +73,7 @@ class GameSnake(Game):
         self._board_x = self._score_width + (self._screen_width - self.total_cols * self.cell_size) // 2
         self._board_y = (self._screen_height - self.total_rows * self.cell_size) // 2
         self._snake = []
-        self._snake_directon = "right"
+        self._snake_direction = "right"
         self._snake_speed = 5
         self._snake_lastmove = time.time()
         self._snake_extend = False
@@ -120,6 +120,8 @@ class GameSnake(Game):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
                 if not self._started:
+                    if not self._score == 0:
+                        self._init_board()
                     self._auto_play = True
                     self._start_game()
             elif event.key == pygame.K_r:
@@ -133,19 +135,19 @@ class GameSnake(Game):
 
             if self._started and not self._auto_play:
                 if not self._command_waiting:
-                    if self._snake_directon in ["up", "down"]:
+                    if self._snake_direction in ["up", "down"]:
                         if event.key == pygame.K_LEFT:
-                            self._snake_directon = "left"
+                            self._snake_direction = "left"
                             self._command_waiting = True
                         elif event.key == pygame.K_RIGHT:
-                            self._snake_directon = "right"
+                            self._snake_direction = "right"
                             self._command_waiting = True
                     else:
                         if event.key == pygame.K_UP:
-                            self._snake_directon = "up"
+                            self._snake_direction = "up"
                             self._command_waiting = True
                         elif event.key == pygame.K_DOWN:
-                            self._snake_directon = "down"
+                            self._snake_direction = "down"
                             self._command_waiting = True
 
     def _start_game(self):
@@ -161,7 +163,7 @@ class GameSnake(Game):
         self._snake = []
         self._snake.append((self.total_rows // 2, self.total_cols // 2 + 1))
         self._snake.append((self.total_rows // 2, self.total_cols // 2))
-        self._snake_directon = "right"
+        self._snake_direction = "right"
         self._score = 0
         self._started = False
         self._command_waiting = False
@@ -213,11 +215,11 @@ class GameSnake(Game):
                 pygame.draw.rect(screen, color, (x, y, rect_size, rect_size))
 
                 if (row_ind, col_ind) == self._snake[0]:
-                    if self._snake_directon == "up":
+                    if self._snake_direction == "up":
                         head_pos = (x + rect_size // 2, y)
-                    elif self._snake_directon == "down":
+                    elif self._snake_direction == "down":
                         head_pos = (x + rect_size // 2, y + rect_size)
-                    elif self._snake_directon == "left":
+                    elif self._snake_direction == "left":
                         head_pos = (x, y + rect_size // 2)
                     else:
                         head_pos = (x + rect_size, y + rect_size // 2)
@@ -225,11 +227,11 @@ class GameSnake(Game):
 
     def _snake_move(self):
         snake_row, snake_col = self._snake[0]
-        if self._snake_directon == "left":
+        if self._snake_direction == "left":
             snake_col = self.total_cols - 1 if snake_col == 0 else snake_col -1
-        elif self._snake_directon == "right":
+        elif self._snake_direction == "right":
             snake_col = 0 if snake_col == self.total_cols - 1 else snake_col + 1
-        elif self._snake_directon == "up":
+        elif self._snake_direction == "up":
             snake_row = self.total_rows - 1 if snake_row == 0 else snake_row - 1
         else:
             snake_row = 0 if snake_row == self.total_rows - 1 else snake_row + 1
@@ -268,18 +270,21 @@ class GameSnake(Game):
             elif cell[1] == self.total_cols:
                 cell[1] = 0
 
-        if self._snake_directon == "left":
+        if self._snake_direction == "left":
             del available_cells["right"]
-        elif self._snake_directon == "right":
+        elif self._snake_direction == "right":
             del available_cells["left"]
-        elif self._snake_directon == "up":
+        elif self._snake_direction == "up":
             del available_cells["down"]
-        else:
+        elif self._snake_direction == "down":
             del available_cells["up"]
 
         min_distance = None
         min_direction = None
         for direction, cell in available_cells.items():
+            if (cell[0], cell[1]) in self._snake[:-1]:
+                continue
+
             curr_distance = distance(cell, self._apple)
             if min_distance is None:
                 min_distance = curr_distance
@@ -289,8 +294,9 @@ class GameSnake(Game):
             if curr_distance < min_distance:
                 min_distance = curr_distance
                 min_direction = direction
-
-        self._snake_directon = min_direction
+        
+        if min_direction is not None:
+            self._snake_direction = min_direction
 
     def _check_is_over(self):
         if len(self._snake) == self.total_rows * self.total_cols:
