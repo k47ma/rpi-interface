@@ -81,7 +81,7 @@ class GameSnake(Game):
         self._snake_lastmove = time.time()
         self._snake_extend = False
         self._apple = (0, 0)
-        self._started = False
+        self._game_game_started = False
         self._win = False
         self._auto_play = False
         self._start_time = time.time()
@@ -98,7 +98,7 @@ class GameSnake(Game):
         pass
 
     def _on_update(self):
-        if not self.is_active or not self._started:
+        if not self.is_active or not self._game_game_started:
             return
 
         current_time = time.time()
@@ -120,7 +120,7 @@ class GameSnake(Game):
     def _handle_widget_events(self, event):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
-                if not self._started:
+                if not self._game_started:
                     if not self._score == 0:
                         self._init_game()
                     self._auto_play = True
@@ -128,13 +128,13 @@ class GameSnake(Game):
             elif event.key == pygame.K_r:
                 self._init_game()
 
-            if not self._started:
+            if not self._game_started:
                 if event.key in [pygame.K_LEFT, pygame.K_RIGHT, pygame.K_UP, pygame.K_DOWN]:
                     if not self._score == 0:
                         self._init_game()
                     self._start_game()
 
-            if self._started and not self._auto_play:
+            if self._game_started and not self._auto_play:
                 if not self._command_waiting:
                     if self._snake_direction in ["up", "down"]:
                         if event.key == pygame.K_LEFT:
@@ -152,12 +152,12 @@ class GameSnake(Game):
                             self._command_waiting = True
 
     def _start_game(self):
-        self._started = True
+        self._game_started = True
         self._start_time = time.time()
         self._progress_time = self._start_time
 
     def _end_game(self):
-        self._started = False
+        self._game_started = False
         self._command_waiting = False
 
     def _init_game(self):
@@ -166,7 +166,7 @@ class GameSnake(Game):
         self._snake.append((self.total_rows // 2, self.total_cols // 2))
         self._snake_direction = "right"
         self._score = 0
-        self._started = False
+        self._game_started = False
         self._command_waiting = False
         self._snake_extend = False
         self._auto_play = False
@@ -196,7 +196,7 @@ class GameSnake(Game):
         screen.blit(time_text, (x, y))
         y += time_text.get_height() + self._score_padding
 
-        if not self._started and self._progress_time > self._start_time:
+        if not self._game_started and self._progress_time > self._start_time:
             if self._win:
                 result_text = "You Win!"
             else:
@@ -337,10 +337,9 @@ class GameTetris(Game):
         self._avail_blocks = [self._block1, self._block2, self._block3, self._block4, self._block5]
         self._block_speed = 2
         self._score = 0
-        self._started = False
+        self._game_started = False
         self._game_over = False
         self._fixed_blocks = []
-        self._board = []
         self._active_block = None
         self._start_time = time.time()
         self._progress_time = self._start_time
@@ -356,7 +355,7 @@ class GameTetris(Game):
         if not self.is_active:
             return
 
-        if self._started:
+        if self._game_started:
             current_time = time.time()
             self._progress_time = current_time
             if current_time - self._block_lastmove >= 1 / self._block_speed:
@@ -383,11 +382,10 @@ class GameTetris(Game):
         screen.blit(time_text, (x, y))
         y += time_text.get_height() + self._score_padding
 
-        if not self._started and self._progress_time > self._start_time:
-            if self._game_over:
-                result_text = "Oops!"
-                rendered_result = self.scoreboard_font.render(result_text, True, self._get_color("lightblue"))
-                screen.blit(rendered_result, (x, y))
+        if not self._game_started and self._game_over:
+            result_text = "Oops!"
+            rendered_result = self.scoreboard_font.render(result_text, True, self._get_color("lightblue"))
+            screen.blit(rendered_result, (x, y))
 
     def _draw_board(self, screen):
         rect_size = self.cell_size - 2 * self.cell_padding
@@ -411,15 +409,11 @@ class GameTetris(Game):
 
     def _handle_widget_events(self, event):
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE:
-                self._start_game()
-            elif event.key == pygame.K_r:
+            if event.key == pygame.K_r:
                 self._init_game()
 
-            if not self._started:
+            if not self._game_started and not self._game_over:
                 if event.key in [pygame.K_LEFT, pygame.K_RIGHT, pygame.K_UP, pygame.K_DOWN]:
-                    if not self._score == 0:
-                        self._init_game()
                     self._start_game()
             elif event.key == pygame.K_LEFT:
                 self._move_left()
@@ -434,12 +428,11 @@ class GameTetris(Game):
         self._score = 0
         self._active_block = self._get_new_block()
         self._fixed_blocks = []
-        self._board = [['.' for _ in range(self.total_cols)] for _ in range(self.total_rows)]
-        self._started = False
+        self._game_started = False
         self._game_over = False
 
     def _start_game(self):
-        self._started = True
+        self._game_started = True
         self._start_time = time.time()
         self._progress_time = self._start_time
 
@@ -469,14 +462,14 @@ class GameTetris(Game):
     def _move_left(self):
         row, col = self._active_block.get_origin()
 
-        if col > 0:
+        if col > 0 and self._check_move(0, -1):
             self._active_block.add_offset(0, -1)
 
     def _move_right(self):
         width = len(self._active_block.shape[0])
         height = len(self._active_block.shape)
         row, col = self._active_block.get_origin()
-        if width + col < self.total_cols:
+        if width + col < self.total_cols and self._check_move(0, 1):
             self._active_block.add_offset(0, 1)
 
     def _move_down(self):
@@ -484,30 +477,57 @@ class GameTetris(Game):
         height = len(self._active_block.shape)
         row, col = self._active_block.get_origin()
 
-        if row + height < self.total_rows and self._check_move_down():
+        if row + height < self.total_rows and self._check_move(1, 0):
             self._active_block.add_offset(1, 0)
-            return True
         else:
             self._fixed_blocks.append(self._active_block)
             self._active_block = self._get_new_block()
-            return False
+            self._check_row_clear()
+            self._check_game_over()
 
     def _drop_block(self):
         width = len(self._active_block.shape[0])
         height = len(self._active_block.shape)
         row, col = self._active_block.get_origin()
 
-        while row + height < self.total_rows and self._check_move_down():
+        while row + height < self.total_rows and self._check_move(1, 0):
             self._active_block.add_offset(1, 0)
             row, col = self._active_block.get_origin()
 
-    def _check_move_down(self):
+        self._move_down()
+
+    def _check_move(self, x_offset, y_offset):
         next_block = copy.deepcopy(self._active_block)
-        next_block.add_offset(1, 0)
+        next_block.add_offset(x_offset, y_offset)
         for block in self._fixed_blocks:
             if next_block.has_overlap(block):
                 return False
         return True
+
+    def _check_row_clear(self):
+        board = [[0 for _ in range(self.total_cols)] for _ in range(self.total_rows)]
+        for block in self._fixed_blocks:
+            for point in block.points:
+                board[point.row][point.col] = 1
+
+        full_indices = []
+        for row_ind, row in enumerate(board):
+            if not 0 in row:
+                full_indices.append(row_ind)
+
+        for full_ind in full_indices:
+            for block_ind in range(len(self._fixed_blocks) - 1, -1, -1):
+                self._fixed_blocks[block_ind].clear_row(full_ind)
+                if self._fixed_blocks[block_ind].is_empty():
+                    del self._fixed_blocks[block_ind]
+
+        self._score += 5 * (1 + len(full_indices)) * len(full_indices)
+
+    def _check_game_over(self):
+        for block in self._fixed_blocks:
+            if self._active_block.has_overlap(block):
+                self._game_over = True
+                self._game_started = False
 
     def _rotate_clockwise(self):
         width = len(self._active_block.shape[0])
@@ -550,6 +570,16 @@ class TetrisBlock:
                 if point.row == other_point.row and point.col == other_point.col:
                     return True
         return False
+
+    def clear_row(self, row_ind):
+        for ind in range(len(self.points) - 1, -1, -1):
+            if self.points[ind].row == row_ind:
+                del self.points[ind]
+            elif self.points[ind].row < row_ind:
+                self.points[ind].add_offset(1, 0)
+
+    def is_empty(self):
+        return len(self.points) == 0
 
 
 class TetrisPoint:
