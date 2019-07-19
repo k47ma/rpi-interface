@@ -77,43 +77,6 @@ class DynamicImage(Background):
         surface.set_alpha(self.alpha)
 
 
-class MovePoint:
-    def __init__(self, min_x, min_y, max_x, max_y, radius=20, speed=1, speed_variant=0):
-        self.min_x = min_x
-        self.min_y = min_y
-        self.max_x = max_x
-        self.max_y = max_y
-        self.radius = radius
-        self.speed = speed * random.uniform(1 - speed_variant, 1 + speed_variant)
-
-        self.x = random.randrange(self.min_x, self.max_x)
-        self.y = random.randrange(self.min_x, self.max_y)
-
-        self.target_x = random.randrange(self.min_x, self.max_x)
-        self.target_y = random.randrange(self.min_x, self.max_y)
-
-    def update(self):
-        dist = distance((self.x, self.y), (self.target_x, self.target_y))
-        if dist < self.speed:
-            self.target_x = random.randrange(int(max(self.x - self.radius, self.min_x)),
-                                             int(min(self.x + self.radius, self.max_x)))
-            self.target_y = random.randrange(int(max(self.y - self.radius, self.min_y)),
-                                             int(min(self.y + self.radius, self.max_y)))
-            return
-
-        ratio = self.speed / dist
-        self.x += (self.target_x - self.x) * ratio
-        self.y += (self.target_y - self.y) * ratio
-
-
-class Triangle:
-    def __init__(self, points):
-        self.points = points
-
-    def get_points(self):
-        return [(int(point.x), int(point.y)) for point in self.points]
-
-
 class DynamicTriangle(Background):
     def __init__(self, width=480, height=320, color=(0, 0, 0), alpha=255,
                  total_points=30, total_triangles=10, repeat_interval=20):
@@ -252,3 +215,40 @@ class DynamicTrace(Background):
 
         surface.blit(surface1, (0, 0))
         surface.blit(surface2, (0, 0))
+
+
+class MovePoint:
+    def __init__(self, min_x, min_y, max_x, max_y, radius=20, speed=1, speed_variant=0):
+        self.min_x = min_x
+        self.min_y = min_y
+        self.max_x = max_x
+        self.max_y = max_y
+        self.radius = radius
+        self.speed = speed * random.uniform(1 - speed_variant, 1 + speed_variant)
+
+        self.x = random.randrange(self.min_x, self.max_x)
+        self.y = random.randrange(self.min_x, self.max_y)
+
+        self.target_x = random.randrange(self.min_x, self.max_x)
+        self.target_y = random.randrange(self.min_x, self.max_y)
+
+    def update(self):
+        dist = distance((self.x, self.y), (self.target_x, self.target_y))
+        if dist < self.speed:
+            self.target_x = random.randrange(int(max(self.x - self.radius, self.min_x)),
+                                             int(min(self.x + self.radius, self.max_x)))
+            self.target_y = random.randrange(int(max(self.y - self.radius, self.min_y)),
+                                             int(min(self.y + self.radius, self.max_y)))
+            return
+
+        ratio = self.speed / dist
+        self.x += (self.target_x - self.x) * ratio
+        self.y += (self.target_y - self.y) * ratio
+
+
+class Triangle:
+    def __init__(self, points):
+        self.points = points
+
+    def get_points(self):
+        return [(int(point.x), int(point.y)) for point in self.points]
