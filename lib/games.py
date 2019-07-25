@@ -81,7 +81,7 @@ class GameSnake(Game):
         self._snake_lastmove = time.time()
         self._snake_extend = False
         self._apple = (0, 0)
-        self._game_game_started = False
+        self._game_started = False
         self._win = False
         self._auto_play = False
         self._start_time = time.time()
@@ -98,7 +98,7 @@ class GameSnake(Game):
         pass
 
     def _on_update(self):
-        if not self.is_active or not self._game_game_started:
+        if not self.is_active or not self._game_started:
             return
 
         current_time = time.time()
@@ -472,7 +472,6 @@ class GameTetris(Game):
                 self._rotate_clockwise()
 
         width = len(self._active_block.shape[0])
-        height = len(self._active_block.shape)
         row, col = self._active_block.get_origin()
         if col < 0:
             for _ in range(abs(col)):
