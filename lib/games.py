@@ -327,22 +327,23 @@ class GameTetris(Game):
         self._board_x = self._score_width + (self._screen_width - self.total_cols * self.cell_size) // 2
         self._board_y = (self._screen_height - self.total_rows * self.cell_size) // 2
         self._cell_color = self._get_color('lightgray')
-        self._block_color = self._get_color('orange')
 
-        self._block1 = TetrisBlock([['x', '.', '.'], ['x', 'x', 'x']], self._block_color)
-        self._block2 = TetrisBlock([['x'], ['x'], ['x'], ['x']], self._block_color)
-        self._block3 = TetrisBlock([['.', 'x', '.'], ['x', 'x', 'x']], self._block_color)
-        self._block4 = TetrisBlock([['x', 'x'], ['x', 'x']], self._block_color)
-        self._block5 = TetrisBlock([['.', '.', 'x'], ['x', 'x', 'x']], self._block_color)
+        self._block1 = TetrisBlock([['x', '.', '.'], ['x', 'x', 'x']], self._get_color('red'))
+        self._block2 = TetrisBlock([['x'], ['x'], ['x'], ['x']], self._get_color('orange'))
+        self._block3 = TetrisBlock([['.', 'x', '.'], ['x', 'x', 'x']], self._get_color('lightblue'))
+        self._block4 = TetrisBlock([['x', 'x'], ['x', 'x']], self._get_color('green'))
+        self._block5 = TetrisBlock([['.', '.', 'x'], ['x', 'x', 'x']], self._get_color('yellow'))
         self._avail_blocks = [self._block1, self._block2, self._block3, self._block4, self._block5]
         self._block_speed = 2
         self._score = 0
         self._game_started = False
         self._game_over = False
+        self._game_paused = False
         self._fixed_blocks = []
         self._active_block = None
         self._start_time = time.time()
-        self._progress_time = self._start_time
+        self._progress_time = 0
+        self._last_update_time = self._start_time
         self._block_lastmove = time.time()
 
     def _game_on_enter(self):
@@ -357,7 +358,8 @@ class GameTetris(Game):
 
         if self._game_started:
             current_time = time.time()
-            self._progress_time = current_time
+            self._progress_time += current_time - self._last_update_time
+            self._last_update_time = current_time
             if current_time - self._block_lastmove >= 1 / self._block_speed:
                 self._move_down()
                 self._block_lastmove = current_time
@@ -376,8 +378,8 @@ class GameTetris(Game):
         screen.blit(score_text, (x, y))
         y += score_text.get_height() + self._score_padding
 
-        min = int(self._progress_time - self._start_time) // 60
-        sec = int(self._progress_time - self._start_time) % 60
+        min = int(self._progress_time) // 60
+        sec = int(self._progress_time) % 60
         time_text = self.scoreboard_font.render("Time: {:02}:{:02}".format(min, sec), True, self._get_color("white"))
         screen.blit(time_text, (x, y))
         y += time_text.get_height() + self._score_padding
@@ -386,6 +388,15 @@ class GameTetris(Game):
             result_text = "Oops!"
             rendered_result = self.scoreboard_font.render(result_text, True, self._get_color("lightblue"))
             screen.blit(rendered_result, (x, y))
+
+            y += rendered_result.get_height() + self._score_padding
+            restart_text = "Press R to restart"
+            rendered_restart = self.scoreboard_font.render(restart_text, True, self._get_color("green"))
+            screen.blit(rendered_restart, (x, y))
+        elif not self._game_started:
+            start_text = "Press direction key to start"
+            rendered_start = self.scoreboard_font.render(start_text, True, self._get_color("green"))
+            screen.blit(rendered_start, (x, y))
 
     def _draw_board(self, screen):
         rect_size = self.cell_size - 2 * self.cell_padding
@@ -412,6 +423,10 @@ class GameTetris(Game):
             if event.key == pygame.K_r:
                 self._init_game()
 
+            if self._game_started:
+                if event.key == pygame.K_p:
+                    self._toggle_pause()
+
             if not self._game_started and not self._game_over:
                 if event.key in [pygame.K_LEFT, pygame.K_RIGHT, pygame.K_UP, pygame.K_DOWN]:
                     self._start_game()
@@ -430,11 +445,15 @@ class GameTetris(Game):
         self._fixed_blocks = []
         self._game_started = False
         self._game_over = False
+        self._game_paused = False
 
     def _start_game(self):
         self._game_started = True
         self._start_time = time.time()
-        self._progress_time = self._start_time
+        self._progress_time = 0
+
+    def _toggle_pause(self):
+        self._game_paused = not self._game_paused
 
     def _get_new_block(self):
         new_block = copy.deepcopy(random.choice(self._avail_blocks))
@@ -453,11 +472,14 @@ class GameTetris(Game):
                 self._rotate_clockwise()
 
         width = len(self._active_block.shape[0])
+        height = len(self._active_block.shape)
         row, col = self._active_block.get_origin()
         if col < 0:
-            self._move_right()
+            for _ in range(abs(col)):
+                self._move_right()
         elif col + width >= self.total_cols:
-            self._move_left()
+            for _ in range(col + width - self.total_cols):
+                self._move_left()
 
     def _move_left(self):
         row, col = self._active_block.get_origin()
@@ -499,6 +521,10 @@ class GameTetris(Game):
     def _check_move(self, x_offset, y_offset):
         next_block = copy.deepcopy(self._active_block)
         next_block.add_offset(x_offset, y_offset)
+        for point in next_block.points:
+            if point.row < 0 or point.col < 0 or point.row >= self.total_rows or point.col >= self.total_cols:
+                return False
+
         for block in self._fixed_blocks:
             if next_block.has_overlap(block):
                 return False
@@ -532,12 +558,12 @@ class GameTetris(Game):
     def _rotate_clockwise(self):
         width = len(self._active_block.shape[0])
         height = len(self._active_block.shape)
-        x_offset, y_offset = self._active_block.get_origin()
+        row_offset, col_offset = self._active_block.get_origin()
 
         new_shape = [[self._active_block.shape[height - 1 - y][x] for y in range(height)] for x in range(width)]
         self._active_block.shape = new_shape
         self._active_block.load_points()
-        self._active_block.add_offset(x_offset, y_offset)
+        self._active_block.add_offset(row_offset + (height - width), col_offset)
 
 
 class TetrisBlock:
@@ -589,6 +615,6 @@ class TetrisPoint:
         self.row = row
         self.col = col
 
-    def add_offset(self, x_offset, y_offset):
-        self.row += x_offset
-        self.col += y_offset
+    def add_offset(self, row_offset, col_offset):
+        self.row += row_offset
+        self.col += col_offset
