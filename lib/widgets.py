@@ -8,6 +8,7 @@ import psutil
 import polyline
 import cv2
 import pygame
+import calendar
 from string import printable
 from PIL import Image
 from bs4 import BeautifulSoup
@@ -41,7 +42,6 @@ class Widget:
         self._screen_width = parent.app.get_width()
         self._screen_height = parent.app.get_height()
         self._screen_padding = 3
-        self._align = None
         self._timeout = None
         self._last_active = time.time()
         self._shapes = []
@@ -57,7 +57,6 @@ class Widget:
         if self._timeout is not None and self.is_active and time.time() - self._last_active > self._timeout:
             self.parent.set_active_widget(None)
 
-        self._reload_pos()
         for widget in self._subwidgets:
             widget.update()
         self._on_update()
@@ -71,7 +70,19 @@ class Widget:
         self._on_draw(screen)
 
     def set_align(self, align):
-        self._align = align
+        if align == "top":
+            self.set_pos(self.x, self._screen_padding)
+        elif align == "bottom":
+            self.set_pos(self.x, self._screen_height - self.get_height() - self._screen_padding)
+        elif align == "left":
+            self.set_pos(self._screen_padding, self.y)
+        elif align == "right":
+            self.set_pos(self._screen_width - self.get_width() - self._screen_padding, self.y)
+
+    def set_pos(self, x, y):
+        self.x = x
+        self.y = y
+        self.setup()
 
     def set_timeout(self, timeout):
         if timeout > 0:
@@ -82,19 +93,6 @@ class Widget:
         if color_code is None:
             return 255, 255, 255
         return color_code
-
-    def _reload_pos(self):
-        if not self._align:
-            return
-
-        if self._align == "top":
-            self.y = self._screen_padding
-        elif self._align == "bottom":
-            self.y = self._screen_height - self.get_height() - self._screen_padding
-        elif self._align == "left":
-            self.x = self._screen_padding
-        elif self._align == "right":
-            self.x = self._screen_width - self.get_width() - self._screen_padding
 
     @abstractmethod
     def _on_setup(self):
@@ -159,6 +157,7 @@ class Widget:
     def set_pos(self, x, y):
         self.x = x
         self.y = y
+        self.setup()
 
     def handle_events(self, event):
         self._last_active = time.time()
@@ -568,13 +567,19 @@ class Weather(Widget):
 
 
 class Calendar(Widget):
-    def __init__(self, parent, x, y, max_rows=-1, timeout=10):
+    def __init__(self, parent, x, y, max_rows=-1, timeout=10, align=None):
         super(Calendar, self).__init__(parent, x, y)
 
         self.max_rows = max_rows
         self.header_font = pygame.font.Font("fonts/arial.ttf", 18)
         self.content_font = pygame.font.Font("fonts/arial.ttf", 16)
-        self.set_timeout(timeout)
+        self.timeout = timeout
+        self.align = align
+
+        self.set_timeout(self.timeout)
+
+        self._background_alpha = 120
+        self._background_alpha_active = 180
 
         self._calendar_file = "calendars/calendar.html"
         self._calendar_titles = []
@@ -582,6 +587,16 @@ class Calendar(Widget):
         self._calendar_table = None
         self._calendar_last_update = dt.now().day
         self._calendar_selected_row = 0
+
+        self._text_cal = TextCalendar(parent, self.x, self.y)
+        self._text_cal.setup()
+        self._text_cal_mode = False
+
+        self._load_calendar()
+        self._load_table()
+        if self._calendar_table.is_empty():
+            self._text_cal_mode = True
+        self.set_align(self.align)
 
     def _on_enter(self):
         self._calendar_last_active = time.time()
@@ -674,6 +689,10 @@ class Calendar(Widget):
             file.write(str(soup))
             file.close()
 
+    def _toggle_text_calendar(self):
+        self._text_cal_mode = not self._text_cal_mode
+        self.set_align(self.align)
+
     def _load_table(self):
         calendar_contents = [row[:-1] for row in self._parsed_calendar]
         calendar_status = [bool(int(row[-1])) for row in self._parsed_calendar]
@@ -684,8 +703,7 @@ class Calendar(Widget):
                                      row_status=calendar_status)
 
     def _on_setup(self):
-        self._load_calendar()
-        self._load_table()
+        pass
 
     def _on_update(self):
         current_day = dt.now().day
@@ -694,9 +712,24 @@ class Calendar(Widget):
 
         self._load_table()
 
+        self._text_cal.update()
+
     def _on_draw(self, screen):
-        if self._calendar_table:
+        if self._text_cal_mode:
+            self._text_cal.draw(screen)
+        elif self._calendar_table:
             self._calendar_table.draw(screen)
+
+    def _draw_background(self, screen):
+        if self.is_active:
+            alpha = self._background_alpha_active
+        else:
+            alpha = self._background_alpha
+
+        background_surface = pygame.Surface((self.get_width(), self.get_height()))
+        background_surface.fill(self._get_color('lightgray'))
+        background_surface.set_alpha(alpha)
+        screen.blit(background_surface, (self.x, self.y))
 
     def _handle_widget_events(self, event):
         if event.type == pygame.KEYDOWN:
@@ -707,12 +740,97 @@ class Calendar(Widget):
                     self._calendar_selected_row = min(self._calendar_selected_row + 1, len(self._parsed_calendar) - 1)
             elif event.key == pygame.K_RETURN:
                 self._toggle_calendar_row_status(self._calendar_selected_row)
+            elif event.key == pygame.K_t:
+                self._toggle_text_calendar()
+
+    def set_pos(self, x, y):
+        self.x = x
+        self.y = y
+        self.setup()
+        self._text_cal.set_pos(x, y)
 
     def get_width(self):
-        return self._calendar_table.get_width() if self._calendar_table else 0
+        if self._text_cal_mode:
+            return self._text_cal.get_width()
+        elif self._calendar_table:
+            return self._calendar_table.get_width()
+        else:
+            return 0
 
-    def _get_height(self):
-        return self._calendar_table.get_height() if self._calendar_table else 0
+    def get_height(self):
+        if self._text_cal_mode:
+            return self._text_cal.get_height()
+        elif self._calendar_table:
+            return self._calendar_table.get_height()
+        else:
+            return 0
+
+
+class TextCalendar(Widget):
+    def __init__(self, parent, x, y):
+        super(TextCalendar, self).__init__(parent, x, y)
+
+        self.calendar_font = pygame.font.Font("fonts/LiberationMono.ttf", 15)
+
+        self._cal_last_update = dt.now().day
+        self._cal = calendar.TextCalendar()
+        self._cal_currday_padding = 2
+        self._cal_selector_color = self._get_color('green')
+
+        self._total_width = 0
+        self._total_height = 0
+
+    def _on_setup(self):
+        self._load_cal()
+
+    def _on_update(self):
+        curr_day = dt.now().day
+        if curr_day != self._cal_last_update:
+            self._load_cal()
+            self._cal_last_update = curr_day
+
+    def _on_draw(self, screen):
+        pass
+
+    def _load_cal(self):
+        self.clear_shapes()
+        self._total_width = 0
+        self._total_height = 0
+
+        now = dt.now()
+        curr_year = now.year
+        curr_month = now.month
+        curr_day = now.day
+        calendar_text = self._cal.formatmonth(curr_year, curr_month)
+
+        offset_x = 0
+        offset_y = 0
+        for line in calendar_text.splitlines():
+            rendered_line = self.calendar_font.render(line, True, self._get_color('white'))
+            self.add_shape(Text(rendered_line, (self.x, self.y + offset_y)))
+            self._total_width = max(self._total_width, rendered_line.get_width())
+            if str(curr_day) in line.split():
+                curr_day_ind = line.split().index(str(curr_day))
+                temp_line = self.calendar_font.render(line[:curr_day_ind], True, self._get_color('white'))
+                offset_x = temp_line.get_width()
+                curr_day_text = self.calendar_font.render(str(curr_day), True, self._get_color('white'))
+
+                self.add_shape(Rectangle(self._cal_selector_color,
+                    self.x + offset_x - self._cal_currday_padding,
+                    self.y + offset_y - self._cal_currday_padding,
+                    curr_day_text.get_width() + 2 * self._cal_currday_padding,
+                    curr_day_text.get_height() + 2 * self._cal_currday_padding,
+                    line_width=1))
+            offset_y += rendered_line.get_height()
+
+        self._total_height = offset_y
+
+    def get_width(self):
+        return self._total_width
+
+    def get_height(self):
+        return self._total_height
+
 
 class Traffic(Widget):
     def __init__(self, parent, x, y):

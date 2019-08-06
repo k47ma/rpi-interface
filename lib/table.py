@@ -39,6 +39,8 @@ class Table:
         else:
             self.content_font = content_font
 
+        self._no_data_text = self.content_font.render("No active event", True, self.line_color)
+
         self.rows = []
         self.shapes = []
         self._render_data()
@@ -70,8 +72,7 @@ class Table:
             self.rows.append(rendered_row)
 
         if not self.data:
-            text = self.content_font.render("No active event", True, self.line_color)
-            self.shapes.append(Text(text, (self.x - text.get_width() - 20, self.y)))
+            self.shapes.append(Text(self._no_data_text, (self.x, self.y)))
             return
 
         widths = []
@@ -128,13 +129,25 @@ class Table:
             self._draw_shape(screen, shape)
 
     def get_width(self):
-        return self._total_width
+        if self._total_width > 0:
+            return self._total_width
+        else:
+            return self._no_data_text.get_width()
 
     def get_height(self):
-        return self._total_height
+        if self._total_height > 0:
+            return self._total_height
+        else:
+            return self._no_data_text.get_height()
 
     def set_pos(self, x, y):
         if self.x != x or self.y != y:
             self.x = x
             self.y = y
             self._render_data()
+
+    def is_empty(self):
+        if self.titles:
+            return len(self.rows) == 1
+        else:
+            return len(self.rows) == 0

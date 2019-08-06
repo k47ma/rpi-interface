@@ -1,4 +1,5 @@
 *.pyc
 *.log
+*.DS_Store
 news_images/*
 search_response.html

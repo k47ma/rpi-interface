@@ -39,7 +39,7 @@ class App:
 
         self.clock = pygame.time.Clock()
 
-        self.camera = cv2.VideoCapture(0)
+        self.camera = cv2.VideoCapture(0) if self.args.camera else None
 
         self.main_panel = MainPanel(self)
         self.night_panel = NightPanel(self)
