@@ -605,7 +605,7 @@ class Calendar(Widget):
 
     def _on_exit(self):
         self._calendar_selected_row = 0
-        self._text_cal.reset_month()
+        self._text_cal.reset()
         self._text_cal.is_active = False
 
     def _load_calendar(self):
@@ -739,12 +739,7 @@ class Calendar(Widget):
     def _handle_widget_events(self, event):
         if event.type == pygame.KEYDOWN:
             if self._text_cal_mode and self._text_cal:
-                if event.key in [pygame.K_RIGHT, pygame.K_DOWN]:
-                    self._text_cal.next_month()
-                elif event.key in [pygame.K_LEFT, pygame.K_UP]:
-                    self._text_cal.last_month()
-                elif event.key == pygame.K_r:
-                    self._text_cal.reset_month()
+                self._text_cal.handle_events(event)
             elif not self._text_cal_mode:
                 if event.key == pygame.K_UP:
                     self._calendar_selected_row = max(self._calendar_selected_row - 1, 0)
@@ -798,6 +793,7 @@ class TextCalendar(Widget):
         self._cal_selector_color = self._get_color('green')
         self._cal_selected_day_color = self._get_color('white')
         self._cal_arrow_color = self._get_color('gray')
+        self._cal_arrow_pressed_color = self._get_color('white')
         self._cal_text_lines = []
 
         self._total_width = 0
@@ -826,8 +822,21 @@ class TextCalendar(Widget):
                                (self.x + self._total_width - self._cal_font_width + 1, self.y + 3),
                                (self.x + self._total_width - self._cal_font_width + 1, self.y + self._cal_font_height - 3)]
 
-            pygame.draw.polygon(screen, self._cal_arrow_color, left_arrow_pos)
-            pygame.draw.polygon(screen, self._cal_arrow_color, right_arrow_pos)
+            pressed = pygame.key.get_pressed()
+            left_color = self._cal_arrow_pressed_color if pressed[pygame.K_LEFT] else self._cal_arrow_color
+            right_color = self._cal_arrow_pressed_color if pressed[pygame.K_RIGHT] else self._cal_arrow_color
+
+            pygame.draw.polygon(screen, left_color, left_arrow_pos)
+            pygame.draw.polygon(screen, right_color, right_arrow_pos)
+
+    def _handle_widget_events(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RIGHT:
+                self._next_month()
+            elif event.key == pygame.K_LEFT:
+                self._last_month()
+            elif event.key == pygame.K_r:
+                self._reset_month()
 
     def _reset_date(self):
         now = dt.now()
@@ -865,23 +874,26 @@ class TextCalendar(Widget):
 
         self._total_height = offset_y
 
-    def next_month(self):
+    def _next_month(self):
         self._curr_month += 1
         if self._curr_month == 13:
             self._curr_year += 1
             self._curr_month = 1
         self._load_cal()
 
-    def last_month(self):
+    def _last_month(self):
         self._curr_month -= 1
         if self._curr_month == 0:
             self._curr_year -= 1
             self._curr_month = 12
         self._load_cal()
 
-    def reset_month(self):
+    def _reset_month(self):
         self._reset_date()
         self._load_cal()
+
+    def reset(self):
+        self._reset_month()
 
     def get_width(self):
         return self._total_width
