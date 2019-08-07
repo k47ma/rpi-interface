@@ -603,6 +603,7 @@ class Calendar(Widget):
 
     def _on_exit(self):
         self._calendar_selected_row = 0
+        self._text_cal.reset_month()
 
     def _load_calendar(self):
         current_day = dt.now().day
@@ -733,14 +734,23 @@ class Calendar(Widget):
 
     def _handle_widget_events(self, event):
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_UP:
-                self._calendar_selected_row = max(self._calendar_selected_row - 1, 0)
-            elif event.key == pygame.K_DOWN:
-                if self._parsed_calendar:
-                    self._calendar_selected_row = min(self._calendar_selected_row + 1, len(self._parsed_calendar) - 1)
-            elif event.key == pygame.K_RETURN:
-                self._toggle_calendar_row_status(self._calendar_selected_row)
-            elif event.key == pygame.K_t:
+            if self._text_cal_mode and self._text_cal:
+                if event.key in [pygame.K_RIGHT, pygame.K_DOWN]:
+                    self._text_cal.next_month()
+                elif event.key in [pygame.K_LEFT, pygame.K_UP]:
+                    self._text_cal.last_month()
+                elif event.key == pygame.K_r:
+                    self._text_cal.reset_month()
+            elif not self._text_cal_mode:
+                if event.key == pygame.K_UP:
+                    self._calendar_selected_row = max(self._calendar_selected_row - 1, 0)
+                elif event.key == pygame.K_DOWN:
+                    if self._parsed_calendar:
+                        self._calendar_selected_row = min(self._calendar_selected_row + 1, len(self._parsed_calendar) - 1)
+                elif event.key == pygame.K_RETURN:
+                    self._toggle_calendar_row_status(self._calendar_selected_row)
+
+            if event.key == pygame.K_t:
                 self._toggle_text_calendar()
 
     def set_pos(self, x, y):
@@ -774,13 +784,19 @@ class TextCalendar(Widget):
 
         self._cal_last_update = dt.now().day
         self._cal = calendar.TextCalendar()
-        self._cal_currday_padding = 2
+        self._cal_currday_padding = 1
+        self._cal_selector_line_width = 2
         self._cal_selector_color = self._get_color('green')
 
         self._total_width = 0
         self._total_height = 0
 
+        self._curr_year = 0
+        self._curr_month = 0
+        self._curr_day = 0
+
     def _on_setup(self):
+        self._reset_date()
         self._load_cal()
 
     def _on_update(self):
@@ -792,38 +808,60 @@ class TextCalendar(Widget):
     def _on_draw(self, screen):
         pass
 
+    def _reset_date(self):
+        now = dt.now()
+        self._curr_year = now.year
+        self._curr_month = now.month
+        self._curr_day = now.day
+
     def _load_cal(self):
         self.clear_shapes()
         self._total_width = 0
         self._total_height = 0
 
-        now = dt.now()
-        curr_year = now.year
-        curr_month = now.month
-        curr_day = now.day
-        calendar_text = self._cal.formatmonth(curr_year, curr_month)
+        calendar_text = self._cal.formatmonth(self._curr_year, self._curr_month)
 
         offset_x = 0
         offset_y = 0
+        is_present_month = (self._curr_year == dt.now().year and self._curr_month == dt.now().month)
         for line in calendar_text.splitlines():
             rendered_line = self.calendar_font.render(line, True, self._get_color('white'))
             self.add_shape(Text(rendered_line, (self.x, self.y + offset_y)))
             self._total_width = max(self._total_width, rendered_line.get_width())
-            if str(curr_day) in line.split():
-                curr_day_ind = line.split().index(str(curr_day))
-                temp_line = self.calendar_font.render(line[:curr_day_ind], True, self._get_color('white'))
-                offset_x = temp_line.get_width()
-                curr_day_text = self.calendar_font.render(str(curr_day), True, self._get_color('white'))
+            if is_present_month and str(self._curr_day) in line.split():
+                curr_day_ind = line.split().index(str(self._curr_day))
+                space_text = self.calendar_font.render(' ', True, self._get_color('white'))
+                offset_x = space_text.get_width() * curr_day_ind * 3
+
+                curr_day_text = self.calendar_font.render('{: >2}'.format(str(self._curr_day)), True, self._get_color('white'))
 
                 self.add_shape(Rectangle(self._cal_selector_color,
                     self.x + offset_x - self._cal_currday_padding,
                     self.y + offset_y - self._cal_currday_padding,
                     curr_day_text.get_width() + 2 * self._cal_currday_padding,
                     curr_day_text.get_height() + 2 * self._cal_currday_padding,
-                    line_width=1))
+                    line_width=self._cal_selector_line_width))
             offset_y += rendered_line.get_height()
 
         self._total_height = offset_y
+
+    def next_month(self):
+        self._curr_month += 1
+        if self._curr_month == 13:
+            self._curr_year += 1
+            self._curr_month = 1
+        self._load_cal()
+
+    def last_month(self):
+        self._curr_month -= 1
+        if self._curr_month == 0:
+            self._curr_year -= 1
+            self._curr_month = 12
+        self._load_cal()
+
+    def reset_month(self):
+        self._reset_date()
+        self._load_cal()
 
     def get_width(self):
         return self._total_width
