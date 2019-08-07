@@ -16,6 +16,7 @@ class Game(Widget):
         self.exit_event = exit_event
 
         self.scoreboard_font = pygame.font.Font("fonts/FreeSans.ttf", 15)
+        self._scoreboard_lines = []
 
         self._color = (0, 0, 0)
 
@@ -31,6 +32,16 @@ class Game(Widget):
             return
 
         screen.fill(self._color)
+
+    def _update_scoreboard(self):
+        pass
+
+    def _draw_scoreboard(self, screen):
+        x, y = 10, 10
+        for line, color in self._scoreboard_lines:
+            rendered_text = self.scoreboard_font.render(line, True, color)
+            screen.blit(rendered_text, (x, y))
+            y += rendered_text.get_height() + self._score_padding
 
     def _handle_widget_events(self, event):
         if event.type == pygame.KEYDOWN:
@@ -71,6 +82,7 @@ class GameSnake(Game):
         self.cell_padding = cell_padding
 
         self._score = 0
+        self._high_score = 0
         self._score_width = 50
         self._score_padding = 10
         self._board_x = self._score_width + (self._screen_width - self.total_cols * self.cell_size) // 2
@@ -103,6 +115,7 @@ class GameSnake(Game):
 
         current_time = time.time()
         self._progress_time = current_time
+        self._update_scoreboard()
         if current_time - self._snake_lastmove >= 1 / self._snake_speed:
             if self._auto_play:
                 self._update_optimal_direction()
@@ -174,6 +187,7 @@ class GameSnake(Game):
         self._snake_lastmove = self._start_time
         self._progress_time = self._start_time
         self._add_apple()
+        self._update_scoreboard()
 
     def _add_apple(self):
         free_spots = []
@@ -184,25 +198,22 @@ class GameSnake(Game):
         row, col = random.choice(free_spots)
         self._apple = (row, col)
 
-    def _draw_scoreboard(self, screen):
-        x, y = 10, 10
-        score_text = self.scoreboard_font.render("Score: {}".format(self._score), True, self._get_color("white"))
-        screen.blit(score_text, (x, y))
-        y += score_text.get_height() + self._score_padding
+    def _update_scoreboard(self):
+        self._scoreboard_lines = []
+
+        self._scoreboard_lines.append(("Score: {}".format(self._score), self._get_color("white")))
+        self._scoreboard_lines.append(("High Score: {}".format(self._high_score), self._get_color("white")))
 
         min = int(self._progress_time - self._start_time) // 60
         sec = int(self._progress_time - self._start_time) % 60
-        time_text = self.scoreboard_font.render("Time: {:02}:{:02}".format(min, sec), True, self._get_color("white"))
-        screen.blit(time_text, (x, y))
-        y += time_text.get_height() + self._score_padding
+        self._scoreboard_lines.append(("Time: {:02}:{:02}".format(min, sec), self._get_color("white")))
 
         if not self._game_started and self._progress_time > self._start_time:
             if self._win:
                 result_text = "You Win!"
             else:
                 result_text = "Oops!"
-            rendered_result = self.scoreboard_font.render(result_text, True, self._get_color("lightblue"))
-            screen.blit(rendered_result, (x, y))
+            self._scoreboard_lines.append(result_text, self._get_color("lightblue"))
 
     def _draw_board(self, screen):
         rect_size = self.cell_size - 2 * self.cell_padding
@@ -247,6 +258,8 @@ class GameSnake(Game):
 
         if (snake_row, snake_col) == self._apple:
             self._score += 1
+            if self._score > self._high_score:
+                self._high_score = self._score
             self._snake_extend = True
             self._add_apple()
 
@@ -336,6 +349,7 @@ class GameTetris(Game):
         self._avail_blocks = [self._block1, self._block2, self._block3, self._block4, self._block5]
         self._block_speed = 2
         self._score = 0
+        self._high_score = 0
         self._game_started = False
         self._game_over = False
         self._game_paused = False
@@ -357,6 +371,7 @@ class GameTetris(Game):
             return
 
         if self._game_started:
+            self._update_scoreboard()
             current_time = time.time()
             self._progress_time += current_time - self._last_update_time
             self._last_update_time = current_time
@@ -372,31 +387,21 @@ class GameTetris(Game):
         self._draw_scoreboard(screen)
         self._draw_board(screen)
 
-    def _draw_scoreboard(self, screen):
-        x, y = 10, 10
-        score_text = self.scoreboard_font.render("Score: {}".format(self._score), True, self._get_color("white"))
-        screen.blit(score_text, (x, y))
-        y += score_text.get_height() + self._score_padding
+    def _update_scoreboard(self):
+        self._scoreboard_lines = []
+
+        self._scoreboard_lines.append(("Score: {}".format(self._score), self._get_color("white")))
+        self._scoreboard_lines.append(("High Score: {}".format(self._high_score), self._get_color("white")))
 
         min = int(self._progress_time) // 60
         sec = int(self._progress_time) % 60
-        time_text = self.scoreboard_font.render("Time: {:02}:{:02}".format(min, sec), True, self._get_color("white"))
-        screen.blit(time_text, (x, y))
-        y += time_text.get_height() + self._score_padding
+        self._scoreboard_lines.append(("Time: {:02}:{:02}".format(min, sec), self._get_color("white")))
 
         if not self._game_started and self._game_over:
-            result_text = "Oops!"
-            rendered_result = self.scoreboard_font.render(result_text, True, self._get_color("lightblue"))
-            screen.blit(rendered_result, (x, y))
-
-            y += rendered_result.get_height() + self._score_padding
-            restart_text = "Press R to restart"
-            rendered_restart = self.scoreboard_font.render(restart_text, True, self._get_color("green"))
-            screen.blit(rendered_restart, (x, y))
+            self._scoreboard_lines.append(("Oops!", self._get_color("lightblue")))
+            self._scoreboard_lines.append(("Press R to restart", self._get_color("green")))
         elif not self._game_started:
-            start_text = "Press direction key to start"
-            rendered_start = self.scoreboard_font.render(start_text, True, self._get_color("green"))
-            screen.blit(rendered_start, (x, y))
+            self._scoreboard_lines.append(("Press direction key to start", self._get_color("green")))
 
     def _draw_board(self, screen):
         rect_size = self.cell_size - 2 * self.cell_padding
@@ -446,6 +451,7 @@ class GameTetris(Game):
         self._game_started = False
         self._game_over = False
         self._game_paused = False
+        self._update_scoreboard()
 
     def _start_game(self):
         self._game_started = True
