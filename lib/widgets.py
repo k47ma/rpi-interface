@@ -600,10 +600,13 @@ class Calendar(Widget):
 
     def _on_enter(self):
         self._calendar_last_active = time.time()
+        if self._text_cal_mode:
+            self._text_cal.is_active = True
 
     def _on_exit(self):
         self._calendar_selected_row = 0
         self._text_cal.reset_month()
+        self._text_cal.is_active = False
 
     def _load_calendar(self):
         current_day = dt.now().day
@@ -692,6 +695,7 @@ class Calendar(Widget):
 
     def _toggle_text_calendar(self):
         self._text_cal_mode = not self._text_cal_mode
+        self._text_cal.is_active = self._text_cal_mode
         self.set_align(self.align)
 
     def _load_table(self):
@@ -782,11 +786,19 @@ class TextCalendar(Widget):
 
         self.calendar_font = pygame.font.Font("fonts/LiberationMono.ttf", 15)
 
+        space_text = self.calendar_font.render(' ', True, self._get_color('white'))
+        self._cal_font_width = space_text.get_width()
+        self._cal_font_height = space_text.get_height()
+
         self._cal_last_update = dt.now().day
         self._cal = calendar.TextCalendar()
         self._cal_currday_padding = 1
         self._cal_selector_line_width = 2
+        self._cal_text_color = self._get_color('white')
         self._cal_selector_color = self._get_color('green')
+        self._cal_selected_day_color = self._get_color('white')
+        self._cal_arrow_color = self._get_color('gray')
+        self._cal_text_lines = []
 
         self._total_width = 0
         self._total_height = 0
@@ -806,7 +818,16 @@ class TextCalendar(Widget):
             self._cal_last_update = curr_day
 
     def _on_draw(self, screen):
-        pass
+        if self.is_active and self._cal_text_lines:
+            left_arrow_pos = [(self.x + 1, self.y + self._cal_font_height // 2),
+                              (self.x + self._cal_font_width - 1, self.y + 3),
+                              (self.x + self._cal_font_width - 1, self.y + self._cal_font_height - 3)]
+            right_arrow_pos = [(self.x + self._total_width - 1, self.y + self._cal_font_height // 2),
+                               (self.x + self._total_width - self._cal_font_width + 1, self.y + 3),
+                               (self.x + self._total_width - self._cal_font_width + 1, self.y + self._cal_font_height - 3)]
+
+            pygame.draw.polygon(screen, self._cal_arrow_color, left_arrow_pos)
+            pygame.draw.polygon(screen, self._cal_arrow_color, right_arrow_pos)
 
     def _reset_date(self):
         now = dt.now()
@@ -819,21 +840,20 @@ class TextCalendar(Widget):
         self._total_width = 0
         self._total_height = 0
 
-        calendar_text = self._cal.formatmonth(self._curr_year, self._curr_month)
+        self._cal_text_lines = self._cal.formatmonth(self._curr_year, self._curr_month).splitlines()
 
         offset_x = 0
         offset_y = 0
         is_present_month = (self._curr_year == dt.now().year and self._curr_month == dt.now().month)
-        for line in calendar_text.splitlines():
-            rendered_line = self.calendar_font.render(line, True, self._get_color('white'))
+        for line in self._cal_text_lines:
+            rendered_line = self.calendar_font.render(line, True, self._cal_text_color)
             self.add_shape(Text(rendered_line, (self.x, self.y + offset_y)))
             self._total_width = max(self._total_width, rendered_line.get_width())
             if is_present_month and str(self._curr_day) in line.split():
                 curr_day_ind = line.split().index(str(self._curr_day))
-                space_text = self.calendar_font.render(' ', True, self._get_color('white'))
-                offset_x = space_text.get_width() * curr_day_ind * 3
+                offset_x = self._cal_font_width * curr_day_ind * 3
 
-                curr_day_text = self.calendar_font.render('{: >2}'.format(str(self._curr_day)), True, self._get_color('white'))
+                curr_day_text = self.calendar_font.render('{: >2}'.format(str(self._curr_day)), True, self._cal_selected_day_color)
 
                 self.add_shape(Rectangle(self._cal_selector_color,
                     self.x + offset_x - self._cal_currday_padding,
