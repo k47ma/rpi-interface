@@ -4,6 +4,7 @@ import time
 import queue
 import re
 import glob
+import copy
 import psutil
 import polyline
 import cv2
@@ -585,6 +586,7 @@ class Calendar(Widget):
         self._calendar_file = "calendars/calendar.html"
         self._calendar_titles = []
         self._parsed_calendar = []
+        self._parsed_calendar_display = []
         self._calendar_table = None
         self._calendar_last_update = dt.now().day
         self._calendar_selected_row = 0
@@ -640,10 +642,13 @@ class Calendar(Widget):
         self._add_days(self._parsed_calendar, calendar_status)
 
         self._parsed_calendar.sort(key=lambda x: (int(x[-2]), int(x[-1])))
+        self._parsed_calendar_display = copy.deepcopy(self._parsed_calendar)
+
         if self.max_past_days != -1:
-            self._parsed_calendar = [row for row in self._parsed_calendar if row[-1] == '1' or int(row[-2]) >= -self.max_past_days]
+            self._parsed_calendar_display = [row for row in self._parsed_calendar_display if row[-1] == '1' or int(row[-2]) >= -self.max_past_days]
+
         if self.max_rows != -1:
-            self._parsed_calendar = self._parsed_calendar[:self.max_rows]
+            self._parsed_calendar_display = self._parsed_calendar_display[:self.max_rows]
 
         self._calendar_last_update = current_day
         log_to_file("Calendar updated")
@@ -671,7 +676,7 @@ class Calendar(Widget):
             row.append(status[ind])
 
     def _toggle_calendar_row_status(self, row_index):
-        self._parsed_calendar[row_index][-1] = "0" if bool(int(self._parsed_calendar[row_index][-1])) else "1"
+        self._parsed_calendar_display[row_index][-1] = "0" if bool(int(self._parsed_calendar_display[row_index][-1])) else "1"
 
         file = open(self._calendar_file, 'r')
         calendar_text = file.read()
@@ -684,12 +689,12 @@ class Calendar(Widget):
         calendar_rows = soup.find_all('tr')[1:]
         for status in calendar_rows:
             row_name = status.find('td').get_text()
-            names = [cal[0] for cal in self._parsed_calendar]
+            names = [cal[0] for cal in self._parsed_calendar_display]
             try:
                 target_ind = names.index(row_name)
             except ValueError:
                 continue
-            status.find('div', class_="__status__").string = self._parsed_calendar[target_ind][-1]
+            status.find('div', class_="__status__").string = self._parsed_calendar_display[target_ind][-1]
 
         with open(self._calendar_file, 'w') as file:
             file.write(str(soup))
@@ -706,8 +711,8 @@ class Calendar(Widget):
         self.set_align(self.align)
 
     def _load_table(self):
-        calendar_contents = [row[:-1] for row in self._parsed_calendar]
-        calendar_status = [bool(int(row[-1])) for row in self._parsed_calendar]
+        calendar_contents = [row[:-1] for row in self._parsed_calendar_display]
+        calendar_status = [bool(int(row[-1])) for row in self._parsed_calendar_display]
         self._calendar_table = Table(calendar_contents, titles=self._calendar_titles, header_font=self.header_font,
                                      content_font=self.content_font, x=self.x, y=self.y,
                                      content_centered=[False, False, True], x_padding=2,
@@ -721,6 +726,7 @@ class Calendar(Widget):
         current_day = dt.now().day
         if current_day != self._calendar_last_update:
             self._load_calendar()
+            self._text_cal.set_events(self._parsed_calendar)
 
         self._load_table()
 
@@ -751,8 +757,8 @@ class Calendar(Widget):
                 if event.key == pygame.K_UP:
                     self._calendar_selected_row = max(self._calendar_selected_row - 1, 0)
                 elif event.key == pygame.K_DOWN:
-                    if self._parsed_calendar:
-                        self._calendar_selected_row = min(self._calendar_selected_row + 1, len(self._parsed_calendar) - 1)
+                    if self._parsed_calendar_display:
+                        self._calendar_selected_row = min(self._calendar_selected_row + 1, len(self._parsed_calendar_display) - 1)
                 elif event.key == pygame.K_RETURN:
                     self._toggle_calendar_row_status(self._calendar_selected_row)
 
@@ -801,7 +807,8 @@ class TextCalendar(Widget):
         self._cal_selector_line_width = 2
         self._cal_text_color = self._get_color('white')
         self._cal_selector_color = self._get_color('green')
-        self._cal_event_color = self._get_color('lightblue')
+        self._cal_event_color = self._get_color('orange')
+        self._cal_completed_event_color = self._get_color('lightblue')
         self._cal_arrow_color = self._get_color('gray')
         self._cal_arrow_pressed_color = self._get_color('white')
         self._cal_text_lines = []
@@ -867,7 +874,8 @@ class TextCalendar(Widget):
         offset_y = 0
         now = dt.now()
         is_present_month = (self._curr_year == now.year and self._curr_month == now.month)
-        days_with_events = [event[1][8:10] for event in self._events if int(event[1][:4]) == self._curr_year and int(event[1][5:7]) == self._curr_month]
+        days_with_events = [(event[1][8:10], event[-1]) for event in self._events
+            if int(event[1][:4]) == self._curr_year and int(event[1][5:7]) == self._curr_month]
         event_ind = 0
         for line in self._cal_text_lines:
             rendered_line = self.calendar_font.render(line, True, self._cal_text_color)
@@ -884,13 +892,14 @@ class TextCalendar(Widget):
                     self._cal_date_height + 2 * self._cal_date_padding,
                     line_width=self._cal_selector_line_width))
 
-            while event_ind < len(days_with_events) and days_with_events[event_ind] in line.split():
-                event_day_ind = line.split().index(days_with_events[event_ind])
+            while event_ind < len(days_with_events) and days_with_events[event_ind][0] in line.split():
+                event_day_ind = line.split().index(days_with_events[event_ind][0])
                 offset_x = self._cal_font_width * event_day_ind * 3
 
                 start_pos = (self.x + offset_x, self.y + offset_y + self._cal_date_height - 3)
                 end_pos = (self.x + offset_x + self._cal_date_width, self.y + offset_y + self._cal_date_height - 3)
-                self.add_shape(Line(self._cal_event_color, start_pos, end_pos, width=self._cal_selector_line_width))
+                color = self._cal_event_color if days_with_events[event_ind][1] == '1' else self._cal_completed_event_color
+                self.add_shape(Line(color, start_pos, end_pos, width=self._cal_selector_line_width))
                 event_ind += 1
 
             offset_y += rendered_line.get_height()
