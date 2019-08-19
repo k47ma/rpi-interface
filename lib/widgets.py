@@ -16,6 +16,7 @@ from bs4 import BeautifulSoup
 from lib.table import Table
 from lib.threads import *
 from lib.shapes import *
+from lib.button import Button
 
 
 class Widget:
@@ -40,8 +41,8 @@ class Widget:
         self.default_font = pygame.font.SysFont(self.default_font_name, 25)
         self.is_active = False
 
-        self._screen_width = parent.app.get_width()
-        self._screen_height = parent.app.get_height()
+        self._screen_width = self.parent.screen_width
+        self._screen_height = self.parent.screen_height
         self._screen_padding = 3
         self._timeout = None
         self._last_active = time.time()
@@ -1929,23 +1930,23 @@ class Input(Widget):
                     self._input('(')
                 else:
                     self._input('9')
-            elif event.key == pygame.K_SPACE:
-                self._input(' ')
-            elif event.key == pygame.K_PLUS:
+            elif event.key == pygame.K_PERIOD or event.key == pygame.K_KP_PERIOD:
+                self._input('.')
+            elif event.key == pygame.K_PLUS or event.key == pygame.K_KP_PLUS:
                 self._input('+')
-            elif event.key == pygame.K_EQUALS:
+            elif event.key == pygame.K_EQUALS or event.key == pygame.K_KP_EQUALS:
                 if self._shift_pressed():
                     self._input('+')
                 else:
                     self._input('=')
-            elif event.key == pygame.K_MINUS:
+            elif event.key == pygame.K_MINUS or event.key == pygame.K_KP_MINUS:
                 if self._shift_pressed():
                     self._input('_')
                 else:
                     self._input('-')
-            elif event.key == pygame.K_ASTERISK:
+            elif event.key == pygame.K_ASTERISK or event.key == pygame.K_KP_MULTIPLY:
                 self._input('*')
-            elif event.key == pygame.K_SLASH:
+            elif event.key == pygame.K_SLASH or event.key == pygame.K_KP_DIVIDE:
                 if self._shift_pressed():
                     self._input('?')
                 else:
@@ -1963,6 +1964,8 @@ class Input(Widget):
             elif event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
                 if self.enter_key_event:
                     self.enter_key_event()
+            elif event.key == pygame.K_SPACE:
+                self._input(' ')
             elif event.key == pygame.K_LEFT:
                 self._move_cursor("left")
             elif event.key == pygame.K_RIGHT:
@@ -1979,8 +1982,14 @@ class Input(Widget):
         self._content_widget.set_text(self._string)
         self._cursor_index = len(self._string)
 
+    def get_width(self):
+        return self.width
+
     def get_height(self):
         return self.font.render(' ', True, self._get_color('white')).get_height()
+
+    def enter_char(self, c):
+        self._input(c)
 
 
 class Chart(Widget):
@@ -2522,14 +2531,29 @@ class List(Widget):
 
 
 class Calculator(Widget):
-    def __init__(self, parent, x, y):
+    def __init__(self, parent, x, y, width=450, height=300, key_padding=0):
         super(Calculator, self).__init__(parent, x, y)
 
-        self._input_font = pygame.font.Font("fonts/FreeSans.ttf", 20)
-        self._input_chars = list(digits + "+-*/()")
+        self.width = width
+        self.height = height
+        self.key_padding = key_padding
+
+        self._input_font = pygame.font.Font("fonts/FreeSans.ttf", 30)
+        self._key_font = pygame.font.Font("fonts/FreeSans.ttf", 40)
+
+        self._input_chars = list(digits + "+-*/().")
         self._input_widget = Input(self.parent, self.x, self.y, font=self._input_font,
-                                   width=450, limit_chars=self._input_chars,
+                                   width=self.width, limit_chars=self._input_chars,
                                    align_right=True, cursor=False, enter_key_event=self._evaluate)
+
+        self._keys_layout = ["789/", "456*", "123-", "0.=+"]
+        self._key_width = 0
+        self._key_height = 0
+        self._key_background_color = self._get_color('lightgray')
+        self._key_background_alpha = 120
+        self._key_border_color = self._get_color('white')
+        self._key_border_width = 1
+        self._key_focus_color = self._get_color('orange')
 
         self._error_msg = "ERROR"
 
@@ -2539,6 +2563,28 @@ class Calculator(Widget):
         self._input_widget.bind_key(pygame.K_EQUALS, self._evaluate)
         self._input_widget.bind_key(pygame.K_c, self._clear)
 
+        if self._keys_layout and self._keys_layout[0]:
+            key_rows = len(self._keys_layout)
+            key_cols = len(self._keys_layout[0])
+            self._key_width = (self.width - self.key_padding * (key_cols - 1)) // key_cols
+            self._key_height = (self.height - self._input_widget.get_height() -
+                                self.key_padding * (key_rows - 1)) // key_rows
+
+            for row_ind, row in enumerate(self._keys_layout):
+                for col_ind, key in enumerate(row):
+                    button_x = self.x + col_ind * (self._key_width + self.key_padding)
+                    button_y = self.y + self._input_widget.get_height() + \
+                               row_ind * (self._key_height + self.key_padding) + self.key_padding
+                    button = Button(self.parent, button_x, button_y,
+                                    width=self._key_width, height=self._key_height,
+                                    text=key, background_color=self._key_background_color,
+                                    background_alpha=self._key_background_alpha,
+                                    border_color=self._key_border_color,
+                                    border_width=self._key_border_width,
+                                    font=self._key_font, on_click=self._click_key,
+                                    on_click_param=key, focus_color=self._key_focus_color)
+                    self.parent.buttons.append(button)
+
     def _on_update(self):
         pass
 
@@ -2546,10 +2592,16 @@ class Calculator(Widget):
         pass
 
     def _handle_widget_events(self, event):
-        pass
+        if event.type == pygame.KEYDOWN:
+            if eveny.key == pygame.K_RETURN:
+                self._input_widget.set_active(True)
 
     def _on_enter(self):
         self._input_widget.set_active(True)
+        pygame.mouse.set_visible(True)
+
+    def _on_exit(self):
+        pygame.mouse.set_visible(False)
 
     def _evaluate(self):
         input_content = self._input_widget.get_text()
@@ -2561,6 +2613,12 @@ class Calculator(Widget):
         except SyntaxError:
             result = self._error_msg
         self._input_widget.set_text(result)
+
+    def _click_key(self, key):
+        if key == '=':
+            self._evaluate()
+        else:
+            self._input_widget.enter_char(key)
 
     def _clear(self):
         self._input_widget.reset()

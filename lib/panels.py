@@ -16,9 +16,9 @@ class Panel:
         self.app = app
         self.args = app.args
         self.always_update = False
-        self._invert_screen = self.args.invert if self.args else False
-        self._screen_width = app.get_width()
-        self._screen_height = app.get_height()
+        self.invert_screen = self.args.invert if self.args else False
+        self.screen_width = app.get_width()
+        self.screen_height = app.get_height()
 
         self.widgets = []
         self.buttons = []
@@ -38,14 +38,26 @@ class Panel:
     def _on_update(self):
         pass
 
+    def _on_enter(self):
+        pass
+
+    def _on_exit(self):
+        pass
+
     def is_always_update(self):
         return self.always_update
 
-    def on_enter(self):
-        pass
+    def enter(self):
+        for button in self.buttons:
+            button.set_active(True)
 
-    def on_exit(self):
-        pass
+        self._on_enter()
+
+    def exit(self):
+        for button in self.buttons:
+            button.set_active(False)
+
+        self._on_exit()
 
     def setup(self):
         for widget in self.widgets:
@@ -64,13 +76,9 @@ class Panel:
 
     def handle_events(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
-            mouse_pos = pygame.mouse.get_pos()
-            if self._invert_screen:
-                mouse_pos = (self._screen_width - mouse_pos[0],
-                             self._screen_height - mouse_pos[1])
             clicked = False
             for button in self.buttons:
-                if button.get_rect().collidepoint(mouse_pos):
+                if button.is_focused() and button.is_active:
                     button.click()
                     clicked = True
             if not clicked:
@@ -89,7 +97,7 @@ class Panel:
                     self.handle_panel_events(event)
 
     def get_screen_size(self):
-        return self._screen_width, self._screen_height
+        return self.screen_width, self.screen_height
 
     def handle_panel_events(self, event):
         pass
@@ -111,7 +119,7 @@ class MainPanel(Panel):
 
         self._night_image_path = "images/night.gif"
         self._night_image = pygame.transform.scale(pygame.image.load(self._night_image_path), (30, 30))
-        self.night_button = Button(-1, self._screen_height - 29, image=self._night_image,
+        self.night_button = Button(self, -1, self.screen_height - 29, image=self._night_image,
                                    on_click=self.set_night_mode)
         self.buttons = [self.night_button]
 
@@ -157,10 +165,10 @@ class NewsPanel(Panel):
         self._news_title_font = pygame.font.SysFont(self.default_font_name, 20)
         self.news_widget = Content(self, 10, 10, "News", font=self._news_main_font)
         self.title_widget = Content(self, 90, 10, "", font=self._news_title_font,
-                                    max_width=self._screen_width-100, max_height=30,
+                                    max_width=self.screen_width-100, max_height=30,
                                     borders=['left'], margin=(10, 0, 0, 0))
-        self.newslist_widget = NewsList(self, 10, 45, max_width=self._screen_width-20,
-                                        max_height=self._screen_height-60, title_widget=self.title_widget)
+        self.newslist_widget = NewsList(self, 10, 45, max_width=self.screen_width-20,
+                                        max_height=self.screen_height-60, title_widget=self.title_widget)
         self.widgets = [self.news_widget, self.title_widget, self.newslist_widget]
 
         self.set_active_widget(self.newslist_widget)
@@ -170,7 +178,7 @@ class NewsPanel(Panel):
             self.set_active_widget(self.newslist_widget)
             self.active_widget.handle_events(event)
 
-    def on_enter(self):
+    def _on_enter(self):
         self.set_active_widget(self.newslist_widget)
 
 
@@ -181,7 +189,7 @@ class SearchPanel(Panel):
         self._search_str_font = pygame.font.Font("fonts/FreeSans.ttf", 18)
         self._search_result_font = pygame.font.Font("fonts/FreeSans.ttf", 16)
         self.search_widget = SearchWidget(self, 10, 10, str_font=self._search_str_font, result_font=self._search_result_font,
-                                          max_width=self._screen_width-40, max_height=self._screen_height-40)
+                                          max_width=self.screen_width-40, max_height=self.screen_height-40)
         self.widgets = [self.search_widget]
 
         self.set_active_widget(self.search_widget)
@@ -191,10 +199,10 @@ class SearchPanel(Panel):
             if event.key == pygame.K_RETURN:
                 self.set_active_widget(self.search_widget)
 
-    def on_enter(self):
+    def _on_enter(self):
         self.set_active_widget(self.search_widget)
 
-    def on_exit(self):
+    def _on_exit(self):
         self.search_widget.reset()
 
 
@@ -216,7 +224,7 @@ class SystemInfoPanel(Panel):
 
         self.title_widget = Content(self, 10, 10, "System Info", font=self._title_font)
         self.chart_widget = Chart(self, 30, 50, info=self._system_info,
-                                  width=self._screen_width-70, height=self._screen_height-80,
+                                  width=self.screen_width-70, height=self.screen_height-80,
                                   max_x=int(self._max_size*self._update_interval), info_colors=self._info_colors,
                                   x_unit=self._update_interval, y_unit=1,
                                   x_label_interval=5, y_label_interval=20)
@@ -255,14 +263,14 @@ class StockPanel(Panel):
         self._title_font = pygame.font.SysFont(self.default_font_name, 35)
 
         self.title_widget = Content(self, 10, 10, "Stock", font=self._title_font)
-        self.stock_widget = Stock(self, 25, 40, chart=True, chart_width=self._screen_width-80,
-                                  chart_height=self._screen_height-120)
+        self.stock_widget = Stock(self, 25, 40, chart=True, chart_width=self.screen_width-80,
+                                  chart_height=self.screen_height-120)
         self.widgets = [self.title_widget, self.stock_widget]
 
-    def on_enter(self):
+    def _on_enter(self):
         self.set_active_widget(self.stock_widget)
 
-    def on_exit(self):
+    def _on_exit(self):
         self.stock_widget.clear()
 
     def handle_panel_events(self, event):
@@ -282,10 +290,10 @@ class MapPanel(Panel):
                               map_padding=0.075, background_alpha=100)
         self.widgets = [self.title_widget, self.map_widget]
 
-    def on_enter(self):
+    def _on_enter(self):
         self.set_active_widget(self.map_widget)
 
-    def on_exit(self):
+    def _on_exit(self):
         self.map_widget.reset()
 
     def handle_panel_events(self, event):
@@ -301,7 +309,7 @@ class CameraPanel(Panel):
         self.camera_widget = Camera(self, 0, 0, camera)
         self.widgets = [self.camera_widget]
 
-    def on_enter(self):
+    def _on_enter(self):
         self.set_active_widget(self.camera_widget)
 
 
@@ -335,10 +343,10 @@ class GamePanel(Panel):
     def exit_game(self):
         self.set_active_widget(self.menu_widget)
 
-    def on_enter(self):
+    def _on_enter(self):
         self.set_active_widget(self.menu_widget)
 
-    def on_exit(self):
+    def _on_exit(self):
         self.menu_widget.reset()
 
     def handle_panel_events(self, event):
@@ -351,12 +359,12 @@ class CalculatorPanel(Panel):
     def __init__(self, app):
         super(CalculatorPanel, self).__init__(app)
 
-        self.calculator_widget = Calculator(self, 10, 10)
+        self.calculator_widget = Calculator(self, 10, 10, width=450, height=300, key_padding=3)
 
         self.widgets = [self.calculator_widget]
 
-    def on_enter(self):
+    def _on_enter(self):
         self.set_active_widget(self.calculator_widget)
 
-    def on_exit(self):
+    def _on_exit(self):
         self.calculator_widget.reset()

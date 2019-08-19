@@ -26,11 +26,11 @@ class Background:
         surface.fill(self.color)
         surface.set_alpha(self.alpha)
 
-    def on_enter(self):
-        pass
+    def enter(self):
+        self._on_enter()
 
-    def on_leave(self):
-        pass
+    def exit(self):
+        self._on_exit()
 
 
 class DynamicImage(Background):
@@ -102,7 +102,7 @@ class DynamicTriangle(Background):
                                  radius=50, speed=1, speed_variant=0.2) for _ in range(self.total_points)]
         self.triangles = [Triangle(random.choices(self.points, k=3)) for _ in range(self.total_triangles)]
 
-    def on_enter(self):
+    def _on_enter(self):
         self.points_setup()
 
     def update(self):
@@ -163,7 +163,7 @@ class DynamicTrace(Background):
         while not self.queue2.empty():
             self.queue2.get_nowait()
 
-    def on_enter(self):
+    def _on_enter(self):
         self._reset_trace()
 
     def update(self):

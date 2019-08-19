@@ -56,7 +56,7 @@ class App:
         self.panels = [self.main_panel, self.night_panel, self.news_panel, self.search_panel,
                        self.system_info_panel, self.stock_panel, self.map_panel, self.camera_panel,
                        self.game_panel, self.calculator_panel]
-        self.active_panel = self.main_panel
+        self.active_panel = None
         self._night_mode = False
 
         self.blank_background = Background(width=self._screen_width,
@@ -93,6 +93,7 @@ class App:
         self._setup()
 
     def _setup(self):
+        self.set_active_panel(self.main_panel)
         for panel in self.panels:
             panel.setup()
 
@@ -157,11 +158,11 @@ class App:
         if len(self.backgrounds) == 1:
             return
 
-        self.backgrounds[self._background_type].on_leave()
+        self.backgrounds[self._background_type].exit()
         self._background_type += 1
         if self._background_type >= len(self.backgrounds):
             self._background_type = 0
-        self.backgrounds[self._background_type].on_enter()
+        self.backgrounds[self._background_type].enter()
 
     def _draw_background(self, screen):
         background_surface = pygame.Surface((self._screen_width, self._screen_height))
@@ -206,8 +207,9 @@ class App:
 
     def set_active_panel(self, panel):
         if self.active_panel is not panel:
-            self.active_panel.on_exit()
-            panel.on_enter()
+            if self.active_panel is not None:
+                self.active_panel.exit()
+            panel.enter()
             self.active_panel = panel
 
     def get_screen(self):
