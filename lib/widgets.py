@@ -1991,6 +1991,10 @@ class Input(Widget):
     def enter_char(self, c):
         self._input(c)
 
+    def delete_char(self, n):
+        for _ in range(n):
+            self._backspace()
+
 
 class Chart(Widget):
     def __init__(self, parent, x, y, info=None, label_font=None, constants=[], width=100, height=100,
@@ -2539,14 +2543,14 @@ class Calculator(Widget):
         self.key_padding = key_padding
 
         self._input_font = pygame.font.Font("fonts/FreeSans.ttf", 30)
-        self._key_font = pygame.font.Font("fonts/FreeSans.ttf", 40)
+        self._key_font = pygame.font.Font("fonts/FreeSans.ttf", 37)
 
         self._input_chars = list(digits + "+-*/().")
         self._input_widget = Input(self.parent, self.x, self.y, font=self._input_font,
                                    width=self.width, limit_chars=self._input_chars,
                                    align_right=True, cursor=False, enter_key_event=self._evaluate)
 
-        self._keys_layout = ["789/", "456*", "123-", "0.=+"]
+        self._keys_layout = ["789/C", "456*←", "123-(", "0.=+)"]
         self._key_width = 0
         self._key_height = 0
         self._key_background_color = self._get_color('lightgray')
@@ -2617,6 +2621,10 @@ class Calculator(Widget):
     def _click_key(self, key):
         if key == '=':
             self._evaluate()
+        elif key == 'C':
+            self._clear()
+        elif key == '←':
+            self._input_widget.delete_char(1)
         else:
             self._input_widget.enter_char(key)
 

@@ -77,7 +77,8 @@ class Button:
 
         if self.border_color is not None:
             color = self.focus_color if self.focus_color and self.is_focused() else self.border_color
-            pygame.draw.rect(screen, color, (self.x, self.y, self.width, self.height), self.border_width)
+            border_width = self.border_width * 2 if self.is_focused() else self.border_width
+            pygame.draw.rect(screen, color, (self.x, self.y, self.width, self.height), border_width)
 
         if self.rendered_text:
             text_x = self.x + (self.width - self.rendered_text.get_width()) // 2
