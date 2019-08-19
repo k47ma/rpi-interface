@@ -10,7 +10,7 @@ import polyline
 import cv2
 import pygame
 import calendar
-from string import printable
+from string import printable, digits
 from PIL import Image
 from bs4 import BeautifulSoup
 from lib.table import Table
@@ -47,6 +47,7 @@ class Widget:
         self._last_active = time.time()
         self._shapes = []
         self._subwidgets = []
+        self._key_binds = {}
 
     def setup(self):
         for widget in self._subwidgets:
@@ -119,12 +120,6 @@ class Widget:
     def _on_exit(self):
         pass
 
-    def add_shape(self, shape):
-        self._shapes.append(shape)
-
-    def clear_shapes(self):
-        self._shapes = []
-
     def _draw_shape(self, screen, shape):
         if isinstance(shape, Line):
             pygame.draw.line(screen, shape.color, shape.start_pos, shape.end_pos, shape.width)
@@ -152,6 +147,20 @@ class Widget:
         elif isinstance(shape, ScreenSurface):
             screen.blit(shape.surface, shape.pos)
 
+    def _ctrl_pressed(self):
+        pressed = pygame.key.get_pressed()
+        return pressed[pygame.K_LCTRL] or pressed[pygame.K_RCTRL]
+
+    def _shift_pressed(self):
+        pressed = pygame.key.get_pressed()
+        return pressed[pygame.K_LSHIFT] or pressed[pygame.K_RSHIFT]
+
+    def add_shape(self, shape):
+        self._shapes.append(shape)
+
+    def clear_shapes(self):
+        self._shapes = []
+
     def get_pos(self):
         return self.x, self.y
 
@@ -168,9 +177,16 @@ class Widget:
                 widget.handle_events(event)
                 return
 
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and self.is_active:
-            self.set_active(False)
-            return
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE and self.is_active:
+                self.set_active(False)
+                return
+            elif self._key_binds.get(event.key) is not None:
+                bind = self._key_binds[event.key]
+                if (self._shift_pressed() == bind['shift']) and (self._ctrl_pressed() == bind['ctrl']):
+                    bind['func']()
+                    return
+
         self._handle_widget_events(event)
 
     def set_active(self, status):
@@ -187,6 +203,9 @@ class Widget:
 
     def get_height(self):
         return 0
+
+    def bind_key(self, key, func, shift=False, ctrl=False):
+        self._key_binds[key] = {'func': func, 'shift': shift, 'ctrl': ctrl}
 
 
 class News(Widget):
@@ -1721,7 +1740,9 @@ class SearchWidget(Widget):
 
 
 class Input(Widget):
-    def __init__(self, parent, x, y, font=None, width=100, enter_key_event=None, capital_lock=False):
+    def __init__(self, parent, x, y, font=None, width=100, enter_key_event=None,
+                 capital_lock=False, limit_chars=None, align_right=False,
+                 cursor=True):
         super(Input, self).__init__(parent, x, y)
 
         self.font = font if font is not None else self.default_font
@@ -1729,6 +1750,9 @@ class Input(Widget):
         self.height = self.font.render(' ', True, self._get_color('white')).get_height()
         self.enter_key_event = enter_key_event
         self.capital_lock = capital_lock
+        self.limit_chars = limit_chars
+        self.align_right = align_right
+        self.cursor = cursor
 
         self._background_alpha = 180
         self._cursor_index = 0
@@ -1757,16 +1781,11 @@ class Input(Widget):
         background_surface.set_alpha(self._background_alpha)
         screen.blit(background_surface, (self.x, self.y))
 
-    def _ctrl_pressed(self):
-        pressed = pygame.key.get_pressed()
-        return pressed[pygame.K_LCTRL] or pressed[pygame.K_RCTRL]
-
-    def _shift_pressed(self):
-        pressed = pygame.key.get_pressed()
-        return pressed[pygame.K_LSHIFT] or pressed[pygame.K_RSHIFT]
-
     def _input(self, s):
         if self._ctrl_pressed():
+            return
+
+        if self.limit_chars is not None and s not in self.limit_chars:
             return
 
         if self._shift_pressed() or self.capital_lock:
@@ -1797,6 +1816,9 @@ class Input(Widget):
         self._content_widget.set_text(self._string)
 
     def _move_cursor(self, direction):
+        if not self.cursor:
+            return
+
         self._cursor_active_time = time.time()
         if direction == "left":
             if self._cursor_index > 0:
@@ -1815,8 +1837,13 @@ class Input(Widget):
         line_end_pos = (self.x + self.width, self.y + self._content_widget.get_height())
         self.add_shape(Line(self._get_color('white'), line_start_pos, line_end_pos))
 
+        if self.align_right:
+            content_pos = self._content_widget.get_pos()
+            content_width = self._content_widget.get_width()
+            self._content_widget.set_pos(self.x + self.width - content_width, content_pos[1])
+
     def _on_draw(self, screen):
-        if self.is_active:
+        if self.is_active and self.cursor:
             self._draw_cursor(screen)
 
     def _handle_widget_events(self, event):
@@ -1874,7 +1901,10 @@ class Input(Widget):
             elif event.key == pygame.K_z:
                 self._input('z')
             elif event.key == pygame.K_0 or event.key == pygame.K_KP0:
-                self._input('0')
+                if self._shift_pressed():
+                    self._input(')')
+                else:
+                    self._input('0')
             elif event.key == pygame.K_1 or event.key == pygame.K_KP1:
                 self._input('1')
             elif event.key == pygame.K_2 or event.key == pygame.K_KP2:
@@ -1890,11 +1920,36 @@ class Input(Widget):
             elif event.key == pygame.K_7 or event.key == pygame.K_KP7:
                 self._input('7')
             elif event.key == pygame.K_8 or event.key == pygame.K_KP8:
-                self._input('8')
+                if self._shift_pressed():
+                    self._input('*')
+                else:
+                    self._input('8')
             elif event.key == pygame.K_9 or event.key == pygame.K_KP9:
-                self._input('9')
+                if self._shift_pressed():
+                    self._input('(')
+                else:
+                    self._input('9')
             elif event.key == pygame.K_SPACE:
                 self._input(' ')
+            elif event.key == pygame.K_PLUS:
+                self._input('+')
+            elif event.key == pygame.K_EQUALS:
+                if self._shift_pressed():
+                    self._input('+')
+                else:
+                    self._input('=')
+            elif event.key == pygame.K_MINUS:
+                if self._shift_pressed():
+                    self._input('_')
+                else:
+                    self._input('-')
+            elif event.key == pygame.K_ASTERISK:
+                self._input('*')
+            elif event.key == pygame.K_SLASH:
+                if self._shift_pressed():
+                    self._input('?')
+                else:
+                    self._input('/')
             elif event.key == pygame.K_BACKSPACE:
                 if self._ctrl_pressed():
                     self._clear_str()
@@ -1918,6 +1973,11 @@ class Input(Widget):
 
     def get_text(self):
         return self._string
+
+    def set_text(self, text):
+        self._string = text
+        self._content_widget.set_text(self._string)
+        self._cursor_index = len(self._string)
 
     def get_height(self):
         return self.font.render(' ', True, self._get_color('white')).get_height()
@@ -2459,3 +2519,51 @@ class List(Widget):
 
     def reset(self):
         self._selected_ind = 0
+
+
+class Calculator(Widget):
+    def __init__(self, parent, x, y):
+        super(Calculator, self).__init__(parent, x, y)
+
+        self._input_font = pygame.font.Font("fonts/FreeSans.ttf", 20)
+        self._input_chars = list(digits + "+-*/()")
+        self._input_widget = Input(self.parent, self.x, self.y, font=self._input_font,
+                                   width=450, limit_chars=self._input_chars,
+                                   align_right=True, cursor=False, enter_key_event=self._evaluate)
+
+        self._error_msg = "ERROR"
+
+        self._subwidgets = [self._input_widget]
+
+    def _on_setup(self):
+        self._input_widget.bind_key(pygame.K_EQUALS, self._evaluate)
+        self._input_widget.bind_key(pygame.K_c, self._clear)
+
+    def _on_update(self):
+        pass
+
+    def _on_draw(self, screen):
+        pass
+
+    def _handle_widget_events(self, event):
+        pass
+
+    def _on_enter(self):
+        self._input_widget.set_active(True)
+
+    def _evaluate(self):
+        input_content = self._input_widget.get_text()
+        if input_content == self._error_msg:
+            return
+
+        try:
+            result = str(eval(input_content))
+        except SyntaxError:
+            result = self._error_msg
+        self._input_widget.set_text(result)
+
+    def _clear(self):
+        self._input_widget.reset()
+
+    def reset(self):
+        self._input_widget.reset()

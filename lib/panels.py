@@ -345,3 +345,18 @@ class GamePanel(Panel):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RETURN:
                 self.set_active_widget(self.menu_widget)
+
+
+class CalculatorPanel(Panel):
+    def __init__(self, app):
+        super(CalculatorPanel, self).__init__(app)
+
+        self.calculator_widget = Calculator(self, 10, 10)
+
+        self.widgets = [self.calculator_widget]
+
+    def on_enter(self):
+        self.set_active_widget(self.calculator_widget)
+
+    def on_exit(self):
+        self.calculator_widget.reset()

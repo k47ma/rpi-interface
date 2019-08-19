@@ -1,6 +1,8 @@
 Informational panel for Raspberry Pi.
 
 ### Usage:
+- **A**: calculator
+  - **Enter**: evaluate
 - **B**: search on Best Buy
   - **Enter**: search
 - **D**: night mode
