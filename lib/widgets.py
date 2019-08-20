@@ -148,14 +148,6 @@ class Widget:
         elif isinstance(shape, ScreenSurface):
             screen.blit(shape.surface, shape.pos)
 
-    def _ctrl_pressed(self):
-        pressed = pygame.key.get_pressed()
-        return pressed[pygame.K_LCTRL] or pressed[pygame.K_RCTRL]
-
-    def _shift_pressed(self):
-        pressed = pygame.key.get_pressed()
-        return pressed[pygame.K_LSHIFT] or pressed[pygame.K_RSHIFT]
-
     def add_shape(self, shape):
         self._shapes.append(shape)
 
@@ -184,7 +176,7 @@ class Widget:
                 return
             elif self._key_binds.get(event.key) is not None:
                 bind = self._key_binds[event.key]
-                if (self._shift_pressed() == bind['shift']) and (self._ctrl_pressed() == bind['ctrl']):
+                if (shift_pressed() == bind['shift']) and (ctrl_pressed() == bind['ctrl']):
                     bind['func']()
                     return
 
@@ -1783,13 +1775,13 @@ class Input(Widget):
         screen.blit(background_surface, (self.x, self.y))
 
     def _input(self, s):
-        if self._ctrl_pressed():
+        if ctrl_pressed():
             return
 
         if self.limit_chars is not None and s not in self.limit_chars:
             return
 
-        if self._shift_pressed() or self.capital_lock:
+        if shift_pressed() or self.capital_lock:
             s = s.upper()
 
         self._string = self._string[:self._cursor_index] + s + self._string[self._cursor_index:]
@@ -1849,123 +1841,24 @@ class Input(Widget):
 
     def _handle_widget_events(self, event):
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_a:
-                self._input('a')
-            elif event.key == pygame.K_b:
-                self._input('b')
-            elif event.key == pygame.K_c:
-                self._input('c')
-            elif event.key == pygame.K_d:
-                self._input('d')
-            elif event.key == pygame.K_e:
-                self._input('e')
-            elif event.key == pygame.K_f:
-                self._input('f')
-            elif event.key == pygame.K_g:
-                self._input('g')
-            elif event.key == pygame.K_h:
-                self._input('h')
-            elif event.key == pygame.K_i:
-                self._input('i')
-            elif event.key == pygame.K_j:
-                self._input('j')
-            elif event.key == pygame.K_k:
-                self._input('k')
-            elif event.key == pygame.K_l:
-                self._input('l')
-            elif event.key == pygame.K_m:
-                self._input('m')
-            elif event.key == pygame.K_n:
-                self._input('n')
-            elif event.key == pygame.K_o:
-                self._input('o')
-            elif event.key == pygame.K_p:
-                self._input('p')
-            elif event.key == pygame.K_q:
-                self._input('q')
-            elif event.key == pygame.K_r:
-                self._input('r')
-            elif event.key == pygame.K_s:
-                self._input('s')
-            elif event.key == pygame.K_t:
-                self._input('t')
-            elif event.key == pygame.K_u:
-                self._input('u')
-            elif event.key == pygame.K_v:
-                self._input('v')
-            elif event.key == pygame.K_w:
-                self._input('w')
-            elif event.key == pygame.K_x:
-                self._input('x')
-            elif event.key == pygame.K_y:
-                self._input('y')
-            elif event.key == pygame.K_z:
-                self._input('z')
-            elif event.key == pygame.K_0 or event.key == pygame.K_KP0:
-                if self._shift_pressed():
-                    self._input(')')
-                else:
-                    self._input('0')
-            elif event.key == pygame.K_1 or event.key == pygame.K_KP1:
-                self._input('1')
-            elif event.key == pygame.K_2 or event.key == pygame.K_KP2:
-                self._input('2')
-            elif event.key == pygame.K_3 or event.key == pygame.K_KP3:
-                self._input('3')
-            elif event.key == pygame.K_4 or event.key == pygame.K_KP4:
-                self._input('4')
-            elif event.key == pygame.K_5 or event.key == pygame.K_KP5:
-                self._input('5')
-            elif event.key == pygame.K_6 or event.key == pygame.K_KP6:
-                self._input('6')
-            elif event.key == pygame.K_7 or event.key == pygame.K_KP7:
-                self._input('7')
-            elif event.key == pygame.K_8 or event.key == pygame.K_KP8:
-                if self._shift_pressed():
-                    self._input('*')
-                else:
-                    self._input('8')
-            elif event.key == pygame.K_9 or event.key == pygame.K_KP9:
-                if self._shift_pressed():
-                    self._input('(')
-                else:
-                    self._input('9')
-            elif event.key == pygame.K_PERIOD or event.key == pygame.K_KP_PERIOD:
-                self._input('.')
-            elif event.key == pygame.K_PLUS or event.key == pygame.K_KP_PLUS:
-                self._input('+')
-            elif event.key == pygame.K_EQUALS or event.key == pygame.K_KP_EQUALS:
-                if self._shift_pressed():
-                    self._input('+')
-                else:
-                    self._input('=')
-            elif event.key == pygame.K_MINUS or event.key == pygame.K_KP_MINUS:
-                if self._shift_pressed():
-                    self._input('_')
-                else:
-                    self._input('-')
-            elif event.key == pygame.K_ASTERISK or event.key == pygame.K_KP_MULTIPLY:
-                self._input('*')
-            elif event.key == pygame.K_SLASH or event.key == pygame.K_KP_DIVIDE:
-                if self._shift_pressed():
-                    self._input('?')
-                else:
-                    self._input('/')
-            elif event.key == pygame.K_BACKSPACE:
-                if self._ctrl_pressed():
+            c = pygame_key_to_char(event.key)
+            if c is not None:
+                self._input(c)
+                return
+
+            if event.key == pygame.K_BACKSPACE:
+                if ctrl_pressed():
                     self._clear_str()
                 else:
                     self._backspace()
             elif event.key == pygame.K_DELETE:
-                if self._ctrl_pressed():
+                if ctrl_pressed():
                     self._clear_str()
                 else:
                     self._delete()
             elif event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
                 if self.enter_key_event:
                     self.enter_key_event()
-            elif event.key == pygame.K_SPACE:
-                self._input(' ')
             elif event.key == pygame.K_LEFT:
                 self._move_cursor("left")
             elif event.key == pygame.K_RIGHT:
@@ -2587,7 +2480,7 @@ class Calculator(Widget):
                                     border_width=self._key_border_width,
                                     font=self._key_font, on_click=self._click_key,
                                     on_click_param=key, focus_color=self._key_focus_color,
-                                    shortcut_key=digit_to_pygame_key(key))
+                                    shortcut_key=char_to_pygame_key(key))
                     self.parent.buttons.append(button)
 
     def _on_update(self):
@@ -2610,8 +2503,11 @@ class Calculator(Widget):
 
     def _evaluate(self):
         input_content = self._input_widget.get_text()
-        if input_content == self._error_msg:
-            self._input_widget.set_text("")
+        if not input_content:
+            self._input_widget.set_text("0")
+            return
+        elif input_content == self._error_msg:
+            self._input_widget.reset()
             return
 
         try:

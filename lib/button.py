@@ -1,4 +1,5 @@
 import pygame
+from lib.util import *
 
 
 class Button:
@@ -58,8 +59,7 @@ class Button:
         return pygame.Rect(self.x, self.y, self.width, self.height)
 
     def is_shortcut(self):
-        pressed = pygame.key.get_pressed()
-        return self.shortcut_key is not None and pressed[self.shortcut_key] and self.is_active
+        return is_key_active(self.shortcut_key) and self.is_active
 
     def is_focused(self):
         mouse_pos = pygame.mouse.get_pos()
