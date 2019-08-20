@@ -632,6 +632,8 @@ class GameFlip(Game):
         self._game_over = False
         self._game_paused = False
         self._curr_player = 1
+        self._player1_cells = []
+        self._player2_cells = []
         self._player1_color = self._get_color('orange')
         self._player2_color = self._get_color('lightblue')
         self._curr_color = self._player1_color
@@ -647,6 +649,8 @@ class GameFlip(Game):
         self._game_over = False
         self._game_paused = False
         self._curr_player = 1
+        self._player1_cells = []
+        self._player2_cells = []
         self._curr_color = self._player1_color
         self._last_update_time = time.time()
         self._progress_time = 0
@@ -739,7 +743,42 @@ class GameFlip(Game):
             self._board[row][col].background_color = self._curr_color
             self._board[row][col].background_alpha = 255
             self._board[row][col].focus_color = None
+            self._flip_cells(row, col)
+            if self._curr_player == 1:
+                self._player1_cells.append((row, col))
+            else:
+                self._player2_cells.append((row, col))
             self._toggle_player()
+
+    def _flip_cells(self, row, col):
+        for x_dir in (-1, 0, 1):
+            for y_dir in (-1, 0, 1):
+                if x_dir == 0 and y_dir == 0:
+                    continue
+                self._flip_cells_direction(row, col, (x_dir, y_dir))
+
+    def _flip_cells_direction(self, row, col, direction):
+        row += direction[0]
+        col += direction[1]
+        visited = []
+        while 0 <= row < self.board_size and 0 <= col < self.board_size:
+            cell_color = self._board[row][col].background_color
+            if cell_color == self._curr_color:
+                for flip_cell in visited:
+                    self._board[flip_cell[0]][flip_cell[1]].background_color = self._curr_color
+                    if self._curr_player == 1:
+                        self._player1_cells.append(flip_cell)
+                        del self._player2_cells[self._player2_cells.index(flip_cell)]
+                    else:
+                        self._player2_cells.append(flip_cell)
+                        del self._player1_cells[self._player1_cells.index(flip_cell)]
+                return
+            elif cell_color == self._origin_color:
+                return
+            else:
+                visited.append((row, col))
+            row += direction[0]
+            col += direction[1]
 
     def _toggle_player(self):
         if self._curr_player == 1:
