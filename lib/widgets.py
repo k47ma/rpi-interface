@@ -1781,6 +1781,9 @@ class Input(Widget):
         if self.limit_chars is not None and s not in self.limit_chars:
             return
 
+        if self.capital_lock:
+            s = s.upper()
+
         self._string = self._string[:self._cursor_index] + s + self._string[self._cursor_index:]
         self._cursor_index += 1
         self._content_widget.set_text(self._string)
@@ -1839,7 +1842,7 @@ class Input(Widget):
     def _handle_widget_events(self, event):
         if event.type == pygame.KEYDOWN:
             c = pygame_key_to_char(event.key)
-            if c is not None:
+            if c is not None and c in printable:
                 self._input(c)
                 return
 

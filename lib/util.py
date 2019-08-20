@@ -72,7 +72,8 @@ __PYGAME_KEYS = {
     ',': [{'key': pygame.K_COMMA}],
     '<': [{'key': pygame.K_COMMA, 'shift': True}],
     '.': [{'key': pygame.K_PERIOD}],
-    '>': [{'key': pygame.K_PERIOD, 'shift': True}]
+    '>': [{'key': pygame.K_PERIOD, 'shift': True}],
+    '←': [{'key': pygame.K_BACKSPACE}]
 }
 
 
@@ -172,7 +173,6 @@ def pygame_key_to_char(key):
             if des['key'] == key and \
                (shift == des_shift or des_shift is None) and \
                (caps == des_caps or des_caps is None):
-                if 'A' <= c <= 'Z':
-                    if not shift ^ caps:
+                if 'A' <= c <= 'Z' and not shift ^ caps:
                         return c.lower()
                 return c
