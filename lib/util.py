@@ -4,69 +4,43 @@ from datetime import datetime as dt
 
 
 __PYGAME_KEYS = {
-    'a': [{'key': pygame.K_a}, {'key': pygame.K_a, 'shift': True, 'caps': True}],
-    'b': [{'key': pygame.K_b}, {'key': pygame.K_b, 'shift': True, 'caps': True}],
-    'c': [{'key': pygame.K_c}, {'key': pygame.K_c, 'shift': True, 'caps': True}],
-    'd': [{'key': pygame.K_d}, {'key': pygame.K_d, 'shift': True, 'caps': True}],
-    'e': [{'key': pygame.K_e}, {'key': pygame.K_e, 'shift': True, 'caps': True}],
-    'f': [{'key': pygame.K_f}, {'key': pygame.K_f, 'shift': True, 'caps': True}],
-    'g': [{'key': pygame.K_g}, {'key': pygame.K_g, 'shift': True, 'caps': True}],
-    'h': [{'key': pygame.K_h}, {'key': pygame.K_h, 'shift': True, 'caps': True}],
-    'i': [{'key': pygame.K_i}, {'key': pygame.K_i, 'shift': True, 'caps': True}],
-    'j': [{'key': pygame.K_j}, {'key': pygame.K_j, 'shift': True, 'caps': True}],
-    'k': [{'key': pygame.K_k}, {'key': pygame.K_k, 'shift': True, 'caps': True}],
-    'l': [{'key': pygame.K_l}, {'key': pygame.K_l, 'shift': True, 'caps': True}],
-    'm': [{'key': pygame.K_m}, {'key': pygame.K_m, 'shift': True, 'caps': True}],
-    'n': [{'key': pygame.K_n}, {'key': pygame.K_n, 'shift': True, 'caps': True}],
-    'o': [{'key': pygame.K_o}, {'key': pygame.K_o, 'shift': True, 'caps': True}],
-    'p': [{'key': pygame.K_p}, {'key': pygame.K_p, 'shift': True, 'caps': True}],
-    'q': [{'key': pygame.K_q}, {'key': pygame.K_q, 'shift': True, 'caps': True}],
-    'r': [{'key': pygame.K_r}, {'key': pygame.K_r, 'shift': True, 'caps': True}],
-    's': [{'key': pygame.K_s}, {'key': pygame.K_s, 'shift': True, 'caps': True}],
-    't': [{'key': pygame.K_t}, {'key': pygame.K_t, 'shift': True, 'caps': True}],
-    'u': [{'key': pygame.K_u}, {'key': pygame.K_u, 'shift': True, 'caps': True}],
-    'v': [{'key': pygame.K_v}, {'key': pygame.K_v, 'shift': True, 'caps': True}],
-    'w': [{'key': pygame.K_w}, {'key': pygame.K_w, 'shift': True, 'caps': True}],
-    'x': [{'key': pygame.K_x}, {'key': pygame.K_x, 'shift': True, 'caps': True}],
-    'y': [{'key': pygame.K_y}, {'key': pygame.K_y, 'shift': True, 'caps': True}],
-    'z': [{'key': pygame.K_z}, {'key': pygame.K_z, 'shift': True, 'caps': True}],
-    'A': [{'key': pygame.K_a, 'shift': True}, {'key': pygame.K_a, 'caps': True}],
-    'B': [{'key': pygame.K_b, 'shift': True}, {'key': pygame.K_b, 'caps': True}],
-    'C': [{'key': pygame.K_c, 'shift': True}, {'key': pygame.K_c, 'caps': True}],
-    'D': [{'key': pygame.K_d, 'shift': True}, {'key': pygame.K_d, 'caps': True}],
-    'E': [{'key': pygame.K_e, 'shift': True}, {'key': pygame.K_e, 'caps': True}],
-    'F': [{'key': pygame.K_f, 'shift': True}, {'key': pygame.K_f, 'caps': True}],
-    'G': [{'key': pygame.K_g, 'shift': True}, {'key': pygame.K_g, 'caps': True}],
-    'H': [{'key': pygame.K_h, 'shift': True}, {'key': pygame.K_h, 'caps': True}],
-    'I': [{'key': pygame.K_i, 'shift': True}, {'key': pygame.K_i, 'caps': True}],
-    'J': [{'key': pygame.K_j, 'shift': True}, {'key': pygame.K_j, 'caps': True}],
-    'K': [{'key': pygame.K_k, 'shift': True}, {'key': pygame.K_k, 'caps': True}],
-    'L': [{'key': pygame.K_l, 'shift': True}, {'key': pygame.K_l, 'caps': True}],
-    'M': [{'key': pygame.K_m, 'shift': True}, {'key': pygame.K_m, 'caps': True}],
-    'N': [{'key': pygame.K_n, 'shift': True}, {'key': pygame.K_n, 'caps': True}],
-    'O': [{'key': pygame.K_o, 'shift': True}, {'key': pygame.K_o, 'caps': True}],
-    'P': [{'key': pygame.K_p, 'shift': True}, {'key': pygame.K_p, 'caps': True}],
-    'Q': [{'key': pygame.K_q, 'shift': True}, {'key': pygame.K_q, 'caps': True}],
-    'R': [{'key': pygame.K_r, 'shift': True}, {'key': pygame.K_r, 'caps': True}],
-    'S': [{'key': pygame.K_s, 'shift': True}, {'key': pygame.K_s, 'caps': True}],
-    'T': [{'key': pygame.K_t, 'shift': True}, {'key': pygame.K_t, 'caps': True}],
-    'U': [{'key': pygame.K_u, 'shift': True}, {'key': pygame.K_u, 'caps': True}],
-    'V': [{'key': pygame.K_v, 'shift': True}, {'key': pygame.K_v, 'caps': True}],
-    'W': [{'key': pygame.K_w, 'shift': True}, {'key': pygame.K_w, 'caps': True}],
-    'X': [{'key': pygame.K_x, 'shift': True}, {'key': pygame.K_x, 'caps': True}],
-    'Y': [{'key': pygame.K_y, 'shift': True}, {'key': pygame.K_y, 'caps': True}],
-    'Z': [{'key': pygame.K_z, 'shift': True}, {'key': pygame.K_z, 'caps': True}],
-    '1': [{'key': pygame.K_1}, {'key': pygame.K_KP1}],
-    '2': [{'key': pygame.K_2}, {'key': pygame.K_KP2}],
-    '3': [{'key': pygame.K_3}, {'key': pygame.K_KP3}],
-    '4': [{'key': pygame.K_4}, {'key': pygame.K_KP4}],
-    '5': [{'key': pygame.K_5}, {'key': pygame.K_KP5}],
-    '6': [{'key': pygame.K_6}, {'key': pygame.K_KP6}],
-    '7': [{'key': pygame.K_7}, {'key': pygame.K_KP7}],
-    '8': [{'key': pygame.K_8}, {'key': pygame.K_KP8}],
-    '9': [{'key': pygame.K_9}, {'key': pygame.K_KP9}],
-    '0': [{'key': pygame.K_0}, {'key': pygame.K_KP0}],
-    ' ': [{'key': pygame.K_SPACE}, {'key': pygame.K_SPACE, 'shift': True}],
+    'A': [{'key': pygame.K_a}],
+    'B': [{'key': pygame.K_b}],
+    'C': [{'key': pygame.K_c}],
+    'D': [{'key': pygame.K_d}],
+    'E': [{'key': pygame.K_e}],
+    'F': [{'key': pygame.K_f}],
+    'G': [{'key': pygame.K_g}],
+    'H': [{'key': pygame.K_h}],
+    'I': [{'key': pygame.K_i}],
+    'J': [{'key': pygame.K_j}],
+    'K': [{'key': pygame.K_k}],
+    'L': [{'key': pygame.K_l}],
+    'M': [{'key': pygame.K_m}],
+    'N': [{'key': pygame.K_n}],
+    'O': [{'key': pygame.K_o}],
+    'P': [{'key': pygame.K_p}],
+    'Q': [{'key': pygame.K_q}],
+    'R': [{'key': pygame.K_r}],
+    'S': [{'key': pygame.K_s}],
+    'T': [{'key': pygame.K_t}],
+    'U': [{'key': pygame.K_u}],
+    'V': [{'key': pygame.K_v}],
+    'W': [{'key': pygame.K_w}],
+    'X': [{'key': pygame.K_x}],
+    'Y': [{'key': pygame.K_y}],
+    'Z': [{'key': pygame.K_z}],
+    '1': [{'key': pygame.K_1, 'shift': False}, {'key': pygame.K_KP1, 'shift': False}],
+    '2': [{'key': pygame.K_2, 'shift': False}, {'key': pygame.K_KP2, 'shift': False}],
+    '3': [{'key': pygame.K_3, 'shift': False}, {'key': pygame.K_KP3, 'shift': False}],
+    '4': [{'key': pygame.K_4, 'shift': False}, {'key': pygame.K_KP4, 'shift': False}],
+    '5': [{'key': pygame.K_5, 'shift': False}, {'key': pygame.K_KP5, 'shift': False}],
+    '6': [{'key': pygame.K_6, 'shift': False}, {'key': pygame.K_KP6, 'shift': False}],
+    '7': [{'key': pygame.K_7, 'shift': False}, {'key': pygame.K_KP7, 'shift': False}],
+    '8': [{'key': pygame.K_8, 'shift': False}, {'key': pygame.K_KP8, 'shift': False}],
+    '9': [{'key': pygame.K_9, 'shift': False}, {'key': pygame.K_KP9, 'shift': False}],
+    '0': [{'key': pygame.K_0, 'shift': False}, {'key': pygame.K_KP0, 'shift': False}],
+    ' ': [{'key': pygame.K_SPACE}],
     '!': [{'key': pygame.K_1, 'shift': True}],
     '@': [{'key': pygame.K_2, 'shift': True}],
     '#': [{'key': pygame.K_3, 'shift': True}],
@@ -156,14 +130,14 @@ def log_to_file(content):
 
 def ctrl_pressed():
     pressed = pygame.key.get_pressed()
-    return pressed[pygame.K_LCTRL] or pressed[pygame.K_RCTRL]
+    return bool(pressed[pygame.K_LCTRL] or pressed[pygame.K_RCTRL])
 
 def shift_pressed():
     pressed = pygame.key.get_pressed()
-    return pressed[pygame.K_LSHIFT] or pressed[pygame.K_RSHIFT]
+    return bool(pressed[pygame.K_LSHIFT] or pressed[pygame.K_RSHIFT])
 
 def cap_lock_on():
-    return pygame.key.get_mods() & pygame.KMOD_CAPS
+    return bool(pygame.key.get_mods() & pygame.KMOD_CAPS)
 
 def is_key_active(des):
     if des is None or ctrl_pressed():
@@ -173,9 +147,11 @@ def is_key_active(des):
     caps = cap_lock_on()
     pressed = pygame.key.get_pressed()
 
-    des_shift = bool(des.get('shift'))
-    des_caps = bool(des.get('caps'))
-    return pressed[des['key']] and shift == des_shift and caps == des_caps
+    des_shift = des.get('shift')
+    des_caps = des.get('caps')
+    return pressed[des['key']] and \
+           (shift == des_shift or des_shift is None) and \
+           (caps == des_caps or des_caps is None)
 
 def char_to_pygame_key(c):
     """Convert character to pygame key"""
@@ -191,7 +167,12 @@ def pygame_key_to_char(key):
     caps = cap_lock_on()
     for c in __PYGAME_KEYS:
         for des in __PYGAME_KEYS[c]:
-            des_shift = bool(des.get('shift'))
-            des_caps = bool(des.get('caps'))
-            if des['key'] == key and shift == des_shift and caps == des_caps:
+            des_shift = des.get('shift')
+            des_caps = des.get('caps')
+            if des['key'] == key and \
+               (shift == des_shift or des_shift is None) and \
+               (caps == des_caps or des_caps is None):
+                if 'A' <= c <= 'Z':
+                    if not shift ^ caps:
+                        return c.lower()
                 return c

@@ -1781,9 +1781,6 @@ class Input(Widget):
         if self.limit_chars is not None and s not in self.limit_chars:
             return
 
-        if shift_pressed() or self.capital_lock:
-            s = s.upper()
-
         self._string = self._string[:self._cursor_index] + s + self._string[self._cursor_index:]
         self._cursor_index += 1
         self._content_widget.set_text(self._string)
