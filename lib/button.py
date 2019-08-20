@@ -38,9 +38,6 @@ class Button:
         else:
             self.rendered_text = None
 
-        self._setup()
-
-    def _setup(self):
         text_width = self.rendered_text.get_width() if self.text else 0
         text_height = self.rendered_text.get_height() if self.text else 0
         image_width = self.image.get_width() if self.image else 0
@@ -73,6 +70,9 @@ class Button:
         return self.is_focused() and pygame.mouse.get_pressed()[0]
 
     def draw(self, screen):
+        if not self.is_active:
+            return
+
         if self.background_color is not None:
             color = self.focus_color if self.focus_color and (self.is_clicked() or self.is_shortcut()) else self.background_color
             background_surface = pygame.Surface((self.width, self.height))

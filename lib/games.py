@@ -6,6 +6,7 @@ import time
 import copy
 from abc import abstractmethod
 from lib.widgets import Widget, List
+from lib.button import Button
 from lib.util import *
 
 
@@ -32,6 +33,8 @@ class Game(Widget):
             return
 
         screen.fill(self._color)
+        self._draw_scoreboard(screen)
+        self._draw_board(screen)
 
     def _update_scoreboard(self):
         pass
@@ -42,6 +45,10 @@ class Game(Widget):
             rendered_text = self.scoreboard_font.render(line, True, color)
             screen.blit(rendered_text, (x, y))
             y += rendered_text.get_height() + self._score_padding
+
+    @abstractmethod
+    def _draw_board(self, screen):
+        pass
 
     def _handle_widget_events(self, event):
         if event.type == pygame.KEYDOWN:
@@ -121,14 +128,6 @@ class GameSnake(Game):
                 self._update_optimal_direction()
             self._snake_move()
             self._snake_lastmove = current_time
-
-    def _on_draw(self, screen):
-        if not self.is_active:
-            return
-
-        screen.fill(self._get_color("black"))
-        self._draw_scoreboard(screen)
-        self._draw_board(screen)
 
     def _handle_widget_events(self, event):
         if event.type == pygame.KEYDOWN:
@@ -379,14 +378,6 @@ class GameTetris(Game):
                 self._move_down()
                 self._block_lastmove = current_time
 
-    def _on_draw(self, screen):
-        if not self.is_active:
-            return
-
-        screen.fill(self._get_color("black"))
-        self._draw_scoreboard(screen)
-        self._draw_board(screen)
-
     def _update_scoreboard(self):
         self._scoreboard_lines = []
 
@@ -623,3 +614,137 @@ class TetrisPoint:
     def add_offset(self, row_offset, col_offset):
         self.row += row_offset
         self.col += col_offset
+
+
+class GameFlip(Game):
+    def __init__(self, parent, exit_event, board_size=20, border_width=1):
+        super(GameFlip, self).__init__(parent, exit_event)
+
+        self.board_size = board_size
+        self.border_width = border_width
+
+        self._score_width = 100
+        self._score_padding = 10
+        self._board_padding = 10
+        self._board_x = self._score_width + self._score_padding * 2
+        self._board_y = 0
+        self._game_started = False
+        self._game_over = False
+        self._game_paused = False
+        self._curr_player = 1
+        self._player1_color = self._get_color('orange')
+        self._player2_color = self._get_color('lightblue')
+        self._curr_color = self._player1_color
+        self._origin_color = self._get_color('lightgray')
+        self._origin_focus_color = self._get_color('gray')
+        self._border_color = self._get_color('white')
+        self._last_update_time = time.time()
+        self._progress_time = 0
+        self._board = []
+
+    def _init_game(self):
+        self._game_started = False
+        self._game_over = False
+        self._game_paused = False
+        self._curr_player = 1
+        self._curr_color = self._player1_color
+        self._last_update_time = time.time()
+        self._progress_time = 0
+        self._update_scoreboard()
+
+        for row in self._board:
+            for cell in row:
+                cell.background_color = self._origin_color
+                cell.background_alpha = 120
+                cell.focus_color = self._origin_focus_color
+
+    def _start_game(self):
+        self._game_started = True
+        self._last_update_time = time.time()
+
+    def _on_setup(self):
+        cell_size = (min(self.parent.screen_width, self.parent.screen_height) -
+                     2 * self._board_padding) // self.board_size
+        for row in range(self.board_size):
+            cell_row = []
+            for col in range(self.board_size):
+                button_x = self._board_x + self._board_padding + col * cell_size
+                button_y = self._board_y + self._board_padding + row * cell_size
+                cell = Button(self.parent, button_x, button_y,
+                              width=cell_size, height=cell_size,
+                              background_color=self._origin_color, background_alpha=120,
+                              border_color=self._border_color, border_width=self.border_width,
+                              on_click=self._click_cell, on_click_param=(row, col),
+                              focus_color=self._origin_focus_color)
+                self.buttons.append(cell)
+                cell_row.append(cell)
+            self._board.append(cell_row)
+
+        self._update_scoreboard()
+
+    def _on_update(self):
+        if not self.is_active:
+            return
+
+        current_time = time.time()
+        if self._game_started and not self._game_paused:
+            self._progress_time += current_time - self._last_update_time
+            self._last_update_time = current_time
+            self._update_scoreboard()
+
+    def _update_scoreboard(self):
+        self._scoreboard_lines = []
+
+        min = int(self._progress_time) // 60
+        sec = int(self._progress_time) % 60
+        self._scoreboard_lines.append(("Time: {:02}:{:02}".format(min, sec), self._get_color("white")))
+
+        self._scoreboard_lines.append(("R - Restart".format(min, sec), self._get_color("white")))
+
+    def _draw_board(self, screen):
+        for row in self._board:
+            for cell in row:
+                cell.draw(screen)
+
+    def _game_on_enter(self):
+        pygame.mouse.set_visible(True)
+        for row in self._board:
+            for cell in row:
+                cell.set_active(True)
+
+        self._game_paused = False
+        if self._game_started:
+            self._last_update_time = time.time()
+
+    def _game_on_exit(self):
+        pygame.mouse.set_visible(False)
+        for row in self._board:
+            for cell in row:
+                cell.set_active(False)
+
+        if self._game_started:
+            self._game_paused = True
+
+    def _handle_widget_events(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_r:
+                self._init_game()
+
+    def _click_cell(self, pos):
+        if not self._game_started:
+            self._start_game()
+
+        row, col = pos
+        if self._board[row][col].background_color == self._origin_color:
+            self._board[row][col].background_color = self._curr_color
+            self._board[row][col].background_alpha = 255
+            self._board[row][col].focus_color = None
+            self._toggle_player()
+
+    def _toggle_player(self):
+        if self._curr_player == 1:
+            self._curr_player = 2
+            self._curr_color = self._player2_color
+        else:
+            self._curr_player = 1
+            self._curr_color = self._player1_color

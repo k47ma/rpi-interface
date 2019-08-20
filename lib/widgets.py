@@ -41,6 +41,8 @@ class Widget:
         self.default_font = pygame.font.SysFont(self.default_font_name, 25)
         self.is_active = False
 
+        self.buttons = []
+
         self._screen_width = self.parent.screen_width
         self._screen_height = self.parent.screen_height
         self._screen_padding = 3
@@ -70,6 +72,8 @@ class Widget:
             widget.draw(screen)
         for shape in self._shapes:
             self._draw_shape(screen, shape)
+        for button in self.buttons:
+            button.draw(screen)
         self._on_draw(screen)
 
     def set_align(self, align):
@@ -148,6 +152,18 @@ class Widget:
         elif isinstance(shape, ScreenSurface):
             screen.blit(shape.surface, shape.pos)
 
+    def enter(self):
+        for button in self.buttons:
+            button.set_active(True)
+
+        self._on_enter()
+
+    def exit(self):
+        for button in self.buttons:
+            button.set_active(False)
+
+        self._on_exit()
+
     def add_shape(self, shape):
         self._shapes.append(shape)
 
@@ -179,6 +195,11 @@ class Widget:
                 if (shift_pressed() == bind['shift']) and (ctrl_pressed() == bind['ctrl']):
                     bind['func']()
                     return
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            for button in self.buttons:
+                if button.is_focused() and button.is_active:
+                    button.click()
+                    return
 
         self._handle_widget_events(event)
 
@@ -187,9 +208,9 @@ class Widget:
             self.is_active = status
             if status:
                 self._last_active = time.time()
-                self._on_enter()
+                self.enter()
             else:
-                self._on_exit()
+                self.exit()
 
     def get_width(self):
         return 0
@@ -1882,6 +1903,9 @@ class Input(Widget):
         return self.font.render(' ', True, self._get_color('white')).get_height()
 
     def enter_char(self, c):
+        if c not in printable:
+            return
+
         self._input(c)
 
     def delete_char(self, n):
