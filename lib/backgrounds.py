@@ -32,6 +32,12 @@ class Background:
     def exit(self):
         self._on_exit()
 
+    def _on_enter(self):
+        pass
+
+    def _on_exit(self):
+        pass
+
 
 class DynamicImage(Background):
     def __init__(self, width=480, height=320, color=(0, 0, 0), alpha=255, speed=0.1):
