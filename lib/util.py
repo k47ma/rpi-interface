@@ -1,4 +1,5 @@
 import math
+import pygame
 from datetime import datetime as dt
 
 
@@ -53,3 +54,30 @@ def bytes_to_string(n):
 def log_to_file(content):
     """Output log information"""
     print("[{}] {}".format(get_timestr(), content))
+
+def digit_to_pygame_key(c):
+    """Convert digit to pygame key"""
+    if c == '1':
+        return pygame.K_1
+    elif c == '2':
+        return pygame.K_2
+    elif c == '3':
+        return pygame.K_3
+    elif c == '4':
+        return pygame.K_4
+    elif c == '5':
+        return pygame.K_5
+    elif c == '6':
+        return pygame.K_6
+    elif c == '7':
+        return pygame.K_7
+    elif c == '8':
+        return pygame.K_8
+    elif c == '9':
+        return pygame.K_9
+    elif c == '0':
+        return pygame.K_0
+    elif c == '.':
+        return pygame.K_PERIOD
+    else:
+        return None

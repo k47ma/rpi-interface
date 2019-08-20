@@ -6,7 +6,7 @@ class Button:
                  text_color=(255, 255, 255), background_color=None,
                  background_alpha=255, border_color=None, border_width=0,
                  font=None, on_click=None, on_click_param=None,
-                 focus_color=None):
+                 focus_color=None, shortcut_key=None):
         super(Button, self).__init__()
 
         self.parent = parent
@@ -24,6 +24,7 @@ class Button:
         self.on_click = on_click
         self.on_click_param = on_click_param
         self.focus_color = focus_color
+        self.shortcut_key = shortcut_key
         self.is_active = False
 
         if font:
@@ -56,20 +57,24 @@ class Button:
     def get_rect(self):
         return pygame.Rect(self.x, self.y, self.width, self.height)
 
+    def is_shortcut(self):
+        pressed = pygame.key.get_pressed()
+        return self.shortcut_key is not None and pressed[self.shortcut_key] and self.is_active
+
     def is_focused(self):
         mouse_pos = pygame.mouse.get_pos()
         if self.parent.invert_screen:
             mouse_pos = (self.parent.screen_width - mouse_pos[0],
                          self.parent.screen_height - mouse_pos[1])
 
-        return self.get_rect().collidepoint(mouse_pos) and self.is_active
+        return (self.get_rect().collidepoint(mouse_pos) or self.is_shortcut()) and self.is_active
 
     def is_clicked(self):
         return self.is_focused() and pygame.mouse.get_pressed()[0]
 
     def draw(self, screen):
         if self.background_color is not None:
-            color = self.focus_color if self.focus_color and self.is_clicked() else self.background_color
+            color = self.focus_color if self.focus_color and (self.is_clicked() or self.is_shortcut()) else self.background_color
             background_surface = pygame.Surface((self.width, self.height))
             background_surface.fill(color)
             background_surface.set_alpha(self.background_alpha)

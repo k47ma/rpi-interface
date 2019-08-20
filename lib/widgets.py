@@ -10,7 +10,7 @@ import polyline
 import cv2
 import pygame
 import calendar
-from string import printable, digits
+from string import printable, digits, ascii_letters
 from PIL import Image
 from bs4 import BeautifulSoup
 from lib.table import Table
@@ -1058,7 +1058,7 @@ class Stock(Widget):
 
         self._input_font = pygame.font.Font("fonts/FreeSans.ttf", 15)
         self._input_widget = Input(self.parent, self.x, self.y, font=self._input_font, width=150,
-                                   enter_key_event=self._search, capital_lock=True)
+                                   enter_key_event=self._search, capital_lock=True, limit_chars=list(ascii_letters))
         self._subwidgets.append(self._input_widget)
 
         self._chart_widget = None
@@ -1094,19 +1094,17 @@ class Stock(Widget):
             if event.key == pygame.K_RETURN:
                 self._input_widget.set_active(True)
             elif event.key == pygame.K_UP:
-                if self.chart:
-                    self._range_up()
+                self._range_up()
             elif event.key == pygame.K_DOWN:
-                if self.chart:
-                    self._range_down()
+                self._range_down()
 
     def _range_up(self):
-        if self._stock_range_ind > 0:
+        if self.chart and self._stock_range_ind > 0:
             self._stock_range_ind -= 1
             self._search(reset=False)
 
     def _range_down(self):
-        if self._stock_range_ind < len(self._stock_range) - 1:
+        if self.chart and self._stock_range_ind < len(self._stock_range) - 1:
             self._stock_range_ind += 1
             self._search(reset=False)
 
@@ -1118,6 +1116,8 @@ class Stock(Widget):
 
     def _on_setup(self):
         self._input_widget.set_active(True)
+        self._input_widget.bind_key(pygame.K_UP, self._range_up)
+        self._input_widget.bind_key(pygame.K_DOWN, self._range_down)
 
     def _on_update(self):
         self.clear_shapes()
@@ -2586,7 +2586,8 @@ class Calculator(Widget):
                                     border_color=self._key_border_color,
                                     border_width=self._key_border_width,
                                     font=self._key_font, on_click=self._click_key,
-                                    on_click_param=key, focus_color=self._key_focus_color)
+                                    on_click_param=key, focus_color=self._key_focus_color,
+                                    shortcut_key=digit_to_pygame_key(key))
                     self.parent.buttons.append(button)
 
     def _on_update(self):
@@ -2610,6 +2611,7 @@ class Calculator(Widget):
     def _evaluate(self):
         input_content = self._input_widget.get_text()
         if input_content == self._error_msg:
+            self._input_widget.set_text("")
             return
 
         try:
