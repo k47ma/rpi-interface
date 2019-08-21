@@ -329,7 +329,7 @@ class GamePanel(Panel):
         self.games = {}
         self._add_game("Snake", GameSnake(self, self.exit_game, total_rows=16, total_cols=18))
         self._add_game("Tetris", GameTetris(self, self.exit_game, total_rows=16, total_cols=10))
-        self._add_game("Flip", GameFlip(self, self.exit_game, board_size=10))
+        self._add_game("Flip", GameFlip(self, self.exit_game, board_size=9))
 
     def _add_game(self, name, game):
         self.game_names.append(name)
