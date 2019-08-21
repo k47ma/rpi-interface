@@ -2504,6 +2504,7 @@ class Calculator(Widget):
                                     border_width=self._key_border_width,
                                     font=self._key_font, on_click=self._click_key,
                                     on_click_param=key, focus_color=self._key_focus_color,
+                                    focus_width=2*self._key_border_width,
                                     shortcut_key=char_to_pygame_key(key))
                     self.parent.buttons.append(button)
 

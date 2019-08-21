@@ -7,7 +7,7 @@ class Button:
                  text_color=(255, 255, 255), background_color=None,
                  background_alpha=255, border_color=None, border_width=0,
                  font=None, on_click=None, on_click_param=None,
-                 focus_color=None, shortcut_key=None):
+                 focus_color=None, focus_width=0, shortcut_key=None):
         super(Button, self).__init__()
 
         self.parent = parent
@@ -25,6 +25,7 @@ class Button:
         self.on_click = on_click
         self.on_click_param = on_click_param
         self.focus_color = focus_color
+        self.focus_width = focus_width
         self.shortcut_key = shortcut_key
         self.is_active = False
 
@@ -74,15 +75,16 @@ class Button:
             return
 
         if self.background_color is not None:
-            color = self.focus_color if self.focus_color and (self.is_clicked() or self.is_shortcut()) else self.background_color
+            color = self.focus_color if self.focus_color and (self.is_focused() or self.is_shortcut()) else self.background_color
+            alpha = min(255, self.background_alpha + 50) if (self.is_clicked() or self.is_shortcut()) else self.background_alpha
             background_surface = pygame.Surface((self.width, self.height))
             background_surface.fill(color)
-            background_surface.set_alpha(self.background_alpha)
+            background_surface.set_alpha(alpha)
             screen.blit(background_surface, (self.x, self.y))
 
-        if self.border_color is not None:
+        if self.border_color is not None and self.border_width > 0:
             color = self.focus_color if self.focus_color and self.is_focused() else self.border_color
-            border_width = self.border_width * 2 if self.is_focused() else self.border_width
+            border_width = self.focus_width if self.is_focused() else self.border_width
             pygame.draw.rect(screen, color, (self.x, self.y, self.width, self.height), border_width)
 
         if self.rendered_text:

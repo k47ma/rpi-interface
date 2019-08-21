@@ -8,6 +8,7 @@ from abc import abstractmethod
 from lib.widgets import Widget, List
 from lib.button import Button
 from lib.util import *
+from lib.shapes import *
 
 
 class Game(Widget):
@@ -628,6 +629,8 @@ class GameFlip(Game):
         self._board_padding = 10
         self._board_x = self._score_width
         self._board_y = 0
+        self._cell_size = 0
+
         self._game_started = False
         self._game_over = False
         self._game_paused = False
@@ -643,6 +646,8 @@ class GameFlip(Game):
         self._origin_color = self._get_color('lightgray')
         self._origin_focus_color = self._get_color('gray')
         self._border_color = self._get_color('white')
+        self._origin_alpha = 150
+        self._clicked_alpha = 240
         self._winner = 0
         self._winner_color = self._origin_color
         self._last_update_time = time.time()
@@ -666,7 +671,7 @@ class GameFlip(Game):
         for row in self._board:
             for cell in row:
                 cell.background_color = self._origin_color
-                cell.background_alpha = 120
+                cell.background_alpha = self._origin_alpha
                 cell.focus_color = self._origin_focus_color
 
     def _start_game(self):
@@ -674,19 +679,22 @@ class GameFlip(Game):
         self._last_update_time = time.time()
 
     def _on_setup(self):
-        cell_size = (min(self.parent.screen_width - self._score_width, self.parent.screen_height) -
-                     2 * self._board_padding) // self.board_size
+        self.buttons = []
+        self._board = []
+        self._cell_size = (min(self.parent.screen_width - self._score_width, self.parent.screen_height) -
+                           2 * self._board_padding) // self.board_size
+
         for row in range(self.board_size):
             cell_row = []
             for col in range(self.board_size):
-                button_x = self._board_x + self._board_padding + col * cell_size
-                button_y = self._board_y + self._board_padding + row * cell_size
+                button_x = self._board_x + self._board_padding + col * self._cell_size
+                button_y = self._board_y + self._board_padding + row * self._cell_size
                 cell = Button(self.parent, button_x, button_y,
-                              width=cell_size, height=cell_size,
-                              background_color=self._origin_color, background_alpha=120,
+                              width=self._cell_size, height=self._cell_size,
+                              background_color=self._origin_color, background_alpha=self._origin_alpha,
                               border_color=self._border_color, border_width=self.border_width,
                               on_click=self._click_cell, on_click_param=(row, col),
-                              focus_color=self._origin_focus_color)
+                              focus_color=self._origin_focus_color, focus_width=self.border_width)
                 self.buttons.append(cell)
                 cell_row.append(cell)
             self._board.append(cell_row)
@@ -779,7 +787,7 @@ class GameFlip(Game):
         row, col = pos
         if self._board[row][col].background_color == self._origin_color:
             self._board[row][col].background_color = self._curr_color
-            self._board[row][col].background_alpha = 255
+            self._board[row][col].background_alpha = self._clicked_alpha
             self._board[row][col].focus_color = None
             self._flip_cells(row, col, mutate_board=True)
             if self._curr_player == 1:
