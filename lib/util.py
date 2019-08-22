@@ -114,15 +114,15 @@ def bytes_to_string(n):
     if n < 1000:
         return "{}B".format(n)
 
-    n /= 1000.0
+    n /= 1000
     if n < 1000:
         return "{:.2f}K".format(n)
 
-    n /= 1000.0
+    n /= 1000
     if n < 1000:
         return "{:.2f}M".format(n)
 
-    n /= 1000.0
+    n /= 1000
     return "{:.2f}G".format(n)
 
 def log_to_file(content):

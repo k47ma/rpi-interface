@@ -3,3 +3,6 @@
 *.DS_Store
 news_images/*
 search_response.html
+.pytest_cache/*
+env/*
+lib/python*

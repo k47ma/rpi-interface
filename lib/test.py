@@ -1,6 +1,19 @@
-from datetime import datetime as dt
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
+import sys
+from lib.util import *
 
-now = dt.now()
-other = dt.strptime("2018-07-01 16:30", "%Y-%m-%d %H:%M")
-print other.replace(hour=0, minute=0)
-print other
+
+class TestUtils:
+    def test_in_sorted(self):
+        empty_list = []
+        list1 = [1, 2]
+        list2 = [1, 3, 9]
+        assert not in_sorted(1, empty_list)
+        assert in_sorted(1, list1)
+        assert in_sorted(2, list1)
+        assert in_sorted(1, list2)
+        assert in_sorted(3, list2)
+        assert not in_sorted(-1, list1)
+        assert not in_sorted(5, list1)
+        assert not in_sorted(100, list1)
