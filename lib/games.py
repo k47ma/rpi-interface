@@ -656,7 +656,6 @@ class GameFlip(Game):
         self._board = []
 
     def _init_game(self):
-        self._game_started = False
         self._game_over = False
         self._game_paused = False
         self._curr_player = 1
@@ -680,6 +679,8 @@ class GameFlip(Game):
         self._click_cell((self.board_size // 2, self.board_size // 2 - 1))
         self._click_cell((self.board_size // 2 - 1, self.board_size // 2 - 1))
         self._click_cell((self.board_size // 2 - 1, self.board_size // 2))
+
+        self._game_started = False
 
     def _start_game(self):
         self._game_started = True
