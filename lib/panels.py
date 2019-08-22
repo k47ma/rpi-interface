@@ -335,7 +335,6 @@ class GamePanel(Panel):
         self.game_names.append(name)
         self.games[name] = game
         self.widgets.append(game)
-        self.menu_widget._subwidgets.append(game)
 
     def select_game(self):
         selected_game = self.games.get(self.game_names[self.menu_widget.get_selected()])
