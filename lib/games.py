@@ -637,6 +637,7 @@ class GameFlip(Game):
         self._curr_player = 1
         self._player1_cells = []
         self._player2_cells = []
+        self._possible_next_cells = set()
         self._player1_mode = "manual"
         self._player2_mode = "manual"
         self._curr_mode = self._player1_mode
@@ -661,6 +662,7 @@ class GameFlip(Game):
         self._curr_player = 1
         self._player1_cells = []
         self._player2_cells = []
+        self._possible_next_cells = set()
         self._curr_mode = self._player1_mode
         self._winner = 1
         self._winner_color = self._origin_color
@@ -719,9 +721,13 @@ class GameFlip(Game):
         sec = int(self._progress_time) % 60
         suffix1 = '←' if self._curr_player == 1 else ''
         suffix2 = '←' if self._curr_player == 2 else ''
+        player1_total = len(self._player1_cells)
+        player2_total = len(self._player2_cells)
         self._scoreboard_lines.append(("Time: {:02}:{:02}".format(min, sec), self._get_color("white")))
-        self._scoreboard_lines.append(("Player1 ({}): {}  {}".format(self._player1_mode, len(self._player1_cells), suffix1), self._player1_color))
-        self._scoreboard_lines.append(("Player2 ({}): {}  {}".format(self._player2_mode, len(self._player2_cells), suffix2), self._player2_color))
+        self._scoreboard_lines.append(("Player1 ({}): {} {}".format(self._player1_mode, player1_total, suffix1), self._player1_color))
+        self._scoreboard_lines.append(("Player2 ({}): {} {}".format(self._player2_mode, player2_total, suffix2), self._player2_color))
+        self._scoreboard_lines.append(("Completion: {}%".format(int((player1_total + player2_total) / self.board_size ** 2 * 100)),
+                                       self._get_color("darkgreen")))
         self._scoreboard_lines.append(("S - Start game".format(min, sec), self._get_color("white")))
         self._scoreboard_lines.append(("T - Toggle player mode", self._get_color("white")))
         self._scoreboard_lines.append(("R - Reset to manual", self._get_color("white")))
@@ -797,6 +803,17 @@ class GameFlip(Game):
             self._toggle_player()
             self._check_game_over()
 
+            self._possible_next_cells.discard(pos)
+            for x_dir in (-1, 0, 1):
+                for y_dir in (-1, 0, 1):
+                    if x_dir == 0 and y_dir == 0:
+                        continue
+                    next_row = row + x_dir
+                    next_col = col + y_dir
+                    if 0 <= next_row < self.board_size and 0 <= next_col < self.board_size \
+                        and self._board[next_row][next_col].background_color == self._origin_color:
+                        self._possible_next_cells.add((next_row, next_col))
+
     def _flip_cells(self, row, col, mutate_board=False):
         total_flips = 0
         for x_dir in (-1, 0, 1):
@@ -804,18 +821,13 @@ class GameFlip(Game):
                 if x_dir == 0 and y_dir == 0:
                     continue
                 total_flips += self._flip_cells_direction(row, col, (x_dir, y_dir), mutate=mutate_board)
+
         return total_flips
 
     def _find_best_move(self):
-        available_cells = []
-        for row in range(self.board_size):
-            for col in range(self.board_size):
-                if self._board[row][col].background_color == self._origin_color:
-                    available_cells.append((row, col))
-
         max_flips = 0
-        max_flip_cell = random.choice(available_cells)
-        for row, col in available_cells:
+        max_flip_cell = random.choice(list(self._possible_next_cells))
+        for row, col in self._possible_next_cells:
             flips = self._flip_cells(row, col, mutate_board=False)
             if flips > max_flips:
                 max_flips = flips

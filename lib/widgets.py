@@ -32,6 +32,7 @@ class Widget:
                         "gray": (100, 100, 100),
                         "lightgray": (75, 75, 75),
                         "green": (0, 255, 0),
+                        "darkgreen": (50, 205, 50),
                         "red": (255, 0, 0),
                         "blue": (30, 144, 255),
                         "lightblue": (0, 191, 255),
