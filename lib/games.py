@@ -676,6 +676,11 @@ class GameFlip(Game):
                 cell.background_alpha = self._origin_alpha
                 cell.focus_color = self._origin_focus_color
 
+        self._click_cell((self.board_size // 2, self.board_size // 2))
+        self._click_cell((self.board_size // 2, self.board_size // 2 - 1))
+        self._click_cell((self.board_size // 2 - 1, self.board_size // 2 - 1))
+        self._click_cell((self.board_size // 2 - 1, self.board_size // 2))
+
     def _start_game(self):
         self._game_started = True
         self._last_update_time = time.time()
@@ -700,6 +705,8 @@ class GameFlip(Game):
                 self.buttons.append(cell)
                 cell_row.append(cell)
             self._board.append(cell_row)
+
+        self._init_game()
 
     def _on_update(self):
         if not self.is_active:
@@ -771,6 +778,9 @@ class GameFlip(Game):
             elif event.key == pygame.K_t:
                 self._toggle_current_player_mode()
 
+    def _is_valid_pos(self, row, col):
+        return 0 <= row < self.board_size and 0 <= col < self.board_size
+
     def _reset_player_mode(self):
         self._player1_mode = "manual"
         self._player2_mode = "manual"
@@ -787,10 +797,13 @@ class GameFlip(Game):
             self._player2_mode = self._curr_mode
 
     def _click_cell(self, pos):
+        row, col = pos
+        if not self._is_valid_pos(row, col):
+            return
+
         if not self._game_started and not self._game_over:
             self._start_game()
 
-        row, col = pos
         if self._board[row][col].background_color == self._origin_color:
             self._board[row][col].background_color = self._curr_color
             self._board[row][col].background_alpha = self._clicked_alpha
@@ -810,8 +823,8 @@ class GameFlip(Game):
                         continue
                     next_row = row + x_dir
                     next_col = col + y_dir
-                    if 0 <= next_row < self.board_size and 0 <= next_col < self.board_size \
-                        and self._board[next_row][next_col].background_color == self._origin_color:
+                    if self._is_valid_pos(next_row, next_col) and \
+                        self._board[next_row][next_col].background_color == self._origin_color:
                         self._possible_next_cells.add((next_row, next_col))
 
     def _flip_cells(self, row, col, mutate_board=False):
@@ -839,7 +852,7 @@ class GameFlip(Game):
         row += direction[0]
         col += direction[1]
         visited = []
-        while 0 <= row < self.board_size and 0 <= col < self.board_size:
+        while self._is_valid_pos(row, col):
             cell_color = self._board[row][col].background_color
             if cell_color == self._curr_color:
                 if mutate:
