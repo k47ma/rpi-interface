@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-import sys
-from lib.util import *
+from lib.util import in_sorted, bytes_to_string
 
 
 class TestUtils:

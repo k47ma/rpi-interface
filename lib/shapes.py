@@ -1,6 +1,8 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
 from abc import ABCMeta, abstractmethod
 from pygame import Rect
-from lib.util import *
+from lib.util import distance
 
 
 class Shape:

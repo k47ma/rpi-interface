@@ -1,5 +1,5 @@
 import pygame
-from lib.util import *
+from lib.util import is_key_active
 
 
 class Button:
@@ -45,7 +45,7 @@ class Button:
         image_height = self.image.get_height() if self.image else 0
 
         self.width = max(text_width, image_width, self.width)
-        self.height = max(image_width, image_height, self.height)
+        self.height = max(text_height, image_height, self.height)
 
     def get_width(self):
         return self.width
