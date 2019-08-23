@@ -1,6 +1,8 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
 import pygame
 import colors
-from shapes import *
+from shapes import Line, Text, DashLine
 
 
 class Chart:
@@ -51,7 +53,7 @@ class Chart:
         self.shapes = self.calculate_shapes()
 
     def add_curve(self, x, y, label=None, color=colors.WHITE):
-        self.curves.append({"x": x, "y":y, "label": label, "color": color})
+        self.curves.append({"x": x, "y": y, "label": label, "color": color})
         self.shapes = self.calculate_shapes()
 
     def calculate_shapes(self):
@@ -116,8 +118,7 @@ class Chart:
                     x, y = mid_point
                 else:
                     try:
-                        x = int(x_axis_start[0] + (x_axis_end[0] - x_axis_start[0] - 20) /
-                                (self.x_range[1] - 1) * (x_values[i] - 1))
+                        x = int(x_axis_start[0] + (x_axis_end[0] - x_axis_start[0] - 20) / (self.x_range[1] - 1) * (x_values[i] - 1))
                     except ZeroDivisionError:
                         x = mid_point[0]
                     try:

@@ -5,10 +5,9 @@ import random
 import time
 import copy
 from abc import abstractmethod
-from lib.widgets import Widget, List
+from lib.widgets import Widget
 from lib.button import Button
-from lib.util import *
-from lib.shapes import *
+from lib.util import distance
 
 
 class Game(Widget):
@@ -242,7 +241,7 @@ class GameSnake(Game):
     def _snake_move(self):
         snake_row, snake_col = self._snake[0]
         if self._snake_direction == "left":
-            snake_col = self.total_cols - 1 if snake_col == 0 else snake_col -1
+            snake_col = self.total_cols - 1 if snake_col == 0 else snake_col - 1
         elif self._snake_direction == "right":
             snake_col = 0 if snake_col == self.total_cols - 1 else snake_col + 1
         elif self._snake_direction == "up":
@@ -371,13 +370,14 @@ class GameTetris(Game):
             return
 
         if self._game_started:
-            self._update_scoreboard()
             current_time = time.time()
             self._progress_time += current_time - self._last_update_time
             self._last_update_time = current_time
             if current_time - self._block_lastmove >= 1 / self._block_speed:
                 self._move_down()
                 self._block_lastmove = current_time
+
+        self._update_scoreboard()
 
     def _update_scoreboard(self):
         self._scoreboard_lines = []
@@ -427,14 +427,15 @@ class GameTetris(Game):
             if not self._game_started and not self._game_over:
                 if event.key in [pygame.K_LEFT, pygame.K_RIGHT, pygame.K_UP, pygame.K_DOWN]:
                     self._start_game()
-            elif event.key == pygame.K_LEFT:
-                self._move_left()
-            elif event.key == pygame.K_RIGHT:
-                self._move_right()
-            elif event.key == pygame.K_DOWN:
-                self._drop_block()
-            elif event.key == pygame.K_UP:
-                self._rotate_block()
+            elif self._game_started:
+                if event.key == pygame.K_LEFT:
+                    self._move_left()
+                elif event.key == pygame.K_RIGHT:
+                    self._move_right()
+                elif event.key == pygame.K_DOWN:
+                    self._drop_block()
+                elif event.key == pygame.K_UP:
+                    self._rotate_block()
 
     def _init_game(self):
         self._score = 0
@@ -443,12 +444,12 @@ class GameTetris(Game):
         self._game_started = False
         self._game_over = False
         self._game_paused = False
-        self._update_scoreboard()
+        self._progress_time = 0
 
     def _start_game(self):
         self._game_started = True
         self._start_time = time.time()
-        self._progress_time = 0
+        self._last_update_time = self._start_time
 
     def _toggle_pause(self):
         self._game_paused = not self._game_paused
@@ -486,13 +487,11 @@ class GameTetris(Game):
 
     def _move_right(self):
         width = len(self._active_block.shape[0])
-        height = len(self._active_block.shape)
         row, col = self._active_block.get_origin()
         if width + col < self.total_cols and self._check_move(0, 1):
             self._active_block.add_offset(0, 1)
 
     def _move_down(self):
-        width = len(self._active_block.shape[0])
         height = len(self._active_block.shape)
         row, col = self._active_block.get_origin()
 
@@ -505,7 +504,6 @@ class GameTetris(Game):
             self._check_game_over()
 
     def _drop_block(self):
-        width = len(self._active_block.shape[0])
         height = len(self._active_block.shape)
         row, col = self._active_block.get_origin()
 
@@ -535,7 +533,7 @@ class GameTetris(Game):
 
         full_indices = []
         for row_ind, row in enumerate(board):
-            if not 0 in row:
+            if 0 not in row:
                 full_indices.append(row_ind)
 
         for full_ind in full_indices:
@@ -549,8 +547,8 @@ class GameTetris(Game):
     def _check_game_over(self):
         for block in self._fixed_blocks:
             if self._active_block.has_overlap(block):
-                self._game_over = True
                 self._game_started = False
+                self._game_over = True
 
     def _rotate_clockwise(self):
         width = len(self._active_block.shape[0])
@@ -689,8 +687,8 @@ class GameFlip(Game):
     def _on_setup(self):
         self.buttons = []
         self._board = []
-        self._cell_size = (min(self.parent.screen_width - self._score_width, self.parent.screen_height) -
-                           2 * self._board_padding) // self.board_size
+        self._cell_size = (min(self.parent.screen_width - self._score_width,
+                           self.parent.screen_height) - 2 * self._board_padding) // self.board_size
 
         for row in range(self.board_size):
             cell_row = []
@@ -825,7 +823,7 @@ class GameFlip(Game):
                     next_row = row + x_dir
                     next_col = col + y_dir
                     if self._is_valid_pos(next_row, next_col) and \
-                        self._board[next_row][next_col].background_color == self._origin_color:
+                            self._board[next_row][next_col].background_color == self._origin_color:
                         self._possible_next_cells.add((next_row, next_col))
 
     def _flip_cells(self, row, col, mutate_board=False):

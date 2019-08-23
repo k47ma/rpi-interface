@@ -1,5 +1,7 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
 import pygame
-from lib.shapes import *
+from lib.shapes import Text, Line, Rectangle
 
 
 class Table:
@@ -98,8 +100,8 @@ class Table:
 
         # add selected row
         if self.selected:
-            self.shapes.append(Rectangle(self.selected_line_color, self.x, self.y + sum(heights[:self.selected_row+1]),
-                                         self._total_width, heights[self.selected_row+1], line_width=3))
+            self.shapes.append(Rectangle(self.selected_line_color, self.x, self.y + sum(heights[:self.selected_row + 1]),
+                                         self._total_width, heights[self.selected_row + 1], line_width=3))
 
         # add contents to the table
         for r, row in enumerate(self.rows):
@@ -110,7 +112,7 @@ class Table:
                 else:
                     pos = (self.x + sum(widths[:c]) + self.x_padding,
                            self.y + sum(heights[:r]) + self.y_padding)
-                if r > 0 and self.row_status and not self.row_status[r-1]:
+                if r > 0 and self.row_status and not self.row_status[r - 1]:
                     line_start_pos = (pos[0], pos[1] + elem.get_height() / 2)
                     line_end_pos = (pos[0] + elem.get_width(), pos[1] + elem.get_height() / 2)
                     self.shapes.append(Line(self.content_inactive_color, line_start_pos, line_end_pos))

@@ -1,10 +1,16 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-from lib.widgets import *
-from lib.games import *
-from lib.button import Button
+import time
+import queue
+import psutil
+import pygame
 from datetime import datetime as dt
 from abc import ABCMeta
+from lib.button import Button
+from lib.games import GameSnake, GameTetris, GameFlip
+from lib.widgets import News, NewsList, Weather, Calendar, Traffic, Stock, \
+    SystemInfo, Time, NightTime, Content, Search, Chart, ChartCaption, Map, \
+    List, Calculator, Camera
 
 
 class Panel:
@@ -165,10 +171,11 @@ class NewsPanel(Panel):
         self._news_title_font = pygame.font.SysFont(self.default_font_name, 20)
         self.news_widget = Content(self, 10, 10, "News", font=self._news_main_font)
         self.title_widget = Content(self, 90, 10, "", font=self._news_title_font,
-                                    max_width=self.screen_width-100, max_height=30,
+                                    max_width=self.screen_width - 100, max_height=30,
                                     borders=['left'], margin=(10, 0, 0, 0))
-        self.newslist_widget = NewsList(self, 10, 45, max_width=self.screen_width-20,
-                                        max_height=self.screen_height-60, title_widget=self.title_widget)
+        self.newslist_widget = NewsList(self, 10, 45, max_width=self.screen_width - 20,
+                                        max_height=self.screen_height - 60,
+                                        title_widget=self.title_widget)
         self.widgets = [self.news_widget, self.title_widget, self.newslist_widget]
 
         self.set_active_widget(self.newslist_widget)
@@ -188,8 +195,10 @@ class SearchPanel(Panel):
 
         self._search_str_font = pygame.font.Font("fonts/FreeSans.ttf", 18)
         self._search_result_font = pygame.font.Font("fonts/FreeSans.ttf", 16)
-        self.search_widget = SearchWidget(self, 10, 10, str_font=self._search_str_font, result_font=self._search_result_font,
-                                          max_width=self.screen_width-40, max_height=self.screen_height-40)
+        self.search_widget = Search(self, 10, 10, str_font=self._search_str_font,
+                                    result_font=self._search_result_font,
+                                    max_width=self.screen_width - 40,
+                                    max_height=self.screen_height - 40)
         self.widgets = [self.search_widget]
 
         self.set_active_widget(self.search_widget)
@@ -224,14 +233,16 @@ class SystemInfoPanel(Panel):
 
         self.title_widget = Content(self, 10, 10, "System Info", font=self._title_font)
         self.chart_widget = Chart(self, 30, 50, info=self._system_info,
-                                  width=self.screen_width-70, height=self.screen_height-80,
-                                  max_x=int(self._max_size*self._update_interval), info_colors=self._info_colors,
+                                  width=self.screen_width - 70, height=self.screen_height - 80,
+                                  max_x=int(self._max_size * self._update_interval),
+                                  info_colors=self._info_colors,
                                   x_unit=self._update_interval, y_unit=1,
                                   x_label_interval=5, y_label_interval=20)
         self._info_widget = SystemInfo(self, 160, 20, font=self._info_font,
                                        cpu_info=False, memory_info=False,
                                        disk_info=False, percent_bar=False)
-        self.caption_widget = ChartCaption(self, 360, 10, self._info_colors, font=self._caption_font)
+        self.caption_widget = ChartCaption(self, 360, 10, self._info_colors,
+                                           font=self._caption_font)
         self.widgets = [self.title_widget, self.chart_widget, self._info_widget, self.caption_widget]
 
         self._last_update = time.time()
@@ -263,8 +274,8 @@ class StockPanel(Panel):
         self._title_font = pygame.font.SysFont(self.default_font_name, 35)
 
         self.title_widget = Content(self, 10, 10, "Stock", font=self._title_font)
-        self.stock_widget = Stock(self, 25, 40, chart=True, chart_width=self.screen_width-80,
-                                  chart_height=self.screen_height-120)
+        self.stock_widget = Stock(self, 25, 40, chart=True, chart_width=self.screen_width - 80,
+                                  chart_height=self.screen_height - 120)
         self.widgets = [self.title_widget, self.stock_widget]
 
     def _on_enter(self):

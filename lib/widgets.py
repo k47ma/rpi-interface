@@ -1,22 +1,30 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-import time
-import queue
 import re
+import os
+import cv2
+import math
 import glob
 import copy
-import psutil
-import polyline
-import cv2
+import time
+import queue
 import pygame
+import psutil
+import requests
+import polyline
 import calendar
-from string import printable, digits, ascii_letters
 from PIL import Image
 from bs4 import BeautifulSoup
+from datetime import datetime as dt
+from abc import ABCMeta, abstractmethod
+from string import printable, digits, ascii_letters
 from lib.table import Table
-from lib.threads import *
-from lib.shapes import *
 from lib.button import Button
+from lib.threads import RequestThread, ImageFetchThread
+from lib.shapes import Rectangle, Text, Line, Lines, DashLine, Polygon, \
+    Circle, ScreenSurface
+from lib.util import log_to_file, shift_pressed, ctrl_pressed, \
+    bytes_to_string, pygame_key_to_char, char_to_pygame_key
 
 
 class Widget:
@@ -173,11 +181,6 @@ class Widget:
 
     def get_pos(self):
         return self.x, self.y
-
-    def set_pos(self, x, y):
-        self.x = x
-        self.y = y
-        self.setup()
 
     def handle_events(self, event):
         self._last_active = time.time()
@@ -414,10 +417,12 @@ class NewsList(News):
             if sidebar_end[1] > self.y + self.max_height:
                 sidebar_end = (sidebar_end[0], self.y + self.max_height)
             pygame.draw.line(screen, self._get_color('white'), sidebar_start, sidebar_end, self._sidebar_width)
-            pygame.draw.line(screen, self._get_color('white'), (self.x + self.max_width - self._sidebar_width // 2, self.y),
-                            (self.x + self.max_width + self._sidebar_width // 2, self.y), 1)
-            pygame.draw.line(screen, self._get_color('white'), (self.x + self.max_width - self._sidebar_width // 2, self.y + self.max_height),
-                            (self.x + self.max_width + self._sidebar_width // 2, self.y + self.max_height), 1)
+            pygame.draw.line(screen, self._get_color('white'),
+                             (self.x + self.max_width - self._sidebar_width // 2, self.y),
+                             (self.x + self.max_width + self._sidebar_width // 2, self.y), 1)
+            pygame.draw.line(screen, self._get_color('white'),
+                             (self.x + self.max_width - self._sidebar_width // 2, self.y + self.max_height),
+                             (self.x + self.max_width + self._sidebar_width // 2, self.y + self.max_height), 1)
 
         # draw image
         if self._display_image:
@@ -454,7 +459,7 @@ class NewsList(News):
         pygame.draw.rect(screen, self._get_color('black'), (self.x, self.y, self.max_width, self.max_height), 0)
         message_text = self._message_font.render("No image to show here...", True, self._get_color('white'))
         screen.blit(message_text, (self.x + (self.max_width - message_text.get_width()) // 2,
-                                             self.y + (self.max_height - message_text.get_height()) // 2))
+                                   self.y + (self.max_height - message_text.get_height()) // 2))
 
     def _parse_image_name(self, image_url):
         image_name = image_url.split('/')[-1]
@@ -543,9 +548,9 @@ class Weather(Widget):
         self._get_weather()
 
     def _on_update(self):
-        if (time.time() - self._weather_last_update > self._weather_update_interval or
-            self._current_weather is None or
-            self._forecast_weather is None):
+        if (time.time() - self._weather_last_update > self._weather_update_interval
+                or self._current_weather is None
+                or self._forecast_weather is None):
             self._get_weather()
 
     def _on_draw(self, screen):
@@ -909,7 +914,8 @@ class TextCalendar(Widget):
         now = dt.now()
         is_present_month = (self._curr_year == now.year and self._curr_month == now.month)
         days_with_events = [(event[1][8:10], event[-1]) for event in self._events
-            if int(event[1][:4]) == self._curr_year and int(event[1][5:7]) == self._curr_month]
+                            if int(event[1][:4]) == self._curr_year
+                            and int(event[1][5:7]) == self._curr_month]
         event_ind = 0
         for line in self._cal_text_lines:
             rendered_line = self.calendar_font.render(line, True, self._cal_text_color)
@@ -919,7 +925,8 @@ class TextCalendar(Widget):
                 curr_day_ind = line.split().index(str(self._curr_day))
                 offset_x = self._cal_font_width * curr_day_ind * 3
 
-                self.add_shape(Rectangle(self._cal_selector_color,
+                self.add_shape(Rectangle(
+                    self._cal_selector_color,
                     self.x + offset_x - self._cal_date_padding,
                     self.y + offset_y - self._cal_date_padding,
                     self._cal_date_width + 2 * self._cal_date_padding,
@@ -1009,8 +1016,8 @@ class Traffic(Widget):
         self._traffic_icon = pygame.transform.scale(icon, (self._traffic_icon_size, self._traffic_icon_size))
 
     def _on_update(self):
-        if (time.time() - self._traffic_last_update > self._traffic_update_interval or
-            self._traffic_info is None):
+        if (time.time() - self._traffic_last_update > self._traffic_update_interval
+                or self._traffic_info is None):
             self._load_traffic()
 
     def _on_draw(self, screen):
@@ -1187,7 +1194,7 @@ class Stock(Widget):
                 return
             today_str = time_series_list[0]['timestamp'][:10]
             quotes_today = [element for element in time_series_list if element['timestamp'].startswith(today_str)]
-            quotes_previous = time_series_list[len(quotes_today):78*5]
+            quotes_previous = time_series_list[len(quotes_today):78 * 5]
             self._time_series = (quotes_today + quotes_previous)[::4]
             self._chart_widget.set_x_range(0, 98)
         elif current_range == "1M":
@@ -1428,7 +1435,7 @@ class SystemInfo(Widget):
         if self.memory_info:
             screen.blit(rendered_memory_text, (self.x, y))
             screen.blit(rendered_memory_percent_text, (percent_bar_x + self._percent_bar_width, y))
-            y+= self._info_text_height
+            y += self._info_text_height
 
         if self.disk_info:
             screen.blit(rendered_disk_text, (self.x, y))
@@ -1461,7 +1468,8 @@ class Time(Widget):
         time_text = self.time_font.render(self.time_str, True, self._get_color('white'))
         screen.blit(date_text, (self._screen_width - date_text.get_width() - 5, 10))
         screen.blit(time_text, (self._screen_width - time_text.get_width() - 5,
-                                     date_text.get_height() + 15))
+                                date_text.get_height() + 15))
+
 
 class NightTime(Time):
     def __init__(self, parent):
@@ -1617,9 +1625,9 @@ class Content(Widget):
         self.underline = status
 
 
-class SearchWidget(Widget):
+class Search(Widget):
     def __init__(self, parent, x, y, str_font=None, result_font=None, max_width=0, max_height=0):
-        super(SearchWidget, self).__init__(parent, x, y)
+        super(Search, self).__init__(parent, x, y)
 
         self.str_font = str_font
         self.result_font = result_font
@@ -1715,7 +1723,8 @@ class SearchWidget(Widget):
 
         if soup.find('div', class_="search-no-results"):
             title_content = Content(self.parent, self._search_result_pos[0], self._search_result_pos[1],
-            "Can't find any results...", font=self.result_font, max_width=self.max_width)
+                                    "Can't find any results...",
+                                    font=self.result_font, max_width=self.max_width)
             title_content.setup()
             self._search_result_pages.append([title_content])
             return
@@ -1814,7 +1823,7 @@ class Input(Widget):
         if self._cursor_index == 0:
             return
 
-        self._string = self._string[:self._cursor_index-1] + self._string[self._cursor_index:]
+        self._string = self._string[:self._cursor_index - 1] + self._string[self._cursor_index:]
         self._cursor_index -= 1
         self._content_widget.set_text(self._string)
 
@@ -1822,7 +1831,7 @@ class Input(Widget):
         if self._cursor_index == len(self._string):
             return
 
-        self._string = self._string[:self._cursor_index] + self._string[self._cursor_index+1:]
+        self._string = self._string[:self._cursor_index] + self._string[self._cursor_index + 1:]
         self._content_widget.set_text(self._string)
 
     def _clear_str(self):
@@ -2489,14 +2498,13 @@ class Calculator(Widget):
             key_rows = len(self._keys_layout)
             key_cols = len(self._keys_layout[0])
             self._key_width = (self.width - self.key_padding * (key_cols - 1)) // key_cols
-            self._key_height = (self.height - self._input_widget.get_height() -
-                                self.key_padding * (key_rows - 1)) // key_rows
+            self._key_height = (self.height - self._input_widget.get_height()
+                                - self.key_padding * (key_rows - 1)) // key_rows
 
             for row_ind, row in enumerate(self._keys_layout):
                 for col_ind, key in enumerate(row):
                     button_x = self.x + col_ind * (self._key_width + self.key_padding)
-                    button_y = self.y + self._input_widget.get_height() + \
-                               row_ind * (self._key_height + self.key_padding) + self.key_padding
+                    button_y = self.y + self._input_widget.get_height() + row_ind * (self._key_height + self.key_padding) + self.key_padding
                     button = Button(self.parent, button_x, button_y,
                                     width=self._key_width, height=self._key_height,
                                     text=key, background_color=self._key_background_color,
@@ -2505,7 +2513,7 @@ class Calculator(Widget):
                                     border_width=self._key_border_width,
                                     font=self._key_font, on_click=self._click_key,
                                     on_click_param=key, focus_color=self._key_focus_color,
-                                    focus_width=2*self._key_border_width,
+                                    focus_width=2 * self._key_border_width,
                                     shortcut_key=char_to_pygame_key(key))
                     self.parent.buttons.append(button)
 
@@ -2517,7 +2525,7 @@ class Calculator(Widget):
 
     def _handle_widget_events(self, event):
         if event.type == pygame.KEYDOWN:
-            if eveny.key == pygame.K_RETURN:
+            if event.key == pygame.K_RETURN:
                 self._input_widget.set_active(True)
 
     def _on_enter(self):

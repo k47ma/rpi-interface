@@ -6,10 +6,9 @@ import queue
 import os
 import glob
 import time
-import copy
 import math
 from lib.threads import ImageRotateThread
-from lib.util import *
+from lib.util import distance
 
 
 class Background:
@@ -85,12 +84,14 @@ class DynamicImage(Background):
 
 class DynamicTriangle(Background):
     def __init__(self, width=480, height=320, color=(0, 0, 0), alpha=255,
-                 total_points=30, total_triangles=10, repeat_interval=20):
+                 total_points=30, total_triangles=10, repeat_interval=20,
+                 filled=False):
         super(DynamicTriangle, self).__init__(width=width, height=height, color=color, alpha=alpha)
 
         self.total_points = total_points
         self.total_triangles = total_triangles
         self.repeat_interval = repeat_interval
+        self.filled = filled
 
         self.points_padding = 25
         self.points = []
@@ -124,7 +125,8 @@ class DynamicTriangle(Background):
         for triangle in self.triangles:
             points = triangle.get_points()
             triangle_surface = pygame.Surface((self.width, self.height))
-            #pygame.draw.polygon(triangle_surface, self.color, triangle_copy)
+            if self.filled:
+                pygame.draw.polygon(triangle_surface, self.color, points)
             pygame.draw.lines(triangle_surface, self.color, True, points, 2)
             for point in points:
                 pygame.draw.circle(triangle_surface, self.color, point, 4)
@@ -196,8 +198,6 @@ class DynamicTrace(Background):
             self.y2 += distance2 * math.sin(2 * math.pi - speed2 * current_time)
 
     def draw(self, surface):
-        length1 = self.queue1.qsize()
-        length2 = self.queue2.qsize()
         last_pos1 = None
         last_pos2 = None
         surface1 = pygame.Surface((self.width, self.height))

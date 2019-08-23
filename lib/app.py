@@ -1,7 +1,14 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
+import os
+import cv2
+import time
+import random
+import pygame
 import numpy as np
-from lib.panels import *
+from datetime import datetime as dt
+from lib.panels import MainPanel, NightPanel, NewsPanel, SearchPanel, \
+    SystemInfoPanel, StockPanel, MapPanel, CameraPanel, GamePanel, CalculatorPanel
 from lib.backgrounds import Background, DynamicImage, DynamicTriangle, DynamicTrace
 
 
@@ -146,7 +153,7 @@ class App:
 
     def _update_screen(self):
         if self.camera and time.time() - self._brightness_last_update > self._brightness_update_interval:
-            #self._update_brightness()
+            self._update_brightness()
             self._brightness_last_update = time.time()
 
         self.backgrounds[self._background_type].update()
@@ -184,6 +191,9 @@ class App:
         screen.blit(brightness_surface.convert(), (0, 0))
 
     def _update_brightness(self):
+        if not self.camera:
+            return
+
         ret, frame = self.camera.read()
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         samples = random.sample(np.ravel(gray), 100)

@@ -1,6 +1,7 @@
 *.pyc
 *.log
 *.DS_Store
+.coverage
 news_images/*
 search_response.html
 .pytest_cache/*

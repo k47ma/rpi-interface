@@ -88,6 +88,7 @@ def in_sorted(target, sorted_list):
             return False
     return False
 
+
 def split_list(a, n):
     """Split the given list into n parts and return a list of parts"""
     part_len = int(len(a) / n)
@@ -101,13 +102,16 @@ def split_list(a, n):
             parts.append(a[start_ind:end_ind])
     return parts
 
+
 def distance(a, b):
     """Calculate the distance between point a and b"""
     return math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2)
 
+
 def get_timestr():
     """Return the current time"""
     return str(dt.now())[:19]
+
 
 def bytes_to_string(n):
     """Convert bytes to human-readable units"""
@@ -125,20 +129,25 @@ def bytes_to_string(n):
     n /= 1000
     return "{:.2f}G".format(n)
 
+
 def log_to_file(content):
     """Output log information"""
     print("[{}] {}".format(get_timestr(), content))
+
 
 def ctrl_pressed():
     pressed = pygame.key.get_pressed()
     return bool(pressed[pygame.K_LCTRL] or pressed[pygame.K_RCTRL])
 
+
 def shift_pressed():
     pressed = pygame.key.get_pressed()
     return bool(pressed[pygame.K_LSHIFT] or pressed[pygame.K_RSHIFT])
 
+
 def cap_lock_on():
     return bool(pygame.key.get_mods() & pygame.KMOD_CAPS)
+
 
 def is_key_active(des):
     if des is None or ctrl_pressed():
@@ -151,8 +160,9 @@ def is_key_active(des):
     des_shift = des.get('shift')
     des_caps = des.get('caps')
     return pressed[des['key']] and \
-           (shift == des_shift or des_shift is None) and \
-           (caps == des_caps or des_caps is None)
+        (shift == des_shift or des_shift is None) and \
+        (caps == des_caps or des_caps is None)
+
 
 def char_to_pygame_key(c):
     """Convert character to pygame key"""
@@ -160,6 +170,7 @@ def char_to_pygame_key(c):
     ret = __PYGAME_KEYS.get(c)
     if ret is not None:
         return ret[0]
+
 
 def pygame_key_to_char(key):
     """Convert pygame key to character"""
@@ -174,5 +185,5 @@ def pygame_key_to_char(key):
                (shift == des_shift or des_shift is None) and \
                (caps == des_caps or des_caps is None):
                 if 'A' <= c <= 'Z' and not shift ^ caps:
-                        return c.lower()
+                    return c.lower()
                 return c
