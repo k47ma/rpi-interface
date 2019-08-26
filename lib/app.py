@@ -3,6 +3,7 @@
 import os
 import cv2
 import time
+import glob
 import random
 import pygame
 import numpy as np
@@ -35,7 +36,7 @@ class App:
 
         self._window_icon = pygame.image.load(os.path.join('images', 'icon', 'small-rpi.png')).convert_alpha()
         pygame.display.set_icon(self._window_icon)
-        pygame.display.set_caption("rpi interface")
+        pygame.display.set_caption('rpi interface')
 
         self.screen = pygame.Surface(self._screen_size)
         self._invert_screen = self.args.invert if self.args else False
@@ -50,6 +51,7 @@ class App:
         self.camera = cv2.VideoCapture(0) if self.args.camera else None
 
         self.main_panel = MainPanel(self)
+        self.main_panel.always_update = True
         self.night_panel = NightPanel(self)
         self.night_panel.always_update = True
         self.news_panel = NewsPanel(self)
@@ -93,7 +95,7 @@ class App:
         self._brightness_thres = 80
         self._brightness = 1.0
 
-        self._frame_rate_font = pygame.font.Font("fonts/FreeSans.ttf", 15)
+        self._frame_rate_font = pygame.font.Font('fonts/FreeSans.ttf', 15)
         self._actual_frame_rate = 0
         self._frame_last_update = time.time()
         self._frame_text_last_update = time.time()
@@ -212,9 +214,14 @@ class App:
             self._actual_frame_rate = int(1 / update_interval)
             self._frame_text_last_update = current_time
 
-        framerate_text = self._frame_rate_font.render("FPS: {}".format(self._actual_frame_rate), True, (0, 255, 0))
+        framerate_text = self._frame_rate_font.render('FPS: {}'.format(self._actual_frame_rate), True, (0, 255, 0))
         pygame.draw.rect(screen, (0, 0, 0), (10, 10, framerate_text.get_width(), framerate_text.get_height()))
         screen.blit(framerate_text, (10, 10))
+
+    def _clear_cache(self):
+        if os.path.isdir('news_images'):
+            for image_file in glob.glob('news_images/*'):
+                os.remove(image_file)
 
     def set_active_panel(self, panel):
         if self.active_panel is not panel:
@@ -247,3 +254,5 @@ class App:
 
         if self.camera:
             self.camera.release()
+
+        self._clear_cache()
