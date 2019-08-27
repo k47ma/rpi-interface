@@ -26,8 +26,9 @@ class App:
         self._normal_frame_rate = 60 if self._performance_mode else 10
         self._game_frame_rate = 60 if self._performance_mode else 30
         self._frame_rate = self._normal_frame_rate
-        self._fullscreen = self.args.fullscreen if self.args else False
-        self._debug_mode = self.args.debug if self.args else False
+        self._fullscreen = self.args.fullscreen
+        self._debug_mode = self.args.debug
+        self._dryrun = self.args.dryrun
 
         if self._fullscreen:
             self.display = pygame.display.set_mode(self._screen_size, pygame.FULLSCREEN)
@@ -246,11 +247,17 @@ class App:
             self._frame_rate = self._normal_frame_rate
 
     def start(self):
+        dryrun_count = 10
         while not self._done:
             self._handle_events()
             self._update_screen()
             self._draw_screen()
             self.clock.tick(self._frame_rate)
+
+            if self._dryrun:
+                dryrun_count -= 1
+                if dryrun_count == 0:
+                    break
 
         if self.camera:
             self.camera.release()

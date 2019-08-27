@@ -13,6 +13,8 @@ if __name__ == '__main__':
                         default=False, help="enable debug mode")
     parser.add_argument('-c', '--camera', action='store_false',
                         default=True, help="disable camera")
+    parser.add_argument('-r', '--dryrun', action='store_true',
+                        default=False, help="dry run the program")
     args = parser.parse_args()
     app = App(args=args)
     app.start()

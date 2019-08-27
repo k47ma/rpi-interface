@@ -7,10 +7,14 @@ before_script:
 
 lint:
   script:
-    - source env/bin/activate
     - flake8 --ignore=E501,F,W lib/*.py main.py
 
 run_test:
   script:
-    - source env/bin/activate
     - pytest -v lib/test.py
+
+dry_run:
+  script:
+    - python3 main.py -r -c
+    - python3 main.py -r -c -p
+    - python3 main.py -r -c -d
