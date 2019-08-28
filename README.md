@@ -2,24 +2,41 @@ Informational panel for Raspberry Pi.
 
 ### Usage:
 - **A**: calculator
-  - **Enter**: evaluate
+  - **ENTER(RETURN)**: evaluate
 - **B**: search on Best Buy
-  - **Enter**: search
+  - **ENTER(RETURN)**: search
 - **D**: night mode
 - **G**: games
+  - **Snake**:
+    - **R**: start/reset game
+    - **ENTER(RETURN)**: enter/confirm board size setting
+    - **TAB**: toggle input field
+    - **Direction**: change snake direction
+    - **SPACE**: auto play
+  - **Tetris**:
+    - **R**: start/reset game
+    - **P**: pause/resume game
+    - **UP**: rotate block
+    - **DOWN**: drop block
+    - **LEFT/RIGHT**: move block horizontally
+  - **Flip**:
+    - **S**: start/reset game
+    - **R**: reset both players to manual mode
+    - **T**: toggle current player mode
+    - **ENTER/RETURN**: enter/confirm board size setting
 - **I**: system info
 - **M**: map
-  - **Up/Down**: select origin/destination entry
-  - **Tab**: toggle mode
-  - **Enter**: search
+  - **UP/DOWN**: select origin/destination entry
+  - **TAB**: toggle mode
+  - **ENTER(RETURN)**: search
 - **N**: news
-  - **Up/Down**: page up/down
-  - **Enter**: select mode
-  - **Up/Down** (on select mode): news title up/down
-  - **Enter** (on select mode): toggle news image
+  - **UP/DOWN**: page up/down
+  - **ENTER(RETURN)**: select mode
+  - **UP/DOWN** (on select mode): news title up/down
+  - **ENTER(RETURN)** (on select mode): toggle news image
 - **P**: change background type
 - **S**: stock info
-  - **Enter**: search
+  - **ENTER(RETURN)**: search
 - **V**: camera preview
 - **ESC**: back
-- **Ctrl+Q**: quit
+- **CTRL+Q**: quit
