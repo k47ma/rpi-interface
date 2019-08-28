@@ -338,7 +338,7 @@ class GamePanel(Panel):
         self.widgets = [self.title_widget, self.menu_widget]
 
         self.games = {}
-        self._add_game("Snake", GameSnake(self, self.exit_game, total_rows=16, total_cols=18))
+        self._add_game("Snake", GameSnake(self, self.exit_game, total_rows=16, total_cols=16))
         self._add_game("Tetris", GameTetris(self, self.exit_game, total_rows=16, total_cols=10))
         self._add_game("Flip", GameFlip(self, self.exit_game, board_size=10, border_width=1))
 

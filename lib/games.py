@@ -4,8 +4,9 @@ import pygame
 import random
 import time
 import copy
+import string
 from abc import abstractmethod
-from lib.widgets import Widget
+from lib.widgets import Widget, Input
 from lib.button import Button
 from lib.util import distance
 
@@ -15,7 +16,11 @@ class Game(Widget):
         super(Game, self).__init__(parent, 0, 0)
 
         self.exit_event = exit_event
+        self.draw_subwidgets = False
 
+        self._score_width = 50
+        self._score_height = 0
+        self._score_padding = 10
         self.scoreboard_font = pygame.font.Font("fonts/FreeSans.ttf", 15)
         self._scoreboard_lines = []
 
@@ -36,15 +41,19 @@ class Game(Widget):
         self._draw_scoreboard(screen)
         self._draw_board(screen)
 
+        for widget in self._subwidgets:
+            widget.draw(screen)
+
     def _update_scoreboard(self):
         pass
 
     def _draw_scoreboard(self, screen):
-        x, y = 10, 10
+        x, y = self._score_padding, self._score_padding
         for line, color in self._scoreboard_lines:
             rendered_text = self.scoreboard_font.render(line, True, color)
             screen.blit(rendered_text, (x, y))
             y += rendered_text.get_height() + self._score_padding
+        self._score_height = y
 
     @abstractmethod
     def _draw_board(self, screen):
@@ -80,20 +89,23 @@ class Game(Widget):
 
 
 class GameSnake(Game):
-    def __init__(self, parent, exit_event, total_rows=16, total_cols=20, cell_size=20, cell_padding=1):
+    def __init__(self, parent, exit_event, total_rows=16, total_cols=16, cell_padding=1):
         super(GameSnake, self).__init__(parent, exit_event)
 
         self.total_rows = total_rows
         self.total_cols = total_cols
-        self.cell_size = cell_size
         self.cell_padding = cell_padding
 
+        self._max_board_size = 100
         self._score = 0
         self._high_score = 0
-        self._score_width = 50
-        self._score_padding = 10
-        self._board_x = self._score_width + (self._screen_width - self.total_cols * self.cell_size) // 2
-        self._board_y = (self._screen_height - self.total_rows * self.cell_size) // 2
+        self._score_width = 140
+        self._board_padding = 10
+        self._board_size = min(self._screen_width - self._score_width
+                               - self._score_padding - self._board_padding,
+                               self._screen_height) - 2 * self._board_padding
+        self._board_x = self._score_width + self._score_padding + self._board_padding
+        self._board_y = (self._screen_height - self._board_size + self._board_padding) // 2
         self._snake = []
         self._snake_direction = "right"
         self._snake_speed = 5
@@ -106,9 +118,24 @@ class GameSnake(Game):
         self._start_time = time.time()
         self._progress_time = self._start_time
         self._cell_color = self._get_color("lightgray")
-        self._snake_color = self._get_color("green")
+        self._snake_color = self._get_color("darkgreen")
         self._snake_head_color = self._get_color("orange")
         self._apple_color = self._get_color("red")
+
+        self._row_widget = Input(self.parent, self._score_padding, self._score_height,
+                                 font=self.scoreboard_font, width=30,
+                                 limit_chars=list(string.digits), max_char=3,
+                                 enter_key_event=self._set_board_size)
+        self._col_widget = Input(self.parent, self._score_padding, self._score_height,
+                                 font=self.scoreboard_font, width=30,
+                                 limit_chars=list(string.digits), max_char=3,
+                                 enter_key_event=self._set_board_size)
+        self._row_widget.set_text(str(self.total_rows))
+        self._col_widget.set_text(str(self.total_cols))
+        self._row_widget.bind_key(pygame.K_TAB, self._toggle_input_widget)
+        self._col_widget.bind_key(pygame.K_TAB, self._toggle_input_widget)
+
+        self._subwidgets = [self._row_widget, self._col_widget]
 
     def _game_on_enter(self):
         self._init_game()
@@ -117,17 +144,19 @@ class GameSnake(Game):
         pass
 
     def _on_update(self):
-        if not self.is_active or not self._game_started:
+        if not self.is_active:
             return
 
-        current_time = time.time()
-        self._progress_time = current_time
+        if self._game_started:
+            current_time = time.time()
+            self._progress_time = current_time
+            if current_time - self._snake_lastmove >= 1 / self._snake_speed:
+                if self._auto_play:
+                    self._update_optimal_direction()
+                self._snake_move()
+                self._snake_lastmove = current_time
+
         self._update_scoreboard()
-        if current_time - self._snake_lastmove >= 1 / self._snake_speed:
-            if self._auto_play:
-                self._update_optimal_direction()
-            self._snake_move()
-            self._snake_lastmove = current_time
 
     def _handle_widget_events(self, event):
         if event.type == pygame.KEYDOWN:
@@ -139,6 +168,8 @@ class GameSnake(Game):
                     self._start_game()
             elif event.key == pygame.K_r:
                 self._init_game()
+            elif event.key == pygame.K_RETURN:
+                self._col_widget.set_active(True)
 
             if not self._game_started:
                 if event.key in [pygame.K_LEFT, pygame.K_RIGHT, pygame.K_UP, pygame.K_DOWN]:
@@ -188,6 +219,37 @@ class GameSnake(Game):
         self._add_apple()
         self._update_scoreboard()
 
+    def _toggle_input_widget(self):
+        if self._col_widget.is_active:
+            self._col_widget.set_active(False)
+            self._row_widget.set_active(True)
+        elif self._row_widget.is_active:
+            self._row_widget.set_active(False)
+            self._col_widget.set_active(True)
+
+    def _get_input_num(self, input_widget):
+        if input_widget.is_empty():
+            return None
+
+        result = int(input_widget.get_text())
+        if result > self._max_board_size or result <= 0:
+            return None
+        return result
+
+    def _set_board_size(self):
+        new_rows = self._get_input_num(self._row_widget)
+        new_cols = self._get_input_num(self._col_widget)
+        if new_rows is None or new_cols is None \
+           or (new_rows == self.total_rows and new_cols == self.total_cols):
+            return
+
+        self.total_rows = new_rows
+        self._row_widget.set_text(str(new_rows))
+
+        self.total_cols = new_cols
+        self._col_widget.set_text(str(new_cols))
+        self._init_game()
+
     def _add_apple(self):
         free_spots = []
         for row_ind in range(self.total_rows):
@@ -212,10 +274,25 @@ class GameSnake(Game):
                 result_text = "You Win!"
             else:
                 result_text = "Oops!"
-            self._scoreboard_lines.append(result_text, self._get_color("lightblue"))
+            self._scoreboard_lines.append((result_text, self._get_color("lightblue")))
+
+        self._scoreboard_lines.append(("Board Width: ", self._get_color("white")))
+        temp_text = self.scoreboard_font.render("Board Width: ", True, self._get_color("white"))
+        temp_width = temp_text.get_width()
+        temp_height = temp_text.get_height()
+        self._col_widget.set_pos(self._score_padding + temp_width,
+                                 self._score_height - 2 * (temp_height + self._score_padding))
+
+        self._scoreboard_lines.append(("Board Height: ", self._get_color("white")))
+        temp_text = self.scoreboard_font.render("Board Height: ", True, self._get_color("white"))
+        temp_width = temp_text.get_width()
+        temp_height = temp_text.get_height()
+        self._row_widget.set_pos(self._score_padding + temp_width,
+                                 self._score_height - temp_height - self._score_padding)
 
     def _draw_board(self, screen):
-        rect_size = self.cell_size - 2 * self.cell_padding
+        cell_size = self._board_size // max(self.total_rows, self.total_cols)
+        rect_size = cell_size - self.cell_padding
         for row_ind in range(self.total_rows):
             for col_ind in range(self.total_cols):
                 color = self._cell_color
@@ -223,8 +300,8 @@ class GameSnake(Game):
                     color = self._snake_color
                 elif (row_ind, col_ind) == self._apple:
                     color = self._apple_color
-                x = self._board_x + col_ind * self.cell_size + self.cell_padding
-                y = self._board_y + row_ind * self.cell_size + self.cell_padding
+                x = self._board_x + col_ind * cell_size + self.cell_padding
+                y = self._board_y + row_ind * cell_size + self.cell_padding
                 pygame.draw.rect(screen, color, (x, y, rect_size, rect_size))
 
                 if (row_ind, col_ind) == self._snake[0]:
@@ -335,7 +412,6 @@ class GameTetris(Game):
         self.cell_padding = cell_padding
 
         self._score_width = 50
-        self._score_padding = 10
         self._board_x = self._score_width + (self._screen_width - self.total_cols * self.cell_size) // 2
         self._board_y = (self._screen_height - self.total_rows * self.cell_size) // 2
         self._cell_color = self._get_color('lightgray')
@@ -622,8 +698,8 @@ class GameFlip(Game):
         self.board_size = board_size
         self.border_width = border_width
 
+        self._max_board_size = 100
         self._score_width = 160
-        self._score_padding = 10
         self._board_padding = 10
         self._board_x = self._score_width
         self._board_y = 0
@@ -653,6 +729,13 @@ class GameFlip(Game):
         self._progress_time = 0
         self._board = []
 
+        self._input_widget = Input(self.parent, self._score_padding, self._score_height,
+                                   font=self.scoreboard_font, width=30,
+                                   limit_chars=list(string.digits), max_char=3,
+                                   enter_key_event=self._set_board_size)
+        self._input_widget.set_text(str(self.board_size))
+        self._subwidgets = [self._input_widget]
+
     def _init_game(self):
         self._game_over = False
         self._game_paused = False
@@ -680,31 +763,34 @@ class GameFlip(Game):
 
         self._game_started = False
 
-    def _start_game(self):
-        self._game_started = True
-        self._last_update_time = time.time()
-
-    def _on_setup(self):
+    def _init_board(self):
         self.buttons = []
         self._board = []
-        self._cell_size = (min(self.parent.screen_width - self._score_width,
-                           self.parent.screen_height) - 2 * self._board_padding) // self.board_size
+        self._cell_size = (min(self._screen_width - self._score_width,
+                           self._screen_height) - 2 * self._board_padding) // self.board_size
 
         for row in range(self.board_size):
             cell_row = []
             for col in range(self.board_size):
                 button_x = self._board_x + self._board_padding + col * self._cell_size
                 button_y = self._board_y + self._board_padding + row * self._cell_size
+                border_width = 0 if self.board_size > 30 else self.border_width
                 cell = Button(self.parent, button_x, button_y,
                               width=self._cell_size, height=self._cell_size,
                               background_color=self._origin_color, background_alpha=self._origin_alpha,
-                              border_color=self._border_color, border_width=self.border_width,
+                              border_color=self._border_color, border_width=border_width,
                               on_click=self._click_cell, on_click_param=(row, col),
-                              focus_color=self._origin_focus_color, focus_width=self.border_width)
+                              focus_color=self._origin_focus_color, focus_width=border_width)
                 self.buttons.append(cell)
                 cell_row.append(cell)
             self._board.append(cell_row)
 
+    def _start_game(self):
+        self._game_started = True
+        self._last_update_time = time.time()
+
+    def _on_setup(self):
+        self._init_board()
         self._init_game()
 
     def _on_update(self):
@@ -744,6 +830,13 @@ class GameFlip(Game):
             else:
                 self._scoreboard_lines.append(("Player{} Wins!".format(self._winner), self._winner_color))
 
+        self._scoreboard_lines.append(("Board Size: ", self._get_color("white")))
+        temp_text = self.scoreboard_font.render("Board Size: ", True, self._get_color("white"))
+        temp_width = temp_text.get_width()
+        temp_height = temp_text.get_height()
+        self._input_widget.set_pos(self._score_padding + temp_width,
+                                   self._score_height - temp_height - self._score_padding)
+
     def _draw_board(self, screen):
         for row in self._board:
             for cell in row:
@@ -776,6 +869,8 @@ class GameFlip(Game):
                 self._reset_player_mode()
             elif event.key == pygame.K_t:
                 self._toggle_current_player_mode()
+            elif event.key == pygame.K_RETURN:
+                self._input_widget.set_active(True)
 
     def _is_valid_pos(self, row, col):
         return 0 <= row < self.board_size and 0 <= col < self.board_size
@@ -794,6 +889,25 @@ class GameFlip(Game):
             self._player1_mode = self._curr_mode
         else:
             self._player2_mode = self._curr_mode
+
+    def _set_board_size(self):
+        if self._input_widget.is_empty():
+            return
+
+        new_board_size = int(self._input_widget.get_text())
+        if self.board_size == new_board_size \
+           or new_board_size > self._max_board_size \
+           or new_board_size <= 0:
+            return
+
+        self.board_size = new_board_size
+        self._input_widget.set_text(str(new_board_size))
+        self._init_board()
+        self._init_game()
+
+        for row in self._board:
+            for cell in row:
+                cell.set_active(True)
 
     def _click_cell(self, pos):
         row, col = pos

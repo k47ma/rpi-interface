@@ -49,6 +49,7 @@ class Widget:
         self.default_font_name = pygame.font.get_default_font()
         self.default_font = pygame.font.SysFont(self.default_font_name, 25)
         self.is_active = False
+        self.draw_subwidgets = True
 
         self.buttons = []
 
@@ -77,8 +78,9 @@ class Widget:
 
     def draw(self, screen):
         self._draw_background(screen)
-        for widget in self._subwidgets:
-            widget.draw(screen)
+        if self.draw_subwidgets:
+            for widget in self._subwidgets:
+                widget.draw(screen)
         for shape in self._shapes:
             self._draw_shape(screen, shape)
         for button in self.buttons:
@@ -96,6 +98,13 @@ class Widget:
             self.set_pos(self._screen_width - self.get_width() - self._screen_padding, self.y)
 
     def set_pos(self, x, y):
+        x_offset = x - self.x
+        y_offset = y - self.y
+        for widget in self._subwidgets:
+            new_x = widget.x + x_offset
+            new_y = widget.y + y_offset
+            widget.set_pos(new_x, new_y)
+
         self.x = x
         self.y = y
         self.setup()
@@ -1765,8 +1774,8 @@ class Search(Widget):
 
 class Input(Widget):
     def __init__(self, parent, x, y, font=None, width=100, enter_key_event=None,
-                 capital_lock=False, limit_chars=None, align_right=False,
-                 cursor=True):
+                 capital_lock=False, limit_chars=None, max_char=-1,
+                 align_right=False, cursor=True):
         super(Input, self).__init__(parent, x, y)
 
         self.font = font if font is not None else self.default_font
@@ -1775,6 +1784,7 @@ class Input(Widget):
         self.enter_key_event = enter_key_event
         self.capital_lock = capital_lock
         self.limit_chars = limit_chars
+        self.max_char = max_char
         self.align_right = align_right
         self.cursor = cursor
 
@@ -1782,7 +1792,8 @@ class Input(Widget):
         self._cursor_index = 0
         self._cursor_active_time = time.time()
         self._string = ""
-        self._content_widget = Content(self.parent, self.x, self.y, self._string, font=self.font, color=self._get_color('white'))
+        self._content_widget = Content(self.parent, self.x, self.y, self._string,
+                                       font=self.font, color=self._get_color('white'))
         self._subwidgets = [self._content_widget]
 
     def _draw_cursor(self, screen):
@@ -1810,6 +1821,9 @@ class Input(Widget):
             return
 
         if self.limit_chars is not None and s not in self.limit_chars:
+            return
+
+        if len(self.get_text()) >= self.max_char:
             return
 
         if self.capital_lock:
@@ -1900,6 +1914,9 @@ class Input(Widget):
 
     def get_text(self):
         return self._string
+
+    def is_empty(self):
+        return len(self._string) == 0
 
     def set_text(self, text):
         self._string = text
