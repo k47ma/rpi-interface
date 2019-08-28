@@ -1,5 +1,8 @@
 image: python:3.7
 
+variables:
+  SDL_VIDEODRIVER: "dummy"
+
 before_script:
   - python3 -m venv env
   - source env/bin/activate
@@ -12,3 +15,9 @@ lint:
 run_test:
   script:
     - pytest -v lib/test.py
+
+dry_run:
+  script:
+    - python3 main.py -r 10 -c
+    - python3 main.py -r 30 -c -d -p -i -f
+    - python3 main.py --dryrun 30 --camera --debug --performance

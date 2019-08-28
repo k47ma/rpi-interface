@@ -250,6 +250,9 @@ class GameSnake(Game):
         self._col_widget.set_text(str(new_cols))
         self._init_game()
 
+        self._row_widget.set_active(False)
+        self._col_widget.set_active(False)
+
     def _add_apple(self):
         free_spots = []
         for row_ind in range(self.total_rows):
@@ -908,6 +911,8 @@ class GameFlip(Game):
         for row in self._board:
             for cell in row:
                 cell.set_active(True)
+
+        self._input_widget.set_active(False)
 
     def _click_cell(self, pos):
         row, col = pos

@@ -28,6 +28,7 @@ class App:
         self._frame_rate = self._normal_frame_rate
         self._fullscreen = self.args.fullscreen if self.args else False
         self._debug_mode = self.args.debug if self.args else False
+        self._dryrun_timeout = self.args.dryrun if self.args else -1
 
         if self._fullscreen:
             self.display = pygame.display.set_mode(self._screen_size, pygame.FULLSCREEN)
@@ -99,6 +100,8 @@ class App:
         self._actual_frame_rate = 0
         self._frame_last_update = time.time()
         self._frame_text_last_update = time.time()
+
+        self._start_time = time.time()
 
         self._setup()
 
@@ -251,6 +254,10 @@ class App:
             self._update_screen()
             self._draw_screen()
             self.clock.tick(self._frame_rate)
+
+            if self._dryrun_timeout != -1 \
+               and time.time() - self._start_time > self._dryrun_timeout:
+                self._done = True
 
         if self.camera:
             self.camera.release()
