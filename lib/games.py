@@ -125,17 +125,23 @@ class GameSnake(Game):
         self._row_widget = Input(self.parent, self._score_padding, self._score_height,
                                  font=self.scoreboard_font, width=30,
                                  limit_chars=list(string.digits), max_char=3,
-                                 enter_key_event=self._set_board_size)
+                                 enter_key_event=self._confirm_settings)
         self._col_widget = Input(self.parent, self._score_padding, self._score_height,
                                  font=self.scoreboard_font, width=30,
                                  limit_chars=list(string.digits), max_char=3,
-                                 enter_key_event=self._set_board_size)
+                                 enter_key_event=self._confirm_settings)
+        self._speed_widget = Input(self.parent, self._score_padding, self._score_height,
+                                   font=self.scoreboard_font, width=30,
+                                   limit_chars=list(string.digits), max_char=3,
+                                   enter_key_event=self._confirm_settings)
         self._row_widget.set_text(str(self.total_rows))
         self._col_widget.set_text(str(self.total_cols))
+        self._speed_widget.set_text(str(self._snake_speed))
         self._row_widget.bind_key(pygame.K_TAB, self._toggle_input_widget)
         self._col_widget.bind_key(pygame.K_TAB, self._toggle_input_widget)
+        self._speed_widget.bind_key(pygame.K_TAB, self._toggle_input_widget)
 
-        self._subwidgets = [self._row_widget, self._col_widget]
+        self._subwidgets = [self._row_widget, self._col_widget, self._speed_widget]
 
     def _game_on_enter(self):
         self._init_game()
@@ -225,6 +231,9 @@ class GameSnake(Game):
             self._row_widget.set_active(True)
         elif self._row_widget.is_active:
             self._row_widget.set_active(False)
+            self._speed_widget.set_active(True)
+        elif self._speed_widget.is_active:
+            self._speed_widget.set_active(False)
             self._col_widget.set_active(True)
 
     def _get_input_num(self, input_widget):
@@ -236,22 +245,33 @@ class GameSnake(Game):
             return None
         return result
 
-    def _set_board_size(self):
+    def _confirm_settings(self):
         new_rows = self._get_input_num(self._row_widget)
         new_cols = self._get_input_num(self._col_widget)
-        if new_rows is None or new_cols is None \
-           or (new_rows == self.total_rows and new_cols == self.total_cols):
+        new_speed = self._get_input_num(self._speed_widget)
+        if new_rows is None or new_cols is None or new_speed is None \
+           or (new_rows == self.total_rows
+               and new_cols == self.total_cols
+               and new_speed == self._snake_speed):
             return
+
+        reset_game = new_rows != self.total_rows or new_cols != self.total_cols
 
         self.total_rows = new_rows
         self._row_widget.set_text(str(new_rows))
 
         self.total_cols = new_cols
         self._col_widget.set_text(str(new_cols))
-        self._init_game()
+
+        self._snake_speed = new_speed
+        self._speed_widget.set_text(str(new_speed))
+
+        if reset_game:
+            self._init_game()
 
         self._row_widget.set_active(False)
         self._col_widget.set_active(False)
+        self._speed_widget.set_active(False)
 
     def _add_apple(self):
         free_spots = []
@@ -284,14 +304,21 @@ class GameSnake(Game):
         temp_width = temp_text.get_width()
         temp_height = temp_text.get_height()
         self._col_widget.set_pos(self._score_padding + temp_width,
-                                 self._score_height - 2 * (temp_height + self._score_padding))
+                                 self._score_height - 3 * (temp_height + self._score_padding))
 
         self._scoreboard_lines.append(("Board Height: ", self._get_color("white")))
         temp_text = self.scoreboard_font.render("Board Height: ", True, self._get_color("white"))
         temp_width = temp_text.get_width()
         temp_height = temp_text.get_height()
         self._row_widget.set_pos(self._score_padding + temp_width,
-                                 self._score_height - temp_height - self._score_padding)
+                                 self._score_height - 2 * (temp_height + self._score_padding))
+
+        self._scoreboard_lines.append(("Snake Speed: ", self._get_color("white")))
+        temp_text = self.scoreboard_font.render("Snake Speed: ", True, self._get_color("white"))
+        temp_width = temp_text.get_width()
+        temp_height = temp_text.get_height()
+        self._speed_widget.set_pos(self._score_padding + temp_width,
+                                   self._score_height - (temp_height + self._score_padding))
 
     def _draw_board(self, screen):
         cell_size = self._board_size // max(self.total_rows, self.total_cols)
