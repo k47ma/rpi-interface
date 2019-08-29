@@ -45,7 +45,7 @@ class App:
         self._done = False
 
         pygame.mouse.set_visible(False)
-        pygame.mouse.set_cursor(*pygame.cursors.diamond)
+        pygame.mouse.set_cursor(*pygame.cursors.arrow)
 
         self.clock = pygame.time.Clock()
 

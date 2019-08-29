@@ -146,6 +146,10 @@ class GameSnake(Game):
     def _game_on_enter(self):
         self._init_game()
 
+        self._row_widget.set_text(str(self.total_rows))
+        self._col_widget.set_text(str(self.total_cols))
+        self._speed_widget.set_text(str(self._snake_speed))
+
     def _game_on_exit(self):
         pass
 
@@ -877,6 +881,7 @@ class GameFlip(Game):
         for row in self._board:
             for cell in row:
                 cell.set_active(True)
+        self._input_widget.set_text(str(self.board_size))
 
         self._game_paused = False
         if self._game_started:
