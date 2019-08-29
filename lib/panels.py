@@ -84,7 +84,7 @@ class Panel:
         if event.type == pygame.MOUSEBUTTONDOWN:
             clicked = False
             for button in self.buttons:
-                if button.is_focused() and button.is_active:
+                if button.is_focused():
                     button.click()
                     clicked = True
             if not clicked:

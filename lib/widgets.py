@@ -210,7 +210,7 @@ class Widget:
                     return
         elif event.type == pygame.MOUSEBUTTONDOWN:
             for button in self.buttons:
-                if button.is_focused() and button.is_active:
+                if button.is_focused():
                     button.click()
                     return
 
@@ -1823,7 +1823,7 @@ class Input(Widget):
         if self.limit_chars is not None and s not in self.limit_chars:
             return
 
-        if len(self.get_text()) >= self.max_char:
+        if self.max_char != -1 and len(self.get_text()) >= self.max_char:
             return
 
         if self.capital_lock:
@@ -1930,7 +1930,7 @@ class Input(Widget):
         return self.font.render(' ', True, self._get_color('white')).get_height()
 
     def enter_char(self, c):
-        if c not in printable:
+        if c not in list(printable):
             return
 
         self._input(c)
