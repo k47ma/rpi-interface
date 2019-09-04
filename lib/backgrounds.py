@@ -8,7 +8,7 @@ import glob
 import time
 import math
 from lib.threads import ImageRotateThread
-from lib.util import distance
+from lib.util import distance, choices
 
 
 class Background:
@@ -107,7 +107,7 @@ class DynamicTriangle(Background):
                                  self.width - self.points_padding,
                                  self.height - self.points_padding,
                                  radius=50, speed=1, speed_variant=0.2) for _ in range(self.total_points)]
-        self.triangles = [Triangle(random.choices(self.points, k=3)) for _ in range(self.total_triangles)]
+        self.triangles = [Triangle(choices(self.points, k=3)) for _ in range(self.total_triangles)]
 
     def _on_enter(self):
         self.points_setup()
