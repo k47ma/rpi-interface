@@ -1,6 +1,6 @@
 #!/bin/bash
 
 while true; do
-    python main.py -i -f >> interface.log 2>&1
+    python3 main.py -i -f >> interface.log 2>&1
     sleep 5
 done
