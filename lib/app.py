@@ -201,7 +201,7 @@ class App:
 
         ret, frame = self.camera.read()
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        samples = random.sample(np.ravel(gray), 100)
+        samples = random.sample(list(np.ravel(gray)), 100)
         samples_avg = sum(samples) / len(samples)
         if samples_avg >= self._brightness_thres:
             self._brightness = 1.0
