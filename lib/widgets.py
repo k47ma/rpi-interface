@@ -922,7 +922,7 @@ class TextCalendar(Widget):
         offset_y = 0
         now = dt.now()
         is_present_month = (self._curr_year == now.year and self._curr_month == now.month)
-        days_with_events = [(event[1][8:10], event[-1]) for event in self._events
+        days_with_events = [(str(int(event[1][8:10])), event[-1]) for event in self._events
                             if int(event[1][:4]) == self._curr_year
                             and int(event[1][5:7]) == self._curr_month]
         event_ind = 0
@@ -945,6 +945,9 @@ class TextCalendar(Widget):
             while event_ind < len(days_with_events) and days_with_events[event_ind][0] in line.split():
                 event_day_ind = line.split().index(days_with_events[event_ind][0])
                 offset_x = self._cal_font_width * event_day_ind * 3
+                leading_spaces = (len(line) - len(line.lstrip(' ')))
+                if leading_spaces > 0:
+                    offset_x += (leading_spaces - 1) * self._cal_font_width
 
                 start_pos = (self.x + offset_x, self.y + offset_y + self._cal_date_height - 3)
                 end_pos = (self.x + offset_x + self._cal_date_width, self.y + offset_y + self._cal_date_height - 3)
