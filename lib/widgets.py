@@ -35,6 +35,9 @@ class Widget:
         self.x = x
         self.y = y
 
+        self.width = 0
+        self.height = 0
+
         self._colors = {"black": (0, 0, 0),
                         "white": (255, 255, 255),
                         "gray": (100, 100, 100),
@@ -96,6 +99,9 @@ class Widget:
             self.set_pos(self._screen_padding, self.y)
         elif align == "right":
             self.set_pos(self._screen_width - self.get_width() - self._screen_padding, self.y)
+        elif align == "center":
+            self.set_pos((self._screen_width - self.get_width()) // 2,
+                         (self._screen_height - self.get_height()) // 2)
 
     def set_pos(self, x, y):
         x_offset = x - self.x
@@ -226,10 +232,10 @@ class Widget:
                 self.exit()
 
     def get_width(self):
-        return 0
+        return self.width
 
     def get_height(self):
-        return 0
+        return self.height
 
     def bind_key(self, key, func, shift=False, ctrl=False):
         self._key_binds[key] = {'func': func, 'shift': shift, 'ctrl': ctrl}

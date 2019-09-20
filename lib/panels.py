@@ -11,6 +11,7 @@ from lib.games import GameSnake, GameTetris, GameFlip
 from lib.widgets import News, NewsList, Weather, Calendar, Traffic, Stock, \
     SystemInfo, Time, NightTime, Content, Search, Chart, ChartCaption, Map, \
     List, Calculator, Camera
+from lib.popups import InfoPopup
 
 
 class Panel:
@@ -75,17 +76,23 @@ class Panel:
         for widget in self.widgets:
             widget.update()
 
+        if self.popup:
+            self.popup.update()
+            if not self.popup.is_active:
+                self.popup = None
+
     def draw(self, screen):
         for widget in self.widgets:
             widget.draw(screen)
         for button in self.buttons:
             button.draw(screen)
 
+        if self.popup:
+            self.popup.draw(screen)
+
     def handle_events(self, event):
         if self.popup:
             self.popup.handle_events(event)
-            if self.popup.done:
-                self.popup = None
             return
 
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -115,6 +122,11 @@ class Panel:
     def handle_panel_events(self, event):
         pass
 
+    def set_popup(self, popup):
+        self.popup = popup
+        self.popup.setup()
+        self.popup.set_active(True)
+
 
 class MainPanel(Panel):
     def __init__(self, app):
@@ -140,6 +152,8 @@ class MainPanel(Panel):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_c:
                 self.set_active_widget(self.calendar_widget)
+            elif event.key == pygame.K_o:
+                self.set_popup(InfoPopup(self, 300, 200, "Hello world!"))
 
     def set_night_mode(self):
         self.app.set_active_panel(self.app.night_panel)

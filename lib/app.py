@@ -86,7 +86,7 @@ class App:
                                              alpha=160, color1=(255, 215, 0),
                                              color2=(135, 200, 255),
                                              steps=50, radius=4, trace_length=75)
-        self.backgrounds = [self.image_background, self.triangle_background,
+        self.backgrounds = [self.triangle_background, self.image_background,
                             self.trace_background, self.blank_background]
         self._background_type = 0
 
