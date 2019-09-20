@@ -111,6 +111,11 @@ class Widget:
             new_y = widget.y + y_offset
             widget.set_pos(new_x, new_y)
 
+        for button in self.buttons:
+            new_x = button.x + x_offset
+            new_y = button.y + y_offset
+            button.set_pos(new_x, new_y)
+
         self.x = x
         self.y = y
         self.setup()

@@ -85,6 +85,7 @@ class Button:
         if self.border_color is not None and self.border_width > 0:
             color = self.focus_color if self.focus_color and self.is_focused() else self.border_color
             border_width = self.focus_width if self.is_focused() else self.border_width
+            print(border_width)
             pygame.draw.rect(screen, color, (self.x, self.y, self.width, self.height), border_width)
 
         if self.rendered_text:
@@ -97,10 +98,14 @@ class Button:
 
     def click(self):
         if self.on_click:
-            if self.on_click_param:
+            if self.on_click_param is not None:
                 self.on_click(self.on_click_param)
             else:
                 self.on_click()
 
     def set_active(self, status):
         self.is_active = status
+
+    def set_pos(self, x, y):
+        self.x = x
+        self.y = y
