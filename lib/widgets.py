@@ -840,7 +840,7 @@ class TextCalendar(Widget):
     def __init__(self, parent, x, y):
         super(TextCalendar, self).__init__(parent, x, y)
 
-        self.calendar_font = pygame.font.Font("fonts/LiberationMono.ttf", 15)
+        self.calendar_font = pygame.font.Font("fonts/LiberationMono.ttf", 18)
 
         space_text = self.calendar_font.render(' ', True, self._get_color('white'))
         date_text = self.calendar_font.render('00', True, self._get_color('white'))
@@ -1010,6 +1010,7 @@ class Traffic(Widget):
 
         self._traffic_last_update = time.time()
         self._traffic_update_interval = 1800
+        self._traffic_info = None
 
     def _load_traffic(self):
         self._traffic_payload['origins'] = '+'.join(self._origin_address.split())
@@ -2354,6 +2355,7 @@ class Camera(Widget):
         self.camera = camera
 
         self._camera_font = pygame.font.Font("fonts/FreeSans.ttf", 15)
+        self._message_font = pygame.font.Font("fonts/FreeSans.ttf", 20)
         self._camera_rotation = 90
         self._camera_resolution = (self._screen_width, self._screen_height)
         self._camera_framerate = 0
@@ -2370,6 +2372,7 @@ class Camera(Widget):
 
     def _on_draw(self, screen):
         if self._frame is None or not self._frame.any():
+            self._draw_message(screen)
             return
 
         image_arr = cv2.cvtColor(self._frame, cv2.COLOR_BGR2RGB)
@@ -2397,6 +2400,14 @@ class Camera(Widget):
 
         framerate_text = self._camera_font.render("FPS: {}".format(self._camera_framerate), True, self._get_color('green'))
         screen.blit(framerate_text, (10, 10))
+
+    def _draw_message(self, screen):
+        message = "Camera Disabled"
+        message_text = self._message_font.render(message, True, self._get_color('white'))
+
+        x = (self._screen_width - message_text.get_width()) // 2
+        y = (self._screen_height - message_text.get_height()) // 2
+        screen.blit(message_text, (x, y))
 
 
 class List(Widget):

@@ -11,8 +11,8 @@ if __name__ == '__main__':
                         default=False, help="enable performance mode")
     parser.add_argument('-d', '--debug', action='store_true',
                         default=False, help="enable debug mode")
-    parser.add_argument('-c', '--camera', action='store_false',
-                        default=True, help="disable camera")
+    parser.add_argument('-c', '--camera', action='store_true',
+                        default=False, help="disable camera")
     parser.add_argument('-r', '--dryrun', action='store', type=int,
                         default=-1, help="dryrun testing time in seconds")
     args = parser.parse_args()

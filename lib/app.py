@@ -54,7 +54,6 @@ class App:
         self.main_panel = MainPanel(self)
         self.main_panel.always_update = True
         self.night_panel = NightPanel(self)
-        self.night_panel.always_update = True
         self.news_panel = NewsPanel(self)
         self.search_panel = SearchPanel(self)
         self.system_info_panel = SystemInfoPanel(self)
@@ -186,7 +185,7 @@ class App:
         if self.active_panel is self.camera_panel:
             return
 
-        if 6 < dt.now().hour < 18:
+        if dt.now().hour >= 6:
             return
 
         brightness_surface = pygame.Surface((self._screen_width, self._screen_height))
@@ -231,6 +230,7 @@ class App:
             if self.active_panel is not None:
                 self.active_panel.exit()
             panel.enter()
+            panel.update()
             self.active_panel = panel
 
     def get_screen(self):

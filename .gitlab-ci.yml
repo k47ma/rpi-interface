@@ -18,6 +18,6 @@ run_test:
 
 dry_run:
   script:
-    - python3 main.py -r 10 -c
-    - python3 main.py -r 30 -c -d -p -i -f
-    - python3 main.py --dryrun 60 --camera --debug --performance
+    - python3 main.py -r 10
+    - python3 main.py -r 30 -d -p -i -f
+    - python3 main.py --dryrun 60 --debug --performance

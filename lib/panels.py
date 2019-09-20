@@ -28,6 +28,7 @@ class Panel:
 
         self.widgets = []
         self.buttons = []
+        self.popup = None
         self.default_font_name = pygame.font.get_default_font()
         self.active_widget = None
         if self.widgets:
@@ -81,6 +82,12 @@ class Panel:
             button.draw(screen)
 
     def handle_events(self, event):
+        if self.popup:
+            self.popup.handle_events(event)
+            if self.popup.done:
+                self.popup = None
+            return
+
         if event.type == pygame.MOUSEBUTTONDOWN:
             clicked = False
             for button in self.buttons:
@@ -148,14 +155,16 @@ class NightPanel(Panel):
         self._curr_minute = dt.now().minute
 
     def _on_update(self):
-        self.curr_hour = dt.now().hour
-        self.curr_minute = dt.now().minute
+        now = dt.now()
+        self.curr_hour = now.hour
+        self.curr_minute = now.minute
+        self.curr_sec = now.second
         self._auto_set_night()
 
     def _auto_set_night(self):
-        if self.curr_hour == 6 and self.curr_minute == 0:
+        if self.curr_hour == 6 and self.curr_minute == 0 and self.curr_sec == 0:
             self.app.set_active_panel(self.app.main_panel)
-        elif self.curr_hour == 0 and self.curr_minute == 0:
+        elif self.curr_hour == 0 and self.curr_minute == 0 and self.curr_sec == 0:
             self.app.set_active_panel(self)
 
     def handle_panel_events(self, event):
