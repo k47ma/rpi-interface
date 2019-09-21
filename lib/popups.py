@@ -63,7 +63,7 @@ class Popup(Widget):
     def _calculate_button_pos(self):
         total_buttons = len(self.action_buttons)
         total_width = self._action_button_size * total_buttons \
-                      + self._action_button_margin * (total_buttons - 1)
+            + self._action_button_margin * (total_buttons - 1)
         x_offset = (self.width - total_width) // 2
         y_offset = self.height - self._action_button_height - self._frame_padding
         for button in self.action_buttons:
