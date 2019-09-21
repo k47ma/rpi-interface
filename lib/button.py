@@ -31,8 +31,10 @@ class Button:
 
         if font:
             self.font = font
-        else:
+        elif self.text:
             self.font = self.date_font = pygame.font.SysFont(pygame.font.get_default_font(), 30)
+        else:
+            self.font = None
 
         if self.text:
             self.rendered_text = self.font.render(self.text, True, self.text_color)
@@ -83,10 +85,8 @@ class Button:
             screen.blit(background_surface, (self.x, self.y))
 
         if self.border_color is not None and self.border_width > 0:
-            color = self.focus_color if self.focus_color and self.is_focused() else self.border_color
             border_width = self.focus_width if self.is_focused() else self.border_width
-            print(border_width)
-            pygame.draw.rect(screen, color, (self.x, self.y, self.width, self.height), border_width)
+            pygame.draw.rect(screen, self.border_color, (self.x, self.y, self.width, self.height), border_width)
 
         if self.rendered_text:
             text_x = self.x + (self.width - self.rendered_text.get_width()) // 2

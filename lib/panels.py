@@ -246,7 +246,7 @@ class SystemInfoPanel(Panel):
         self._caption_font = pygame.font.Font("fonts/FreeSans.ttf", 13)
         self._info_font = pygame.font.Font("fonts/FreeSans.ttf", 13)
 
-        self._max_size = 60
+        self._max_size = 120
         self._update_interval = 0.5
         self._cpu_info = queue.Queue(maxsize=self._max_size)
         self._last_cpu_info = 0
@@ -260,7 +260,7 @@ class SystemInfoPanel(Panel):
                                   max_x=int(self._max_size * self._update_interval),
                                   info_colors=self._info_colors,
                                   x_unit=self._update_interval, y_unit=1,
-                                  x_label_interval=5, y_label_interval=20)
+                                  x_label_interval=10, y_label_interval=20)
         self._info_widget = SystemInfo(self, 160, 20, font=self._info_font,
                                        cpu_info=False, memory_info=False,
                                        disk_info=False, percent_bar=False)

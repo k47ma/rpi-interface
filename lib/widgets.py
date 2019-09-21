@@ -208,24 +208,25 @@ class Widget:
         for widget in self._subwidgets:
             if widget.is_active:
                 widget.handle_events(event)
-                return
+                return 0
 
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE and self.is_active:
                 self.set_active(False)
-                return
+                return 0
             elif self._key_binds.get(event.key) is not None:
                 bind = self._key_binds[event.key]
                 if (shift_pressed() == bind['shift']) and (ctrl_pressed() == bind['ctrl']):
                     bind['func']()
-                    return
+                    return 0
         elif event.type == pygame.MOUSEBUTTONDOWN:
             for button in self.buttons:
                 if button.is_focused():
                     button.click()
-                    return
+                    return 0
 
         self._handle_widget_events(event)
+        return 1
 
     def set_active(self, status):
         if self.is_active != status:
@@ -1030,7 +1031,6 @@ class Traffic(Widget):
         traffic_info_res = requests.get(self._traffic_url, params=self._traffic_payload)
         self._traffic_info = traffic_info_res.json()
 
-        self._traffic_last_update = time.time()
         log_to_file("Traffic updated")
 
     def _on_setup(self):
@@ -1043,6 +1043,7 @@ class Traffic(Widget):
         if (time.time() - self._traffic_last_update > self._traffic_update_interval
                 or self._traffic_info is None):
             self._load_traffic()
+            self._traffic_last_update = time.time()
 
     def _on_draw(self, screen):
         if not self._traffic_info:

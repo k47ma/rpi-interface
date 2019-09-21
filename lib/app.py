@@ -105,9 +105,9 @@ class App:
         self._setup()
 
     def _setup(self):
-        self.set_active_panel(self.main_panel)
         for panel in self.panels:
             panel.setup()
+        self.set_active_panel(self.main_panel)
 
     def _handle_events(self):
         for event in pygame.event.get():
