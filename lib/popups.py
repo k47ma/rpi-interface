@@ -27,7 +27,7 @@ class Popup(Widget):
 
         self.action_buttons = []
         self._action_button_font = pygame.font.Font('fonts/FreeSans.ttf', 18)
-        self._action_button_size = 50
+        self._action_button_size = 70
         self._action_button_padding = 2
         self._action_button_margin = 20
         self._action_button_temp = self._action_button_font.render(' ', True, self._get_color('white'))
@@ -71,6 +71,12 @@ class Popup(Widget):
             button.y += y_offset
             x_offset += self._action_button_size + self._action_button_margin
 
+    def _on_update(self):
+        pass
+
+    def _on_draw(self, screen):
+        pass
+
     def setup(self):
         super(Popup, self).setup()
         self._calculate_button_pos()
@@ -93,7 +99,7 @@ class Popup(Widget):
         self._rendered_title = self._title_font.render(self._title, True, self._title_color)
         self._header_height = self._rendered_title.get_height() + 2 * self._title_padding_y
 
-    def add_action_button(self, text, action=None):
+    def add_action_button(self, text, action=None, action_param=None):
         new_button = Button(self.parent, self.x, self.y, text=text,
                             width=self._action_button_size,
                             height=self._action_button_height,
@@ -101,7 +107,8 @@ class Popup(Widget):
                             border_color=self._get_color('white'),
                             focus_color=self._get_color('lightgray'),
                             border_width=1, focus_width=2,
-                            on_click=action, font=self._action_button_font)
+                            on_click=action, on_click_param=action_param,
+                            font=self._action_button_font)
         self.buttons.append(new_button)
         self.action_buttons.append(new_button)
 
@@ -132,13 +139,47 @@ class InfoPopup(Popup):
     def _on_setup(self):
         self.set_title('Info')
 
-    def _on_update(self):
-        pass
+    def _handle_popup_event(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN:
+                self.close()
 
-    def _on_draw(self, screen):
-        pass
+
+class ConfirmPopup(Popup):
+    def __init__(self, parent, width, height, text, actions={}):
+        super(ConfirmPopup, self).__init__(parent, width, height)
+
+        self.text = text
+        self.actions = actions
+
+        self._text_padding = 10
+        self._text_font = pygame.font.Font('fonts/FreeSans.ttf', 18)
+        self._text_widget_max_width = self.width - 2 * self._text_padding
+        self._text_widget_max_height = self.height - 2 * self._text_padding - self._header_height
+        self._text_widget = Content(self.parent, 0, 0, self.text,
+                                    max_width=self._text_widget_max_width,
+                                    max_height=self._text_widget_max_height,
+                                    font=self._text_font)
+        self._text_widget.setup()
+        text_x = self.x + (self.width - self._text_widget.get_width()) // 2
+        text_y = self.y + (self.height - self._text_widget.get_height()) // 2
+        self._text_widget.set_pos(text_x, text_y)
+
+        self._subwidgets.append(self._text_widget)
+
+        for key in actions:
+            self.add_action_button(key, action=self._select_action, action_param=key)
+        self.add_action_button('Cancel', action=self.close)
+
+    def _on_setup(self):
+        self.set_title('Info')
 
     def _handle_popup_event(self, event):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RETURN:
                 self.close()
+
+    def _select_action(self, key):
+        if self.actions.get(key) is not None:
+            self.actions[key]()
+        self.close()
