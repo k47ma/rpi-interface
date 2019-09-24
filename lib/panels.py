@@ -164,8 +164,10 @@ class MainPanel(Panel):
             if event.key == pygame.K_c:
                 self.set_active_widget(self.calendar_widget)
             elif event.key == pygame.K_o:
-                self.set_popup(InputPopup(self, 300, 200, text="Please enter data:",
-                                          entries=["Event Name", "Date"], required=[True, True]))
+                new_popup = InputPopup(self, 300, 200, text="Please enter data:",
+                                       entries=["Event Name", "Date"], required=[True, True],
+                                       close_action=lambda: print(new_popup.get_input()))
+                self.set_popup(new_popup)
 
     def enter_night_mode(self):
         self.app.set_active_panel(self.app.night_panel)

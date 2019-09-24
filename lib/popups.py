@@ -185,12 +185,13 @@ class ConfirmPopup(Popup):
 
 
 class InputPopup(Popup):
-    def __init__(self, parent, width, height, text='', entries=[], required=None):
+    def __init__(self, parent, width, height, text='', entries=[], required=None, close_action=None):
         super(InputPopup, self).__init__(parent, width, height)
 
         self.text = text
         self.entries = entries
         self.required = required
+        self.close_action = close_action
 
         self._text_padding = 10
         self._text_font = pygame.font.Font('fonts/FreeSans.ttf', 18)
@@ -272,14 +273,23 @@ class InputPopup(Popup):
         if not self.required:
             return True
 
-        ret = True
+        is_valid = True
         for ind, t in enumerate(self._input_widgets):
             t[1].set_color(self._get_color('white'))
             if not t[2].get_text() and self.required[ind]:
                 t[1].set_color(self._get_color('red'))
-                ret = False
+                is_valid = False
 
-        if ret:
+        if is_valid:
+            if self.close_action:
+                self.close_action()
             self.close()
 
-        return ret
+        return is_valid
+
+    def get_input(self):
+        result = {}
+        for t in self._input_widgets:
+            result[t[0]] = t[2].get_text()
+
+        return result
