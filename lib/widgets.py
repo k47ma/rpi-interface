@@ -657,6 +657,9 @@ class Calendar(Widget):
         self._text_cal.setup()
         self._text_cal_mode = False
 
+        self._delete_mode = False
+        self._selected_color = self._get_color('green')
+
         self._load_calendar()
         self._load_table()
         if self._calendar_table.is_empty():
@@ -664,12 +667,16 @@ class Calendar(Widget):
         self.set_align(self.align)
 
     def _on_enter(self):
+        self._calendar_selected_row = 0
+        if self._delete_mode:
+            self._delete_mode = False
+            self._selected_color = self._get_color('green')
+
         self._calendar_last_active = time.time()
         if self._text_cal_mode:
             self._text_cal.is_active = True
 
     def _on_exit(self):
-        self._calendar_selected_row = 0
         self._text_cal.reset()
         self._text_cal.is_active = False
 
@@ -707,7 +714,8 @@ class Calendar(Widget):
         self._parsed_calendar_display = copy.deepcopy(self._parsed_calendar)
 
         if self.max_past_days != -1:
-            self._parsed_calendar_display = [row for row in self._parsed_calendar_display if row[-1] == '1' or int(row[-2]) >= -self.max_past_days]
+            self._parsed_calendar_display = [row for row in self._parsed_calendar_display 
+                                             if row[-1] == '1' or int(row[-2]) >= -self.max_past_days]
 
         if self.max_rows != -1:
             self._parsed_calendar_display = self._parsed_calendar_display[:self.max_rows]
@@ -736,18 +744,21 @@ class Calendar(Widget):
                 continue
 
             row.append(status[ind])
+    
+    def _open_calendar_file(self):
+        with open(self._calendar_file, 'r') as f:
+            soup = BeautifulSoup(f.read(), features='lxml')
+        return soup
+    
+    def _save_calendar_file(self, soup):
+        with open(self._calendar_file, 'w') as file:
+            file.write(str(soup))
+            file.close()
 
     def _toggle_calendar_row_status(self, row_index):
         self._parsed_calendar_display[row_index][-1] = "0" if bool(int(self._parsed_calendar_display[row_index][-1])) else "1"
 
-        file = open(self._calendar_file, 'r')
-        calendar_text = file.read()
-        file.close()
-
-        # parse html file into a BeautifulSoup object
-        soup = BeautifulSoup(calendar_text, "html.parser")
-
-        # get table rows
+        soup = self._open_calendar_file()
         calendar_rows = soup.find_all('tr')[1:]
         for row_tag in calendar_rows:
             row_name = row_tag.find('td').get_text()
@@ -758,25 +769,77 @@ class Calendar(Widget):
                 continue
             row_tag.find('status').string = self._parsed_calendar_display[target_ind][-1]
 
-        with open(self._calendar_file, 'w') as file:
-            file.write(str(soup))
-            file.close()
-
+        self._save_calendar_file(soup)
         self.reload_calendar()
+
+    def _add_event_from_popup(self):
+        e = self.parent.popup.get_input()
+        new_soup = BeautifulSoup('<tr></tr>', features='lxml')
+        row_tag = new_soup.tr
+        name_tag = new_soup.new_tag('td')
+        name_tag.string = e['Event']
+        row_tag.append(name_tag)
+        date_tag = new_soup.new_tag('td')
+        date_tag.string = e['Date']
+        row_tag.append(date_tag)
+        status_tag = new_soup.new_tag('status')
+        status_tag.string = '1'
+        row_tag.append(status_tag)
+
+        soup = self._open_calendar_file()
+        table = soup.find('tbody')
+        table.append(row_tag)
+
+        self._save_calendar_file(soup)
+        self.reload_calendar()
+    
+    def _edit_event_from_popup(self, row_ind):
+        self._delete_event(row_ind, reload=False)
+        self._add_event_from_popup()
+
+    def _delete_event(self, row_ind, reload=True):
+        self._calendar_selected_row = row_ind
+        target = self._get_selected_event()
+        target_name = target[0]
+        target_date = target[1]
+        target_status = target[-1]
+
+        soup = self._open_calendar_file()
+        calendar_rows = soup.find_all('tr')[1:]
+        for row_tag in calendar_rows:
+            row_name = row_tag.find_all('td')[0].get_text()
+            row_date = row_tag.find_all('td')[1].get_text()
+            row_status = row_tag.find('status').get_text()
+            if (row_name, row_date, row_status) == (target_name, target_date, target_status):
+                row_tag.extract()
+
+        self._save_calendar_file(soup)
+        if reload:
+            self.reload_calendar()
+
+    def _get_selected_event(self):
+        return self._parsed_calendar_display[self._calendar_selected_row]
 
     def _toggle_text_calendar(self):
         self._text_cal_mode = not self._text_cal_mode
         self._text_cal.is_active = self._text_cal_mode
         self.reload_calendar()
+    
+    def _toggle_delete_mode(self):
+        self._delete_mode = not self._delete_mode
+        if self._delete_mode:
+            self._selected_color = self._get_color('red')
+        else:
+            self._selected_color = self._get_color('green')
 
     def _load_table(self):
         calendar_contents = [row[:-1] for row in self._parsed_calendar_display]
         calendar_status = [bool(int(row[-1])) for row in self._parsed_calendar_display]
-        self._calendar_table = Table(calendar_contents, titles=self._calendar_titles, header_font=self.header_font,
-                                     content_font=self.content_font, x=self.x, y=self.y,
-                                     content_centered=[False, False, True], x_padding=2,
+        self._calendar_table = Table(calendar_contents, titles=self._calendar_titles,
+                                     header_font=self.header_font, content_font=self.content_font, 
+                                     x=self.x, y=self.y, content_centered=[False, False, True], x_padding=2,
                                      selected=self.is_active, selected_row=self._calendar_selected_row,
-                                     row_status=calendar_status)
+                                     selected_line_color=self._selected_color, row_status=calendar_status)
 
     def _on_setup(self):
         pass
@@ -814,50 +877,44 @@ class Calendar(Widget):
                 self._text_cal.handle_events(event)
             elif not self._text_cal_mode:
                 if event.key == pygame.K_UP:
-                    self._calendar_selected_row = max(self._calendar_selected_row - 1, 0)
+                    if self._parsed_calendar_display:
+                        self._calendar_selected_row = max(self._calendar_selected_row - 1, 0)
                 elif event.key == pygame.K_DOWN:
                     if self._parsed_calendar_display:
-                        self._calendar_selected_row = min(self._calendar_selected_row + 1, len(self._parsed_calendar_display) - 1)
+                        self._calendar_selected_row = min(self._calendar_selected_row + 1,
+                                                          len(self._parsed_calendar_display) - 1)
                 elif event.key == pygame.K_RETURN:
-                    self._toggle_calendar_row_status(self._calendar_selected_row)
+                    if self._delete_mode:
+                        target = self._get_selected_event()
+                        self.parent.create_popup('confirm', self.parent, 300, 200,
+                                                 'Are you sure you want to delete "{}"?'.format(target[0]),
+                                                 actions={"Yes": lambda: self._delete_event(self._calendar_selected_row),
+                                                          "No": None}, default_action="Yes")
+                        self.parent.popup.set_title('Delete Event')
+                    else:
+                        self._toggle_calendar_row_status(self._calendar_selected_row)
 
             if event.key == pygame.K_t:
                 self._toggle_text_calendar()
             elif event.key == pygame.K_a:
-                self.parent.create_popup('input', self.parent, 300, 200,
+                self.parent.create_popup('input', self.parent, 300, 200, input_width=150,
                                          text="Please enter data:", entries=["Event", "Date"],
                                          required=[True, r'^\d{4}-\d{2}-\d{2}$'],
-                                         close_action=self.add_event_from_popup)
+                                         close_action=self._add_event_from_popup)
+                self.parent.popup.set_title('Add New Event')
+            elif event.key == pygame.K_e:
+                if self._calendar_selected_row < len(self._parsed_calendar_display):
+                    target = self._get_selected_event()
+                    self.parent.create_popup('input', self.parent, 300, 200, input_width=150,
+                                             text="Please enter data:", entries=["Event", "Date"], 
+                                             values=target[:2], required=[True, r'^\d{4}-\d{2}-\d{2}$'],
+                                             close_action=lambda: self._edit_event_from_popup(self._calendar_selected_row))
+                    self.parent.popup.set_title('Edit Event')
 
-    def add_event_from_popup(self):
-        e = self.parent.popup.get_input()
-        new_soup = BeautifulSoup('<tr></tr>', features='lxml')
-        row_tag = new_soup.tr
-        name_tag = new_soup.new_tag('td')
-        name_tag.string = e['Event']
-        row_tag.append(name_tag)
-        date_tag = new_soup.new_tag('td')
-        date_tag.string = e['Date']
-        row_tag.append(date_tag)
-        status_tag = new_soup.new_tag('status')
-        status_tag.string = '1'
-        row_tag.append(status_tag)
-
-        file = open(self._calendar_file, 'r')
-        calendar_text = file.read()
-        file.close()
-
-        # parse html file into a BeautifulSoup object
-        soup = BeautifulSoup(calendar_text, features='lxml')
-
-        table = soup.find('tbody')
-        table.append(row_tag)
-
-        with open(self._calendar_file, 'w') as file:
-            file.write(str(soup))
-            file.close()
-
-        self.reload_calendar()
+                if self._delete_mode:
+                    self._toggle_delete_mode()
+            elif event.key == pygame.K_d:
+                self._toggle_delete_mode()
 
     def reload_calendar(self):
         if self._text_cal_mode:

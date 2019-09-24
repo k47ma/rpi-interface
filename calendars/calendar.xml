@@ -1,5 +1,5 @@
 <html>
-<table>
+<body><table>
 <tbody>
 <tr><th>Event</th><th>Date</th></tr>
 <tr><td>CS 370 A1</td><td>2019-09-18</td><status>1</status></tr>
@@ -31,4 +31,4 @@
 <tr><td>ECON 322 A1</td><td>2019-09-19</td><status>1</status></tr>
 </tbody>
 </table>
-</html>
+</body></html>

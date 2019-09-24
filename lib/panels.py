@@ -11,7 +11,7 @@ from lib.games import GameSnake, GameTetris, GameFlip
 from lib.widgets import News, NewsList, Weather, Calendar, Traffic, Stock, \
     SystemInfo, Time, NightTime, Content, Search, Chart, ChartCaption, Map, \
     List, Calculator, Camera
-from lib.popups import InputPopup
+from lib.popups import InfoPopup, ConfirmPopup, InputPopup
 
 
 class Panel:
@@ -128,6 +128,9 @@ class Panel:
         pass
 
     def create_popup(self, category, *args, **kwargs):
+        if self.popup is not None:
+            return
+
         if category == 'info':
             new_popup = InfoPopup(*args, **kwargs)
         elif category == 'confirm':

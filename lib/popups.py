@@ -147,11 +147,12 @@ class InfoPopup(Popup):
 
 
 class ConfirmPopup(Popup):
-    def __init__(self, parent, width, height, text, actions={}):
+    def __init__(self, parent, width, height, text, actions={}, default_action=None):
         super(ConfirmPopup, self).__init__(parent, width, height)
 
         self.text = text
         self.actions = actions
+        self.default_action = default_action
 
         self._text_padding = 10
         self._text_font = pygame.font.Font('fonts/FreeSans.ttf', 18)
@@ -177,6 +178,8 @@ class ConfirmPopup(Popup):
     def _handle_popup_event(self, event):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RETURN:
+                if self.default_action is not None:
+                    self._select_action(self.default_action)
                 self.close()
 
     def _select_action(self, key):
@@ -186,13 +189,16 @@ class ConfirmPopup(Popup):
 
 
 class InputPopup(Popup):
-    def __init__(self, parent, width, height, text='', entries=[], required=None, close_action=None):
+    def __init__(self, parent, width, height, text='', entries=[], values=[],
+                 required=None, close_action=None, input_width=100):
         super(InputPopup, self).__init__(parent, width, height)
 
         self.text = text
         self.entries = entries
         self.required = required
         self.close_action = close_action
+        self.values = values
+        self.input_width = input_width
 
         self._text_padding = 10
         self._text_font = pygame.font.Font('fonts/FreeSans.ttf', 15)
@@ -209,7 +215,6 @@ class InputPopup(Popup):
         self._subwidgets.append(self._text_widget)
 
         self._entry_font = pygame.font.Font('fonts/FreeSans.ttf', 15)
-        self._input_width = 130
         self._input_widgets = []
         self._setup_input_widgets()
 
@@ -225,15 +230,17 @@ class InputPopup(Popup):
         max_title = self._entry_font.render(max(self.entries, key=len), True, self._get_color('white'))
         max_title_width = max_title.get_width()
 
-        for entry in self.entries:
+        for ind, entry in enumerate(self.entries):
             title_widget = Content(self.parent, x, y, entry + ': ', font=self._entry_font)
             title_widget.setup()
 
             input_widget = Input(self.parent, x + max_title_width + 15, y,
-                                 font=self._entry_font, width=self._input_width,
+                                 font=self._entry_font, width=self.input_width,
                                  enter_key_event=self._validate_close)
             input_widget.setup()
             input_widget.bind_key(pygame.K_TAB, self._toggle_input_widget)
+            if self.values:
+                input_widget.set_text(self.values[ind])
 
             self._subwidgets.append(title_widget)
             self._subwidgets.append(input_widget)
