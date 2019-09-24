@@ -205,28 +205,30 @@ class Widget:
     def handle_events(self, event):
         self._last_active = time.time()
 
-        for widget in self._subwidgets:
-            if widget.is_active:
-                widget.handle_events(event)
-                return 0
-
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE and self.is_active:
-                self.set_active(False)
-                return 0
-            elif self._key_binds.get(event.key) is not None:
-                bind = self._key_binds[event.key]
-                if (shift_pressed() == bind['shift']) and (ctrl_pressed() == bind['ctrl']):
-                    bind['func']()
-                    return 0
-        elif event.type == pygame.MOUSEBUTTONDOWN:
+        if event.type == pygame.MOUSEBUTTONDOWN:
             for button in self.buttons:
                 if button.is_focused():
                     button.click()
-                    return 0
+                    return True
+
+        for widget in self._subwidgets:
+            if widget.is_active:
+                widget.handle_events(event)
+                return True
+
+        handled = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE and self.is_active:
+                self.set_active(False)
+                handled = True
+            elif self._key_binds.get(event.key) is not None and self.is_active:
+                bind = self._key_binds[event.key]
+                if (shift_pressed() == bind['shift']) and (ctrl_pressed() == bind['ctrl']):
+                    bind['func']()
+                    handled = True
 
         self._handle_widget_events(event)
-        return 1
+        return handled
 
     def set_active(self, status):
         if self.is_active != status:
@@ -1049,8 +1051,11 @@ class Traffic(Widget):
         if not self._traffic_info:
             return
 
-        traffic_distance = self._traffic_info['rows'][0]['elements'][0]['distance']['text']
-        traffic_duration = self._traffic_info['rows'][0]['elements'][0]['duration']['text']
+        try:
+            traffic_distance = self._traffic_info['rows'][0]['elements'][0]['distance']['text']
+            traffic_duration = self._traffic_info['rows'][0]['elements'][0]['duration']['text']
+        except IndexError:
+            return
 
         distance_text = self.traffic_font.render(traffic_distance, True, self._get_color('white'))
         duration_text = self.traffic_font.render(traffic_duration, True, self._get_color('white'))
@@ -1649,6 +1654,9 @@ class Content(Widget):
     def set_underline(self, status):
         self.underline = status
 
+    def set_color(self, color):
+        self.color = color
+
 
 class Search(Widget):
     def __init__(self, parent, x, y, str_font=None, result_font=None, max_width=0, max_height=0):
@@ -1791,7 +1799,7 @@ class Search(Widget):
 class Input(Widget):
     def __init__(self, parent, x, y, font=None, width=100, enter_key_event=None,
                  capital_lock=False, limit_chars=None, max_char=-1,
-                 align_right=False, cursor=True):
+                 align_right=False, cursor=True, color=(255, 255, 255)):
         super(Input, self).__init__(parent, x, y)
 
         self.font = font if font is not None else self.default_font
@@ -1803,13 +1811,14 @@ class Input(Widget):
         self.max_char = max_char
         self.align_right = align_right
         self.cursor = cursor
+        self.color = color
 
         self._background_alpha = 180
         self._cursor_index = 0
         self._cursor_active_time = time.time()
         self._string = ""
         self._content_widget = Content(self.parent, self.x, self.y, self._string,
-                                       font=self.font, color=self._get_color('white'))
+                                       font=self.font, color=self.color)
         self._subwidgets = [self._content_widget]
 
     def _draw_cursor(self, screen):
@@ -1954,6 +1963,10 @@ class Input(Widget):
     def delete_char(self, n):
         for _ in range(n):
             self._backspace()
+
+    def set_color(self, color):
+        self.color = color
+        self._content_widget.set_color(color)
 
 
 class Chart(Widget):

@@ -111,11 +111,12 @@ class App:
 
     def _handle_events(self):
         for event in pygame.event.get():
-            self.active_panel.handle_events(event)
+            handled = self.active_panel.handle_events(event)
 
             if event.type == pygame.QUIT:
                 self._done = True
-            if event.type == pygame.KEYDOWN and self.active_panel is self.main_panel:
+            if event.type == pygame.KEYDOWN and self.active_panel is self.main_panel \
+                    and not handled:
                 if event.key == pygame.K_d:
                     self.set_active_panel(self.night_panel)
                 elif event.key == pygame.K_n:

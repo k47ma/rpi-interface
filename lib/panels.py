@@ -11,7 +11,7 @@ from lib.games import GameSnake, GameTetris, GameFlip
 from lib.widgets import News, NewsList, Weather, Calendar, Traffic, Stock, \
     SystemInfo, Time, NightTime, Content, Search, Chart, ChartCaption, Map, \
     List, Calculator, Camera
-from lib.popups import InfoPopup
+from lib.popups import InputPopup
 
 
 class Panel:
@@ -93,14 +93,16 @@ class Panel:
     def handle_events(self, event):
         if self.popup:
             self.popup.handle_events(event)
-            return
+            return True
 
+        handled = False
         if event.type == pygame.MOUSEBUTTONDOWN:
             clicked = False
             for button in self.buttons:
                 if button.is_focused():
                     button.click()
                     clicked = True
+                    handled = True
             if not clicked:
                 self.handle_panel_events(event)
 
@@ -108,13 +110,16 @@ class Panel:
             self.active_widget.handle_events(event)
             if not self.active_widget.is_active:
                 self.active_widget = None
+            else:
+                handled = True
         else:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     self.app.set_active_panel(self.app.main_panel)
-                    return
                 else:
                     self.handle_panel_events(event)
+
+        return handled
 
     def get_screen_size(self):
         return self.screen_width, self.screen_height
@@ -126,6 +131,7 @@ class Panel:
         self.popup = popup
         self.popup.setup()
         self.popup.set_active(True)
+        self.popup.set_align('center')
 
 
 class MainPanel(Panel):
@@ -145,17 +151,23 @@ class MainPanel(Panel):
         self._night_image_path = "images/night.gif"
         self._night_image = pygame.transform.scale(pygame.image.load(self._night_image_path), (30, 30))
         self.night_button = Button(self, -1, self.screen_height - 29, image=self._night_image,
-                                   on_click=self.set_night_mode)
+                                   on_click=self.enter_night_mode)
         self.buttons = [self.night_button]
+
+    def _on_update(self):
+        now = dt.now()
+        if now.hour == 0 and now.minute == 0 and now.sec == 0:
+            self.enter_night_mode()
 
     def handle_panel_events(self, event):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_c:
                 self.set_active_widget(self.calendar_widget)
             elif event.key == pygame.K_o:
-                self.set_popup(InfoPopup(self, 300, 200, "Hello world!"))
+                self.set_popup(InputPopup(self, 300, 200, text="Please enter data:",
+                                          entries=["Event Name", "Date"], required=[True, True]))
 
-    def set_night_mode(self):
+    def enter_night_mode(self):
         self.app.set_active_panel(self.app.night_panel)
 
 
@@ -178,8 +190,6 @@ class NightPanel(Panel):
     def _auto_set_night(self):
         if self.curr_hour == 6 and self.curr_minute == 0 and self.curr_sec == 0:
             self.app.set_active_panel(self.app.main_panel)
-        elif self.curr_hour == 0 and self.curr_minute == 0 and self.curr_sec == 0:
-            self.app.set_active_panel(self)
 
     def handle_panel_events(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:

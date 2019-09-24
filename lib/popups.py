@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 import pygame
 from lib.button import Button
-from lib.widgets import Widget, Content
+from lib.widgets import Widget, Content, Input
+from lib.util import get_font_width, get_font_height
 
 
 class Popup(Widget):
@@ -30,11 +31,10 @@ class Popup(Widget):
         self._action_button_size = 70
         self._action_button_padding = 2
         self._action_button_margin = 20
-        self._action_button_temp = self._action_button_font.render(' ', True, self._get_color('white'))
-        self._action_button_height = self._action_button_temp.get_height() + 2 * self._action_button_padding
+        self._action_button_height = get_font_height(self._action_button_font) \
+            + 2 * self._action_button_padding
 
         self._add_exit_button()
-        self.set_align('center')
 
     def _add_exit_button(self):
         button_size = self._header_height
@@ -67,8 +67,8 @@ class Popup(Widget):
         x_offset = (self.width - total_width) // 2
         y_offset = self.height - self._action_button_height - self._frame_padding
         for button in self.action_buttons:
-            button.x += x_offset
-            button.y += y_offset
+            button.x = self.x + x_offset
+            button.y = self.y + y_offset
             x_offset += self._action_button_size + self._action_button_margin
 
     def _on_update(self):
@@ -86,8 +86,8 @@ class Popup(Widget):
         super(Popup, self).draw(screen)
 
     def handle_events(self, event):
-        if super(Popup, self).handle_events(event) == 0:
-            return 0
+        if super(Popup, self).handle_events(event):
+            return True
 
         return self._handle_popup_event(event)
 
@@ -164,7 +164,6 @@ class ConfirmPopup(Popup):
         text_x = self.x + (self.width - self._text_widget.get_width()) // 2
         text_y = self.y + (self.height - self._text_widget.get_height()) // 2
         self._text_widget.set_pos(text_x, text_y)
-
         self._subwidgets.append(self._text_widget)
 
         for key in actions:
@@ -172,7 +171,7 @@ class ConfirmPopup(Popup):
         self.add_action_button('Cancel', action=self.close)
 
     def _on_setup(self):
-        self.set_title('Info')
+        self.set_title('Confirm')
 
     def _handle_popup_event(self, event):
         if event.type == pygame.KEYDOWN:
@@ -183,3 +182,104 @@ class ConfirmPopup(Popup):
         if self.actions.get(key) is not None:
             self.actions[key]()
         self.close()
+
+
+class InputPopup(Popup):
+    def __init__(self, parent, width, height, text='', entries=[], required=None):
+        super(InputPopup, self).__init__(parent, width, height)
+
+        self.text = text
+        self.entries = entries
+        self.required = required
+
+        self._text_padding = 10
+        self._text_font = pygame.font.Font('fonts/FreeSans.ttf', 18)
+        self._text_widget_max_width = self.width - 2 * self._text_padding
+        self._text_widget_max_height = self.height - 2 * self._text_padding - self._header_height
+        self._text_widget = Content(self.parent, 0, 0, self.text,
+                                    max_width=self._text_widget_max_width,
+                                    max_height=self._text_widget_max_height,
+                                    font=self._text_font)
+        self._text_widget.setup()
+        self._text_x = self.x + 30
+        self._text_y = self.y + self._header_height + 30
+        self._text_widget.set_pos(self._text_x, self._text_y)
+        self._subwidgets.append(self._text_widget)
+
+        self._entry_font = pygame.font.Font('fonts/FreeSans.ttf', 16)
+        self._input_width = 130
+        self._input_widgets = []
+        self._setup_input_widgets()
+
+        self.add_action_button('OK', action=self._validate_close)
+        self.add_action_button('Cancel', action=self.close)
+
+    def _setup_input_widgets(self):
+        if not self.entries:
+            return
+
+        x = self._text_x
+        y = self._text_y + self._text_widget.get_height() + self._text_padding
+        max_title = self._entry_font.render(max(self.entries, key=len), True, self._get_color('white'))
+        max_title_width = max_title.get_width()
+
+        for entry in self.entries:
+            title_widget = Content(self.parent, x, y, entry + ': ', font=self._entry_font)
+            title_widget.setup()
+
+            input_widget = Input(self.parent, x + max_title_width + 15, y,
+                                 font=self._entry_font, width=self._input_width,
+                                 enter_key_event=self._validate_close)
+            input_widget.setup()
+            input_widget.bind_key(pygame.K_TAB, self._toggle_input_widget)
+
+            self._subwidgets.append(title_widget)
+            self._subwidgets.append(input_widget)
+            self._input_widgets.append((entry, title_widget, input_widget))
+
+            y += title_widget.get_height() + self._text_padding
+
+        if self._input_widgets:
+            self._input_widgets[0][2].set_active(True)
+
+    def _on_setup(self):
+        self.set_title('Input')
+
+    def _handle_popup_event(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_TAB:
+                self._toggle_input_widget()
+            elif event.key == pygame.K_RETURN:
+                self._validate_close()
+
+    def _toggle_input_widget(self):
+        found = False
+
+        for ind, t in enumerate(self._input_widgets):
+            if t[2].is_active:
+                found = True
+                t[2].set_active(False)
+                if ind == len(self._input_widgets) - 1:
+                    self._input_widgets[0][2].set_active(True)
+                else:
+                    self._input_widgets[ind + 1][2].set_active(True)
+                break
+
+        if not found:
+            self._input_widgets[0][2].set_active(True)
+
+    def _validate_close(self):
+        if not self.required:
+            return True
+
+        ret = True
+        for ind, t in enumerate(self._input_widgets):
+            t[1].set_color(self._get_color('white'))
+            if not t[2].get_text() and self.required[ind]:
+                t[1].set_color(self._get_color('red'))
+                ret = False
+
+        if ret:
+            self.close()
+
+        return ret

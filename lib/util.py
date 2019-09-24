@@ -203,5 +203,15 @@ def choices(l, k=1):
         if not selected[ind]:
             result.append(l[ind])
             selected[ind] = True
-    
+
     return result
+
+
+def get_font_width(font):
+    rendered_text = font.render(' ', True, (255, 255, 255))
+    return rendered_text.get_width()
+
+
+def get_font_height(font):
+    rendered_text = font.render(' ', True, (255, 255, 255))
+    return rendered_text.get_height()
