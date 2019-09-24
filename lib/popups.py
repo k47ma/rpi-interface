@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
+import re
 import pygame
 from lib.button import Button
 from lib.widgets import Widget, Content, Input
@@ -194,7 +195,7 @@ class InputPopup(Popup):
         self.close_action = close_action
 
         self._text_padding = 10
-        self._text_font = pygame.font.Font('fonts/FreeSans.ttf', 18)
+        self._text_font = pygame.font.Font('fonts/FreeSans.ttf', 15)
         self._text_widget_max_width = self.width - 2 * self._text_padding
         self._text_widget_max_height = self.height - 2 * self._text_padding - self._header_height
         self._text_widget = Content(self.parent, 0, 0, self.text,
@@ -203,11 +204,11 @@ class InputPopup(Popup):
                                     font=self._text_font)
         self._text_widget.setup()
         self._text_x = self.x + 30
-        self._text_y = self.y + self._header_height + 30
+        self._text_y = self.y + self._header_height + 10
         self._text_widget.set_pos(self._text_x, self._text_y)
         self._subwidgets.append(self._text_widget)
 
-        self._entry_font = pygame.font.Font('fonts/FreeSans.ttf', 16)
+        self._entry_font = pygame.font.Font('fonts/FreeSans.ttf', 15)
         self._input_width = 130
         self._input_widgets = []
         self._setup_input_widgets()
@@ -273,19 +274,29 @@ class InputPopup(Popup):
         if not self.required:
             return True
 
-        is_valid = True
+        result = True
         for ind, t in enumerate(self._input_widgets):
             t[1].set_color(self._get_color('white'))
-            if not t[2].get_text() and self.required[ind]:
-                t[1].set_color(self._get_color('red'))
-                is_valid = False
 
-        if is_valid:
+            req = self.required[ind]
+            entry_valid = True
+            entry_text = t[2].get_text()
+            if isinstance(req, bool) and req and not entry_text:
+                entry_valid = False
+            elif isinstance(self.required[ind], str) \
+                    and not re.search(self.required[ind], entry_text):
+                entry_valid = False
+
+            if not entry_valid:
+                t[1].set_color(self._get_color('red'))
+                result = False
+
+        if result:
             if self.close_action:
                 self.close_action()
             self.close()
 
-        return is_valid
+        return result
 
     def get_input(self):
         result = {}

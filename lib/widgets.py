@@ -645,7 +645,7 @@ class Calendar(Widget):
         self._background_alpha = 120
         self._background_alpha_active = 180
 
-        self._calendar_file = "calendars/calendar.html"
+        self._calendar_file = "calendars/calendar.xml"
         self._calendar_titles = []
         self._parsed_calendar = []
         self._parsed_calendar_display = []
@@ -685,7 +685,7 @@ class Calendar(Widget):
 
         # get table rows
         rows = calendar_table.find_all('tr')
-        status_tags = calendar_table.find_all('div', class_="__status__")
+        status_tags = calendar_table.find_all('status')
         titles = rows[0].find_all('th')
         title_texts = [tag.get_text() for tag in titles]
         content_rows = [row.find_all('td') for row in rows[1:]]
@@ -749,28 +749,25 @@ class Calendar(Widget):
 
         # get table rows
         calendar_rows = soup.find_all('tr')[1:]
-        for status in calendar_rows:
-            row_name = status.find('td').get_text()
+        for row_tag in calendar_rows:
+            row_name = row_tag.find('td').get_text()
             names = [cal[0] for cal in self._parsed_calendar_display]
             try:
                 target_ind = names.index(row_name)
             except ValueError:
                 continue
-            status.find('div', class_="__status__").string = self._parsed_calendar_display[target_ind][-1]
+            row_tag.find('status').string = self._parsed_calendar_display[target_ind][-1]
 
         with open(self._calendar_file, 'w') as file:
             file.write(str(soup))
             file.close()
 
+        self.reload_calendar()
+
     def _toggle_text_calendar(self):
         self._text_cal_mode = not self._text_cal_mode
         self._text_cal.is_active = self._text_cal_mode
-        if self._text_cal_mode:
-            self._text_cal.set_events(self._parsed_calendar)
-        else:
-            self._load_calendar()
-            self._load_table()
-        self.set_align(self.align)
+        self.reload_calendar()
 
     def _load_table(self):
         calendar_contents = [row[:-1] for row in self._parsed_calendar_display]
@@ -826,6 +823,49 @@ class Calendar(Widget):
 
             if event.key == pygame.K_t:
                 self._toggle_text_calendar()
+            elif event.key == pygame.K_a:
+                self.parent.create_popup('input', self.parent, 300, 200,
+                                         text="Please enter data:", entries=["Event", "Date"],
+                                         required=[True, r'^\d{4}-\d{2}-\d{2}$'],
+                                         close_action=self.add_event_from_popup)
+
+    def add_event_from_popup(self):
+        e = self.parent.popup.get_input()
+        new_soup = BeautifulSoup('<tr></tr>', features='lxml')
+        row_tag = new_soup.tr
+        name_tag = new_soup.new_tag('td')
+        name_tag.string = e['Event']
+        row_tag.append(name_tag)
+        date_tag = new_soup.new_tag('td')
+        date_tag.string = e['Date']
+        row_tag.append(date_tag)
+        status_tag = new_soup.new_tag('status')
+        status_tag.string = '1'
+        row_tag.append(status_tag)
+
+        file = open(self._calendar_file, 'r')
+        calendar_text = file.read()
+        file.close()
+
+        # parse html file into a BeautifulSoup object
+        soup = BeautifulSoup(calendar_text, features='lxml')
+
+        table = soup.find('tbody')
+        table.append(row_tag)
+
+        with open(self._calendar_file, 'w') as file:
+            file.write(str(soup))
+            file.close()
+
+        self.reload_calendar()
+
+    def reload_calendar(self):
+        if self._text_cal_mode:
+            self._text_cal.set_events(self._parsed_calendar)
+        else:
+            self._load_calendar()
+            self._load_table()
+        self.set_align(self.align)
 
     def set_pos(self, x, y):
         self.x = x

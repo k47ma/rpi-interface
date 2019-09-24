@@ -127,8 +127,17 @@ class Panel:
     def handle_panel_events(self, event):
         pass
 
-    def set_popup(self, popup):
-        self.popup = popup
+    def create_popup(self, category, *args, **kwargs):
+        if category == 'info':
+            new_popup = InfoPopup(*args, **kwargs)
+        elif category == 'confirm':
+            new_popup = ConfirmPopup(*args, **kwargs)
+        elif category == 'input':
+            new_popup = InputPopup(*args, **kwargs)
+        else:
+            return
+
+        self.popup = new_popup
         self.popup.setup()
         self.popup.set_active(True)
         self.popup.set_align('center')
@@ -163,11 +172,6 @@ class MainPanel(Panel):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_c:
                 self.set_active_widget(self.calendar_widget)
-            elif event.key == pygame.K_o:
-                new_popup = InputPopup(self, 300, 200, text="Please enter data:",
-                                       entries=["Event Name", "Date"], required=[True, True],
-                                       close_action=lambda: print(new_popup.get_input()))
-                self.set_popup(new_popup)
 
     def enter_night_mode(self):
         self.app.set_active_panel(self.app.night_panel)
