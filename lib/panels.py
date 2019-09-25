@@ -168,7 +168,7 @@ class MainPanel(Panel):
 
     def _on_update(self):
         now = dt.now()
-        if now.hour == 0 and now.minute == 0 and now.sec == 0:
+        if now.hour == 0 and now.minute == 0 and now.second == 0:
             self.enter_night_mode()
 
     def handle_panel_events(self, event):
