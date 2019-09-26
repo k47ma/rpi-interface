@@ -156,7 +156,7 @@ class MainPanel(Panel):
         self.calendar_widget = Calendar(self, 215, 100, max_rows=9, max_past_days=2, align="right")
         self.stock_widget = Stock(self, 5, 5)
         self.systeminfo_widget = SystemInfo(self, 10, 10)
-        self.traffic_widget = Traffic(self, 190, 10)
+        self.traffic_widget = Traffic(self, 180, 10)
         self.widgets = [self.news_widget, self.weather_widget, self.time_widget,
                         self.calendar_widget, self.systeminfo_widget, self.traffic_widget]
 
@@ -175,6 +175,8 @@ class MainPanel(Panel):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_c:
                 self.set_active_widget(self.calendar_widget)
+            elif event.key == pygame.K_t:
+                self.traffic_widget.set_locations()
 
     def enter_night_mode(self):
         self.app.set_active_panel(self.app.night_panel)

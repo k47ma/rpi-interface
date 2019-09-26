@@ -898,7 +898,7 @@ class Calendar(Widget):
                 self._toggle_text_calendar()
             elif event.key == pygame.K_a:
                 self.parent.create_popup('input', self.parent, 300, 200, input_width=150,
-                                         text="Please enter data:", entries=["Event", "Date"],
+                                         text="Please enter event:", entries=["Event", "Date"],
                                          required=[True, r'^\d{4}-\d{2}-\d{2}$'],
                                          close_action=self._add_event_from_popup)
                 self.parent.popup.set_title('Add New Event')
@@ -906,7 +906,7 @@ class Calendar(Widget):
                 if self._calendar_selected_row < len(self._parsed_calendar_display):
                     target = self._get_selected_event()
                     self.parent.create_popup('input', self.parent, 300, 200, input_width=150,
-                                             text="Please enter data:", entries=["Event", "Date"], 
+                                             text="Please enter event:", entries=["Event", "Date"], 
                                              values=target[:2], required=[True, r'^\d{4}-\d{2}-\d{2}$'],
                                              close_action=lambda: self._edit_event_from_popup(self._calendar_selected_row))
                     self.parent.popup.set_title('Edit Event')
@@ -1112,9 +1112,10 @@ class Traffic(Widget):
         self._traffic_key = "AIzaSyDKl1oPieC1EwVdsnUJpg0btJV2Bwg0cd4"
         self._traffic_payload = {"units": "matrics", "key": self._traffic_key, "origins": "", "destinations": ""}
 
-        self._traffic_icon = None
         self._traffic_icon_path = os.path.join("images", "traffic", "traffic.png")
         self._traffic_icon_size = self.traffic_font_height
+        icon = pygame.image.load(self._traffic_icon_path)
+        self._traffic_icon = pygame.transform.scale(icon, (self._traffic_icon_size, self._traffic_icon_size))
 
         self._origin_address = "University of Waterloo"
         self._dest_address = "University of Toronto"
@@ -1123,20 +1124,55 @@ class Traffic(Widget):
         self._traffic_update_interval = 1800
         self._traffic_info = None
 
+        self._background_alpha = 120
+
+    def set_locations(self):
+        self.parent.create_popup('input', self.parent, 300, 200, input_width=150,
+                                 text="Please enter locations:", entries=["Origin", "Destination"], 
+                                 values=[self._origin_address, self._dest_address], required=[True, True],
+                                 close_action=lambda: self._set_locations_from_popup())
+        self.parent.popup.set_title('Set Locations')
+    
+    def _set_locations_from_popup(self):
+        locations = self.parent.popup.get_input()
+        self._origin_address = locations['Origin']
+        self._dest_address = locations['Destination']
+        self._load_traffic()
+
     def _load_traffic(self):
+        self.clear_shapes()
+
         self._traffic_payload['origins'] = '+'.join(self._origin_address.split())
         self._traffic_payload['destinations'] = '+'.join(self._dest_address.split())
 
         traffic_info_res = requests.get(self._traffic_url, params=self._traffic_payload)
         self._traffic_info = traffic_info_res.json()
 
+        try:
+            traffic_distance = self._traffic_info['rows'][0]['elements'][0]['distance']['text']
+            traffic_duration = self._traffic_info['rows'][0]['elements'][0]['duration']['text']
+        except IndexError:
+            return
+        
+        self._distance_text = self.traffic_font.render(traffic_distance, True, self._get_color('white'))
+        self._duration_text = self.traffic_font.render(traffic_duration, True, self._get_color('white'))
+
+        self.width = max(self._traffic_icon.get_width(), self._distance_text.get_width(),
+                         self._duration_text.get_width())
+        self._text_height = self._traffic_icon.get_height()
+        self.height = 3 * self._text_height
+        
+        distance_text_x = self.x + (self.width - self._distance_text.get_width()) // 2
+        traffic_icon_x = self.x + (self.width - self._traffic_icon.get_width()) // 2
+
+        self.add_shape(Text(self._traffic_icon, (traffic_icon_x, self.y)))
+        self.add_shape(Text(self._distance_text, (distance_text_x, self.y + self._text_height)))
+        self.add_shape(Text(self._duration_text, (self.x, self.y + 2 * self._text_height)))
+    
         log_to_file("Traffic updated")
 
     def _on_setup(self):
         self._load_traffic()
-
-        icon = pygame.image.load(self._traffic_icon_path)
-        self._traffic_icon = pygame.transform.scale(icon, (self._traffic_icon_size, self._traffic_icon_size))
 
     def _on_update(self):
         if (time.time() - self._traffic_last_update > self._traffic_update_interval
@@ -1145,21 +1181,13 @@ class Traffic(Widget):
             self._traffic_last_update = time.time()
 
     def _on_draw(self, screen):
-        if not self._traffic_info:
-            return
+        pass
 
-        try:
-            traffic_distance = self._traffic_info['rows'][0]['elements'][0]['distance']['text']
-            traffic_duration = self._traffic_info['rows'][0]['elements'][0]['duration']['text']
-        except IndexError:
-            return
-
-        distance_text = self.traffic_font.render(traffic_distance, True, self._get_color('white'))
-        duration_text = self.traffic_font.render(traffic_duration, True, self._get_color('white'))
-
-        screen.blit(distance_text, (self.x + (duration_text.get_width() - distance_text.get_width()) // 2, self.y))
-        screen.blit(duration_text, (self.x, self.y + distance_text.get_height()))
-        screen.blit(self._traffic_icon, (self.x + duration_text.get_width() + 5, self.y + distance_text.get_height()))
+    def _draw_background(self, screen):
+        background_surface = pygame.Surface((self.get_width(), self.get_height()))
+        background_surface.fill(self._get_color('lightgray'))
+        background_surface.set_alpha(self._background_alpha)
+        screen.blit(background_surface, (self.x, self.y))
 
 
 class Stock(Widget):

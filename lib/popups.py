@@ -210,7 +210,7 @@ class InputPopup(Popup):
                                     font=self._text_font)
         self._text_widget.setup()
         self._text_x = self.x + 30
-        self._text_y = self.y + self._header_height + 10
+        self._text_y = self.y + self._header_height + 20
         self._text_widget.set_pos(self._text_x, self._text_y)
         self._subwidgets.append(self._text_widget)
 
