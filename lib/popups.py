@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import re
 import pygame
-from lib.button import Button
+from lib.buttons import Button, SelectorButton
 from lib.widgets import Widget, Content, Input
 from lib.util import get_font_width, get_font_height
 
@@ -189,12 +189,13 @@ class ConfirmPopup(Popup):
 
 
 class InputPopup(Popup):
-    def __init__(self, parent, width, height, text='', entries=[], values=[],
+    def __init__(self, parent, width, height, text='', entries=[], styles=[], values=[],
                  required=None, close_action=None, input_width=100):
         super(InputPopup, self).__init__(parent, width, height)
 
         self.text = text
         self.entries = entries
+        self.styles = styles
         self.required = required
         self.close_action = close_action
         self.values = values
@@ -233,23 +234,38 @@ class InputPopup(Popup):
         for ind, entry in enumerate(self.entries):
             title_widget = Content(self.parent, x, y, entry + ': ', font=self._entry_font)
             title_widget.setup()
-
-            input_widget = Input(self.parent, x + max_title_width + 15, y,
-                                 font=self._entry_font, width=self.input_width,
-                                 enter_key_event=self._validate_close)
-            input_widget.setup()
-            input_widget.bind_key(pygame.K_TAB, self._toggle_input_widget)
-            if self.values:
-                input_widget.set_text(self.values[ind])
-
             self._subwidgets.append(title_widget)
-            self._subwidgets.append(input_widget)
-            self._input_widgets.append((entry, title_widget, input_widget))
+
+            input_type = self.styles[ind] if self.styles else 'input'
+
+            if input_type == 'input':
+                input_widget = Input(self.parent, x + max_title_width + 15, y,
+                                    font=self._entry_font, width=self.input_width,
+                                    enter_key_event=self._validate_close)
+                input_widget.setup()
+                input_widget.bind_key(pygame.K_TAB, self._toggle_input_widget)
+                if self.values:
+                    input_widget.set_text(self.values[ind])
+                self._subwidgets.append(input_widget)
+                self._input_widgets.append((entry, title_widget, input_widget))
+            elif input_type == 'selector':
+                selector_size = title_widget.get_height()
+                input_widget = SelectorButton(self.parent, x + max_title_width + 15, y,
+                                              width=selector_size, height=selector_size,
+                                              border_color=self._get_color('white'),
+                                              focus_color=self._get_color('lightgray'),
+                                              border_width=2, focus_width=2)
+                self.buttons.append(input_widget)
+                if self.values:
+                    input_widget.set_selected(self.values[ind])
+                self._input_widgets.append((entry, title_widget, input_widget))
 
             y += title_widget.get_height() + self._text_padding
 
-        if self._input_widgets:
-            self._input_widgets[0][2].set_active(True)
+        for t in self._input_widgets:
+            if isinstance(t[2], Input):
+                t[2].set_active(True)
+                break
 
     def _on_setup(self):
         self.set_title('Input')
@@ -265,6 +281,9 @@ class InputPopup(Popup):
         found = False
 
         for ind, t in enumerate(self._input_widgets):
+            if not isinstance(t[2], Input):
+                continue
+
             if t[2].is_active:
                 found = True
                 t[2].set_active(False)
@@ -275,7 +294,10 @@ class InputPopup(Popup):
                 break
 
         if not found:
-            self._input_widgets[0][2].set_active(True)
+            for t in self._input_widgets:
+                if isinstance(t[2], Input):
+                    t[2].set_active(True)
+                    break
 
     def _validate_close(self):
         if not self.required:
@@ -283,6 +305,9 @@ class InputPopup(Popup):
 
         result = True
         for ind, t in enumerate(self._input_widgets):
+            if not isinstance(t[2], Input):
+                continue
+
             t[1].set_color(self._get_color('white'))
 
             req = self.required[ind]

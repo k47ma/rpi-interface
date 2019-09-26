@@ -6,7 +6,7 @@ import psutil
 import pygame
 from datetime import datetime as dt
 from abc import ABCMeta
-from lib.button import Button
+from lib.buttons import Button
 from lib.games import GameSnake, GameTetris, GameFlip
 from lib.widgets import News, NewsList, Weather, Calendar, Traffic, Stock, \
     SystemInfo, Time, NightTime, Content, Search, Chart, ChartCaption, Map, \

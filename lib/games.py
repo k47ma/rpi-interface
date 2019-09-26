@@ -7,7 +7,7 @@ import copy
 import string
 from abc import abstractmethod
 from lib.widgets import Widget, Input
-from lib.button import Button
+from lib.buttons import Button
 from lib.util import distance
 
 

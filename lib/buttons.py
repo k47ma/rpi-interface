@@ -3,7 +3,7 @@ from lib.util import is_key_active
 
 
 class Button:
-    def __init__(self, parent, x, y, width=0, height=0, text="", image=None,
+    def __init__(self, parent, x, y, width=30, height=30, text="", image=None,
                  text_color=(255, 255, 255), background_color=None,
                  background_alpha=255, border_color=None, border_width=0,
                  font=None, on_click=None, on_click_param=None,
@@ -32,7 +32,7 @@ class Button:
         if font:
             self.font = font
         elif self.text:
-            self.font = self.date_font = pygame.font.SysFont(pygame.font.get_default_font(), 30)
+            self.font = pygame.font.SysFont(pygame.font.get_default_font(), 30)
         else:
             self.font = None
 
@@ -109,3 +109,40 @@ class Button:
     def set_pos(self, x, y):
         self.x = x
         self.y = y
+
+    def set_text(self, text):
+        self.text = text
+        self.rendered_text = self.font.render(self.text, True, self.text_color)
+
+    def get_text(self):
+        return self.text
+
+class SelectorButton(Button):
+    def __init__(self, *args, **kwargs):
+        super(SelectorButton, self).__init__(*args, **kwargs)
+
+        self.font = pygame.font.Font('fonts/FreeSans.ttf', 15)
+        
+        self._selected = False
+
+    def click(self):
+        if self.on_click:
+            if self.on_click_param is not None:
+                self.on_click(self.on_click_param)
+            else:
+                self.on_click()
+        self.toggle_selected()
+
+    def set_selected(self, status):
+        if self._selected != status:
+            self.toggle_selected()
+
+    def toggle_selected(self):
+        self._selected = not self._selected
+        if self._selected:
+            self.set_text('x')
+        else:
+            self.set_text(' ')
+
+    def get_text(self):
+        return self.text == 'x'

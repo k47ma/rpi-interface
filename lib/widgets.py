@@ -19,7 +19,7 @@ from datetime import datetime as dt
 from abc import ABCMeta, abstractmethod
 from string import printable, digits, ascii_letters
 from lib.table import Table
-from lib.button import Button
+from lib.buttons import Button
 from lib.threads import RequestThread, ImageFetchThread
 from lib.shapes import Rectangle, Text, Line, Lines, DashLine, Polygon, \
     Circle, ScreenSurface
@@ -714,7 +714,7 @@ class Calendar(Widget):
         self._parsed_calendar_display = copy.deepcopy(self._parsed_calendar)
 
         if self.max_past_days != -1:
-            self._parsed_calendar_display = [row for row in self._parsed_calendar_display 
+            self._parsed_calendar_display = [row for row in self._parsed_calendar_display
                                              if row[-1] == '1' or int(row[-2]) >= -self.max_past_days]
 
         if self.max_rows != -1:
@@ -744,12 +744,12 @@ class Calendar(Widget):
                 continue
 
             row.append(status[ind])
-    
+
     def _open_calendar_file(self):
         with open(self._calendar_file, 'r') as f:
             soup = BeautifulSoup(f.read(), features='lxml')
         return soup
-    
+
     def _save_calendar_file(self, soup):
         with open(self._calendar_file, 'w') as file:
             file.write(str(soup))
@@ -774,6 +774,8 @@ class Calendar(Widget):
 
     def _add_event_from_popup(self):
         e = self.parent.popup.get_input()
+        status = '0' if e.get('Active') == False else '1'
+
         new_soup = BeautifulSoup('<tr></tr>', features='lxml')
         row_tag = new_soup.tr
         name_tag = new_soup.new_tag('td')
@@ -783,7 +785,7 @@ class Calendar(Widget):
         date_tag.string = e['Date']
         row_tag.append(date_tag)
         status_tag = new_soup.new_tag('status')
-        status_tag.string = '1'
+        status_tag.string = status
         row_tag.append(status_tag)
 
         soup = self._open_calendar_file()
@@ -792,7 +794,7 @@ class Calendar(Widget):
 
         self._save_calendar_file(soup)
         self.reload_calendar()
-    
+
     def _edit_event_from_popup(self, row_ind):
         self._delete_event(row_ind, reload=False)
         self._add_event_from_popup()
@@ -824,7 +826,7 @@ class Calendar(Widget):
         self._text_cal_mode = not self._text_cal_mode
         self._text_cal.is_active = self._text_cal_mode
         self.reload_calendar()
-    
+
     def _toggle_delete_mode(self):
         self._delete_mode = not self._delete_mode
         if self._delete_mode:
@@ -836,7 +838,7 @@ class Calendar(Widget):
         calendar_contents = [row[:-1] for row in self._parsed_calendar_display]
         calendar_status = [bool(int(row[-1])) for row in self._parsed_calendar_display]
         self._calendar_table = Table(calendar_contents, titles=self._calendar_titles,
-                                     header_font=self.header_font, content_font=self.content_font, 
+                                     header_font=self.header_font, content_font=self.content_font,
                                      x=self.x, y=self.y, content_centered=[False, False, True], x_padding=2,
                                      selected=self.is_active, selected_row=self._calendar_selected_row,
                                      selected_line_color=self._selected_color, row_status=calendar_status)
@@ -905,9 +907,12 @@ class Calendar(Widget):
             elif event.key == pygame.K_e:
                 if self._calendar_selected_row < len(self._parsed_calendar_display):
                     target = self._get_selected_event()
-                    self.parent.create_popup('input', self.parent, 300, 200, input_width=150,
-                                             text="Please enter event:", entries=["Event", "Date"], 
-                                             values=target[:2], required=[True, r'^\d{4}-\d{2}-\d{2}$'],
+                    active_status = target[-1] == '1'
+                    self.parent.create_popup('input', self.parent, 300, 230, input_width=150,
+                                             text="Please enter event:", entries=["Event", "Date", "Active"],
+                                             styles=['input', 'input', 'selector'],
+                                             values=target[:2] + [active_status],
+                                             required=[True, r'^\d{4}-\d{2}-\d{2}$'],
                                              close_action=lambda: self._edit_event_from_popup(self._calendar_selected_row))
                     self.parent.popup.set_title('Edit Event')
 
@@ -1128,11 +1133,11 @@ class Traffic(Widget):
 
     def set_locations(self):
         self.parent.create_popup('input', self.parent, 300, 200, input_width=150,
-                                 text="Please enter locations:", entries=["Origin", "Destination"], 
+                                 text="Please enter locations:", entries=["Origin", "Destination"],
                                  values=[self._origin_address, self._dest_address], required=[True, True],
                                  close_action=lambda: self._set_locations_from_popup())
         self.parent.popup.set_title('Set Locations')
-    
+
     def _set_locations_from_popup(self):
         locations = self.parent.popup.get_input()
         self._origin_address = locations['Origin']
@@ -1153,7 +1158,7 @@ class Traffic(Widget):
             traffic_duration = self._traffic_info['rows'][0]['elements'][0]['duration']['text']
         except IndexError:
             return
-        
+
         self._distance_text = self.traffic_font.render(traffic_distance, True, self._get_color('white'))
         self._duration_text = self.traffic_font.render(traffic_duration, True, self._get_color('white'))
 
@@ -1161,14 +1166,14 @@ class Traffic(Widget):
                          self._duration_text.get_width())
         self._text_height = self._traffic_icon.get_height()
         self.height = 3 * self._text_height
-        
+
         distance_text_x = self.x + (self.width - self._distance_text.get_width()) // 2
         traffic_icon_x = self.x + (self.width - self._traffic_icon.get_width()) // 2
 
         self.add_shape(Text(self._traffic_icon, (traffic_icon_x, self.y)))
         self.add_shape(Text(self._distance_text, (distance_text_x, self.y + self._text_height)))
         self.add_shape(Text(self._duration_text, (self.x, self.y + 2 * self._text_height)))
-    
+
         log_to_file("Traffic updated")
 
     def _on_setup(self):
