@@ -240,8 +240,8 @@ class InputPopup(Popup):
 
             if input_type == 'input':
                 input_widget = Input(self.parent, x + max_title_width + 15, y,
-                                    font=self._entry_font, width=self.input_width,
-                                    enter_key_event=self._validate_close)
+                                     font=self._entry_font, width=self.input_width,
+                                     enter_key_event=self._validate_close)
                 input_widget.setup()
                 input_widget.bind_key(pygame.K_TAB, self._toggle_input_widget)
                 if self.values:
@@ -254,6 +254,7 @@ class InputPopup(Popup):
                                               width=selector_size, height=selector_size,
                                               border_color=self._get_color('white'),
                                               focus_color=self._get_color('lightgray'),
+                                              background_color=self._get_color('black'),
                                               border_width=2, focus_width=2)
                 self.buttons.append(input_widget)
                 if self.values:
@@ -285,12 +286,11 @@ class InputPopup(Popup):
                 continue
 
             if t[2].is_active:
-                found = True
                 t[2].set_active(False)
-                if ind == len(self._input_widgets) - 1:
-                    self._input_widgets[0][2].set_active(True)
-                else:
-                    self._input_widgets[ind + 1][2].set_active(True)
+                for next_t in self._input_widgets[ind + 1:]:
+                    if isinstance(next_t[2], Input):
+                        next_t[2].set_active(True)
+                        found = True
                 break
 
         if not found:

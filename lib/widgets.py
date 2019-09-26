@@ -774,7 +774,7 @@ class Calendar(Widget):
 
     def _add_event_from_popup(self):
         e = self.parent.popup.get_input()
-        status = '0' if e.get('Active') == False else '1'
+        status = '0' if e.get('Active') is False else '1'
 
         new_soup = BeautifulSoup('<tr></tr>', features='lxml')
         row_tag = new_soup.tr

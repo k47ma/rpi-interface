@@ -117,6 +117,7 @@ class Button:
     def get_text(self):
         return self.text
 
+
 class SelectorButton(Button):
     def __init__(self, *args, **kwargs):
         super(SelectorButton, self).__init__(*args, **kwargs)
