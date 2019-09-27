@@ -465,12 +465,25 @@ class NewsList(News):
                     except pygame.error:
                         image = None
                     if image:
-                        image = pygame.transform.scale(image, (self.max_width, self.max_height))
+                        image_width, image_height = image.get_size()
+                        ratio = self.max_width / self.max_height
+                        image_ratio = image_width / image_height
+                        if ratio > image_ratio:
+                            scaled_width = int(self.max_height * image_ratio)
+                            scaled_height = self.max_height
+                        else:
+                            scaled_width = self.max_width
+                            scaled_height = int(self.max_width / image_ratio)
+                        image = pygame.transform.scale(image, (scaled_width, scaled_height))
                         image = image.convert()
                         self._images[image_name] = image
 
                 if image:
-                    screen.blit(image, (self.x, self.y))
+                    image_width, image_height = image.get_size()
+                    image_x = self.x + (self.max_width - image_width) // 2
+                    image_y = self.y + (self.max_height - image_height) // 2
+                    pygame.draw.rect(screen, self._get_color('black'), (self.x, self.y, self.max_width, self.max_height))
+                    screen.blit(image, (image_x, image_y))
                 else:
                     self._draw_no_image_message(screen)
             else:
