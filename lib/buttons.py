@@ -116,6 +116,10 @@ class Button:
 
     def get_text(self):
         return self.text
+    
+    def add_offset(self, x_offset, y_offset):
+        self.x += x_offset
+        self.y += y_offset
 
 
 class SelectorButton(Button):

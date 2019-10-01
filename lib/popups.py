@@ -22,10 +22,13 @@ class Popup(Widget):
         self._frame_padding = 10
 
         self._title = ''
-        self._title_font = pygame.font.Font('fonts/arial.ttf', 23)
+        self._title_font = pygame.font.Font('fonts/arial.ttf', 20)
         self._title_padding_y = 2
         self._rendered_title = self._title_font.render(self._title, True, self._title_color)
         self._header_height = self._rendered_title.get_height() + 2 * self._title_padding_y
+    
+        self._relocation = False
+
 
         self.action_buttons = []
         self._action_button_font = pygame.font.Font('fonts/FreeSans.ttf', 18)
@@ -77,10 +80,32 @@ class Popup(Widget):
 
     def _on_draw(self, screen):
         pass
+    
+    def _mouse_in_header(self):
+        mouse_pos = pygame.mouse.get_pos()
+        header_rect = pygame.Rect(self.x, self.y, self.width - self._header_height, self._header_height)
+        return header_rect.collidepoint(mouse_pos)
+    
+    def _relocate_popup(self):
+        mouse_pos = pygame.mouse.get_pos()
+        x_offset = mouse_pos[0] - self._relocation_pos[0]
+        y_offset = mouse_pos[1] - self._relocation_pos[1]
+        self._relocation_pos = mouse_pos
+
+        self.add_offset(x_offset, y_offset)
+    
+    def enter(self):
+        super(Popup, self).enter()
+        self._relocation = False
 
     def setup(self):
         super(Popup, self).setup()
         self._calculate_button_pos()
+
+    def update(self):
+        super(Popup, self).update()
+        if self._relocation:
+            self._relocate_popup()
 
     def draw(self, screen):
         self._draw_frame(screen)
@@ -89,6 +114,12 @@ class Popup(Widget):
     def handle_events(self, event):
         if super(Popup, self).handle_events(event):
             return True
+
+        if event.type == pygame.MOUSEBUTTONDOWN and self._mouse_in_header():
+            self._relocation = True
+            self._relocation_pos = pygame.mouse.get_pos()
+        elif event.type == pygame.MOUSEBUTTONUP:
+            self._relocation = False
 
         return self._handle_popup_event(event)
 

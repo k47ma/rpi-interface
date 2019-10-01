@@ -201,6 +201,19 @@ class Widget:
 
     def get_pos(self):
         return self.x, self.y
+    
+    def add_offset(self, x_offset, y_offset):
+        self.x += x_offset
+        self.y += y_offset
+
+        for shape in self._shapes:
+            shape.add_offset(x_offset, y_offset)
+
+        for widget in self._subwidgets:
+            widget.add_offset(x_offset, y_offset)
+
+        for button in self.buttons:
+            button.add_offset(x_offset, y_offset)
 
     def handle_events(self, event):
         self._last_active = time.time()
@@ -1694,7 +1707,7 @@ class Content(Widget):
         x, y = self.x, self.y
         if self.prefix:
             self.prefix_text = self.font.render(self.prefix, True, self.color)
-            self.content_texts.append((self.prefix, (x, y)))
+            self.content_texts.append([self.prefix, [x, y]])
             self.prefix_width = self.prefix_text.get_width()
             self.prefix_height = self.prefix_text.get_height()
             x += self.prefix_width
@@ -1702,7 +1715,7 @@ class Content(Widget):
 
         content_text = self.font.render(str(self.text), True, self.color)
         if self.max_width <= 0 or content_text.get_width() <= self.max_width:
-            self.content_texts.append((self.text, (x, y)))
+            self.content_texts.append([self.text, [x, y]])
             return
 
         words = self.text.split(' ')
@@ -1714,7 +1727,7 @@ class Content(Widget):
             if current_width + word_width + space_width > self.max_width:
                 line = ' '.join(line_words)
                 line_text = self.font.render(line, True, self.color)
-                self.content_texts.append((line, (x, y)))
+                self.content_texts.append([line, [x, y]])
                 line_words = []
                 current_width = 0
                 y += line_text.get_height()
@@ -1725,7 +1738,7 @@ class Content(Widget):
 
         if line_words:
             line = ' '.join(line_words)
-            self.content_texts.append((line, (x, y)))
+            self.content_texts.append([line, [x, y]])
 
         if self.underline:
             for content_text, pos in self.content_texts:
@@ -1799,6 +1812,11 @@ class Content(Widget):
 
     def set_color(self, color):
         self.color = color
+    
+    def add_offset(self, x_offset, y_offset):
+        for text, pos in self.content_texts:
+            pos[0] += x_offset
+            pos[1] += y_offset
 
 
 class Search(Widget):
