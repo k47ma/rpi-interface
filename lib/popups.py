@@ -29,7 +29,6 @@ class Popup(Widget):
     
         self._relocation = False
 
-
         self.action_buttons = []
         self._action_button_font = pygame.font.Font('fonts/FreeSans.ttf', 18)
         self._action_button_size = 70
