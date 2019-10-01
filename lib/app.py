@@ -44,7 +44,9 @@ class App:
 
         self._done = False
 
-        pygame.mouse.set_visible(False)
+        self._mouse_last_move = time.time()
+        self._mouse_timeout = 5
+        self._mouse_visible = False
         pygame.mouse.set_cursor(*pygame.cursors.arrow)
 
         self.clock = pygame.time.Clock()
@@ -115,6 +117,7 @@ class App:
 
             if event.type == pygame.QUIT:
                 self._done = True
+            
             if event.type == pygame.KEYDOWN and self.active_panel is self.main_panel \
                     and not handled:
                 if event.key == pygame.K_d:
@@ -137,6 +140,10 @@ class App:
                     self.set_active_panel(self.calculator_panel)
                 elif event.key == pygame.K_p:
                     self._toggle_background_type()
+            
+            if event.type == pygame.MOUSEMOTION:
+                self._mouse_last_move = time.time()
+                self._set_mouse_visible(True)
 
         pressed = pygame.key.get_pressed()
         if pressed[pygame.K_q] and (pressed[pygame.K_LCTRL] or pressed[pygame.K_RCTRL]):
@@ -157,9 +164,13 @@ class App:
         pygame.display.flip()
 
     def _update_screen(self):
-        if self.camera and time.time() - self._brightness_last_update > self._brightness_update_interval:
+        current_time = time.time()
+        if self.camera and current_time - self._brightness_last_update > self._brightness_update_interval:
             self._update_brightness()
-            self._brightness_last_update = time.time()
+            self._brightness_last_update = current_time
+        
+        if self._mouse_visible and current_time - self._mouse_last_move > self._mouse_timeout:
+            self._set_mouse_visible(False)
 
         self.backgrounds[self._background_type].update()
 
@@ -220,6 +231,10 @@ class App:
         framerate_text = self._frame_rate_font.render('FPS: {}'.format(self._actual_frame_rate), True, (0, 255, 0))
         pygame.draw.rect(screen, (0, 0, 0), (10, 10, framerate_text.get_width(), framerate_text.get_height()))
         screen.blit(framerate_text, (10, 10))
+    
+    def _set_mouse_visible(self, status):
+        self._mouse_visible = status
+        pygame.mouse.set_visible(self._mouse_visible)
 
     def _clear_cache(self):
         if os.path.isdir('news_images'):

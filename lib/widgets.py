@@ -121,7 +121,7 @@ class Widget:
         self.setup()
 
     def set_timeout(self, timeout):
-        if timeout > 0:
+        if timeout > 0 or timeout is None:
             self._timeout = timeout
 
     def _get_color(self, color):
