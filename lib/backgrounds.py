@@ -85,13 +85,15 @@ class DynamicImage(Background):
 class DynamicTriangle(Background):
     def __init__(self, width=480, height=320, color=(0, 0, 0), alpha=255,
                  total_points=30, total_triangles=10, repeat_interval=20,
-                 filled=False):
+                 filled=False, line_width=1, point_size=3):
         super(DynamicTriangle, self).__init__(width=width, height=height, color=color, alpha=alpha)
 
         self.total_points = total_points
         self.total_triangles = total_triangles
         self.repeat_interval = repeat_interval
         self.filled = filled
+        self.line_width = line_width
+        self.point_size = point_size
 
         self.points_padding = 25
         self.points = []
@@ -127,9 +129,9 @@ class DynamicTriangle(Background):
             triangle_surface = pygame.Surface((self.width, self.height))
             if self.filled:
                 pygame.draw.polygon(triangle_surface, self.color, points)
-            pygame.draw.lines(triangle_surface, self.color, True, points, 2)
+            pygame.draw.lines(triangle_surface, self.color, True, points, self.line_width)
             for point in points:
-                pygame.draw.circle(triangle_surface, self.color, point, 4)
+                pygame.draw.circle(triangle_surface, self.color, point, self.point_size)
 
             triangle_surface.set_alpha(self.alpha)
             triangle_surface.set_colorkey((0, 0, 0))

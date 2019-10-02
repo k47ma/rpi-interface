@@ -80,9 +80,9 @@ class App:
         self.triangle_background = DynamicTriangle(width=self._screen_width,
                                                    height=self._screen_height,
                                                    color=(255, 165, 0), alpha=120,
-                                                   total_points=30,
-                                                   total_triangles=10,
-                                                   repeat_interval=20)
+                                                   total_points=30, total_triangles=10,
+                                                   repeat_interval=20, line_width=2,
+                                                   point_size=4)
         self.trace_background = DynamicTrace(width=self._screen_width,
                                              height=self._screen_height,
                                              alpha=160, color1=(255, 215, 0),

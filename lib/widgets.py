@@ -201,7 +201,7 @@ class Widget:
 
     def get_pos(self):
         return self.x, self.y
-    
+
     def add_offset(self, x_offset, y_offset):
         self.x += x_offset
         self.y += y_offset
@@ -551,6 +551,7 @@ class Weather(Widget):
         self.weather_font = pygame.font.Font("fonts/FreeSans.ttf", 50)
         self.forecast_font = pygame.font.Font("fonts/FreeSans.ttf", 25)
         self.desc_font = pygame.font.Font("fonts/FreeSans.ttf", 25)
+        self.digit_font = pygame.font.Font("fonts/FreeSans.ttf", 12)
         self.change_font = pygame.font.Font("fonts/FreeSans.ttf", 16)
         self.last_update_font = pygame.font.Font("fonts/FreeSans.ttf", 10)
 
@@ -558,6 +559,8 @@ class Weather(Widget):
         self._current_weather = None
         self._forecast_weather = None
         self._weather_update_interval = 1800
+        self._weather_x = self.x
+        self._weather_y = self.y
 
         self._weather_key = "508b76be5129c25115e5e60848b4c20c"
         self._current_url = "http://api.openweathermap.org/data/2.5/weather"
@@ -580,8 +583,86 @@ class Weather(Widget):
         self._forecast_weather = forecast_res.json()
 
         self._weather_last_update = time.time()
+        self._parse_info()
 
         log_to_file("Weather updated")
+    
+    def _parse_info(self):
+        try:
+            current_desc = self._current_weather['weather'][0]['main']
+            current_temp = int(self._current_weather['main']['temp'])
+            current_str = u"{}℃".format(current_temp)
+            current_icon = self._current_icons[self._current_weather['weather'][0]['icon']]
+            current_humidity = self._current_weather['main']['humidity']
+            forecast_temp = [int(pred['main']['temp']) for pred in self._forecast_weather['list'][:8]]
+        except KeyError:
+            self._current_weather = None
+            self._forecast_weather = None
+            return
+        
+        self.clear_shapes()
+
+        forecast_min = min(forecast_temp)
+        forecast_max = max(forecast_temp)
+        forecast_str = u"{} - {}℃".format(forecast_min, forecast_max)
+
+        desc_text = self.desc_font.render(current_desc, True, self._get_color('white'))
+        current_text = self.weather_font.render(current_str, True, self._get_color('white'))
+        forecast_text = self.forecast_font.render(forecast_str, True, self._get_color('white'))
+
+        self.add_shape(Text(desc_text, (self.x, self.y)))
+        self.add_shape(Text(current_icon, (self.x + desc_text.get_width(), self.y)))
+        self.add_shape(Text(current_text, (self.x, self.y + desc_text.get_height())))
+        self.add_shape(Text(forecast_text, (self.x, self.y + desc_text.get_height() + current_text.get_height())))
+
+        # add humidity text
+        humidity_text = self.digit_font.render("{}%".format(current_humidity), True, self._get_color('white'))
+        humidity_x = self.x + current_text.get_width()
+        humidity_y = self.y + desc_text.get_height() + current_text.get_height() - humidity_text.get_height()
+        self.add_shape(Text(humidity_text, (humidity_x, humidity_y)))
+
+        humidity_length_total = int(current_text.get_height() * 0.7)
+        humidity_length = humidity_length_total * current_humidity // 100
+        humidity_width = 10
+        humidity_bar_x = humidity_x + (humidity_text.get_width() - humidity_width) // 2
+        self.add_shape(Rectangle(self._get_color('lightblue'), humidity_bar_x, humidity_y - humidity_length,
+                                 humidity_width, humidity_length, line_width=0))
+        self.add_shape(Line(self._get_color('white'),
+                            (humidity_bar_x, humidity_y - humidity_length_total),
+                            (humidity_bar_x, humidity_y - humidity_length_total + humidity_length)))
+        intervals = 5
+        interval_length = humidity_length_total // (intervals - 1)
+        for i in range(intervals):
+            humidity_bar_y = humidity_y - humidity_length_total + i * interval_length
+            if i == intervals - 1:
+                humidity_bar_y = humidity_y
+            start_pos = (humidity_bar_x, humidity_bar_y)
+            end_pos = (humidity_bar_x + humidity_width // 2, humidity_bar_y)
+            self.add_shape(Line(self._get_color('white'), start_pos, end_pos))
+        
+        # add change text
+        change_info = []
+        change_count = 0
+        for pred in self._forecast_weather['list'][:8]:
+            if change_count == 3:
+                break
+            pred_desc = pred['weather'][0]['main']
+            icon_id = pred['weather'][0]['icon']
+            if (not change_info and pred_desc != current_desc) or \
+               (change_info and pred_desc != change_info[-1][0]):
+                change_info.append((pred_desc, pred['dt_txt'][11:16], icon_id))
+                change_count += 1
+
+        x = self.x
+        y = self.y + desc_text.get_height() + current_text.get_height() + forecast_text.get_height() + 5
+        for desc, timestamp, icon_id in change_info:
+            rendered_change_text = self.change_font.render("{} -> {}".format(timestamp, desc), True, self._get_color('white'))
+            self.add_shape(Text(rendered_change_text, (x, y)))
+            self.add_shape(Text(self._change_icons[icon_id], (x + rendered_change_text.get_width(), y)))
+            y += rendered_change_text.get_height()
+        
+        self._weather_x = x
+        self._weather_y = y
 
     def _load_icons(self):
         for icon_path in glob.glob(os.path.join(self._icon_directory, "*.png")):
@@ -603,56 +684,11 @@ class Weather(Widget):
             self._get_weather()
 
     def _on_draw(self, screen):
-        try:
-            current_desc = self._current_weather['weather'][0]['main']
-            current_temp = int(self._current_weather['main']['temp'])
-            current_str = u"{} ℃".format(current_temp)
-            current_icon = self._current_icons[self._current_weather['weather'][0]['icon']]
-            forecast_temp = [int(pred['main']['temp']) for pred in self._forecast_weather['list'][:8]]
-        except KeyError:
-            self._current_weather = None
-            self._forecast_weather = None
-            return
-
-        forecast_min = min(forecast_temp)
-        forecast_max = max(forecast_temp)
-        forecast_str = u"{} - {} ℃".format(forecast_min, forecast_max)
-
-        desc_text = self.desc_font.render(current_desc, True, self._get_color('white'))
-        current_text = self.weather_font.render(current_str, True, self._get_color('white'))
-        forecast_text = self.forecast_font.render(forecast_str, True, self._get_color('white'))
-
-        screen.blit(desc_text, (self.x, self.y))
-        screen.blit(current_icon, (self.x + desc_text.get_width(), self.y))
-        screen.blit(current_text, (self.x, self.y + desc_text.get_height()))
-        screen.blit(forecast_text, (self.x, self.y + desc_text.get_height() + current_text.get_height()))
-
-        # draw weather change text
-        change_info = []
-        change_count = 0
-        for pred in self._forecast_weather['list'][:8]:
-            if change_count == 3:
-                break
-            pred_desc = pred['weather'][0]['main']
-            icon_id = pred['weather'][0]['icon']
-            if (not change_info and pred_desc != current_desc) or \
-               (change_info and pred_desc != change_info[-1][0]):
-                change_info.append((pred_desc, pred['dt_txt'][11:16], icon_id))
-                change_count += 1
-
-        x = self.x
-        y = self.y + desc_text.get_height() + current_text.get_height() + forecast_text.get_height() + 5
-        for desc, timestamp, icon_id in change_info:
-            rendered_change_text = self.change_font.render("{} -> {}".format(timestamp, desc), True, self._get_color('white'))
-            screen.blit(rendered_change_text, (x, y))
-            screen.blit(self._change_icons[icon_id], (x + rendered_change_text.get_width(), y))
-            y += rendered_change_text.get_height()
-
         # draw last update time
         last_update_mins = (time.time() - self._weather_last_update) // 60
         last_update_text = "Last Update: {} min ago".format(last_update_mins)
         rendered_last_update_text = self.last_update_font.render(last_update_text, True, self._get_color('white'))
-        screen.blit(rendered_last_update_text, (x, y))
+        screen.blit(rendered_last_update_text, (self._weather_x, self._weather_y))
 
 
 class Calendar(Widget):
@@ -1812,7 +1848,7 @@ class Content(Widget):
 
     def set_color(self, color):
         self.color = color
-    
+
     def add_offset(self, x_offset, y_offset):
         for text, pos in self.content_texts:
             pos[0] += x_offset
