@@ -90,7 +90,7 @@ class DashLine(Shape):
 
 
 class Rectangle(Shape):
-    def __init__(self, color, x, y, width, height, line_width=1):
+    def __init__(self, color, x, y, width, height, line_width=1, alpha=None):
         super(Rectangle, self).__init__()
 
         self.color = color
@@ -99,6 +99,7 @@ class Rectangle(Shape):
         self.width = width
         self.height = height
         self.line_width = line_width
+        self.alpha = alpha
 
     def to_pygame_rect(self):
         return Rect(self.x, self.y, self.width, self.height)

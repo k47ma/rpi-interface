@@ -24,7 +24,8 @@ from lib.threads import RequestThread, ImageFetchThread
 from lib.shapes import Rectangle, Text, Line, Lines, DashLine, Polygon, \
     Circle, ScreenSurface
 from lib.util import log_to_file, shift_pressed, ctrl_pressed, \
-    bytes_to_string, pygame_key_to_char, char_to_pygame_key
+    bytes_to_string, pygame_key_to_char, char_to_pygame_key, \
+    get_font_height
 
 
 class Widget:
@@ -173,13 +174,23 @@ class Widget:
         elif isinstance(shape, Text):
             screen.blit(shape.text_surface, shape.pos)
         elif isinstance(shape, Rectangle):
-            pygame.draw.rect(screen, shape.color, shape.to_pygame_rect(), shape.line_width)
+            if shape.alpha is None:
+                pygame.draw.rect(screen, shape.color, shape.to_pygame_rect(), shape.line_width)
+            else:
+                self._draw_transparent_rect(screen, shape.x, shape.y, shape.width, shape.height,
+                                            shape.alpha, color=shape.color)
         elif isinstance(shape, Polygon):
             pygame.draw.polygon(screen, shape.color, shape.pointlist, shape.width)
         elif isinstance(shape, Circle):
             pygame.draw.circle(screen, shape.color, shape.pos, shape.radius, shape.width)
         elif isinstance(shape, ScreenSurface):
             screen.blit(shape.surface, shape.pos)
+
+    def _draw_transparent_rect(self, screen, x, y, width, height, alpha, color=(255, 255, 255)):
+        rect_surface = pygame.Surface((width, height))
+        rect_surface.fill(color)
+        rect_surface.set_alpha(alpha)
+        screen.blit(rect_surface, (x, y))
 
     def enter(self):
         for button in self.buttons:
@@ -561,6 +572,8 @@ class Weather(Widget):
         self._weather_update_interval = 1800
         self._weather_x = self.x
         self._weather_y = self.y
+        self._perc_bar_length = int(get_font_height(self.weather_font) * 0.7)
+        self._perc_bar_width = 10
 
         self._weather_key = "508b76be5129c25115e5e60848b4c20c"
         self._current_url = "http://api.openweathermap.org/data/2.5/weather"
@@ -586,7 +599,7 @@ class Weather(Widget):
         self._parse_info()
 
         log_to_file("Weather updated")
-    
+
     def _parse_info(self):
         try:
             current_desc = self._current_weather['weather'][0]['main']
@@ -594,12 +607,13 @@ class Weather(Widget):
             current_str = u"{}℃".format(current_temp)
             current_icon = self._current_icons[self._current_weather['weather'][0]['icon']]
             current_humidity = self._current_weather['main']['humidity']
+            current_clouds = self._current_weather['clouds']['all']
             forecast_temp = [int(pred['main']['temp']) for pred in self._forecast_weather['list'][:8]]
         except KeyError:
             self._current_weather = None
             self._forecast_weather = None
             return
-        
+
         self.clear_shapes()
 
         forecast_min = min(forecast_temp)
@@ -615,32 +629,37 @@ class Weather(Widget):
         self.add_shape(Text(current_text, (self.x, self.y + desc_text.get_height())))
         self.add_shape(Text(forecast_text, (self.x, self.y + desc_text.get_height() + current_text.get_height())))
 
-        # add humidity text
+        # add humidity info
         humidity_text = self.digit_font.render("{}%".format(current_humidity), True, self._get_color('white'))
         humidity_x = self.x + current_text.get_width()
         humidity_y = self.y + desc_text.get_height() + current_text.get_height() - humidity_text.get_height()
+        self.add_shape(Rectangle(self._get_color('lightgray'), humidity_x, humidity_y,
+                                 humidity_text.get_width(), humidity_text.get_height(),
+                                 line_width=0, alpha=180))
         self.add_shape(Text(humidity_text, (humidity_x, humidity_y)))
 
-        humidity_length_total = int(current_text.get_height() * 0.7)
-        humidity_length = humidity_length_total * current_humidity // 100
-        humidity_width = 10
-        humidity_bar_x = humidity_x + (humidity_text.get_width() - humidity_width) // 2
-        self.add_shape(Rectangle(self._get_color('lightblue'), humidity_bar_x, humidity_y - humidity_length,
-                                 humidity_width, humidity_length, line_width=0))
-        self.add_shape(Line(self._get_color('white'),
-                            (humidity_bar_x, humidity_y - humidity_length_total),
-                            (humidity_bar_x, humidity_y - humidity_length_total + humidity_length)))
-        intervals = 5
-        interval_length = humidity_length_total // (intervals - 1)
-        for i in range(intervals):
-            humidity_bar_y = humidity_y - humidity_length_total + i * interval_length
-            if i == intervals - 1:
-                humidity_bar_y = humidity_y
-            start_pos = (humidity_bar_x, humidity_bar_y)
-            end_pos = (humidity_bar_x + humidity_width // 2, humidity_bar_y)
-            self.add_shape(Line(self._get_color('white'), start_pos, end_pos))
-        
-        # add change text
+        humidity_bar_x = humidity_x + (humidity_text.get_width() - self._perc_bar_width) // 2
+        humidity_bar_y = humidity_y - self._perc_bar_length
+        self._add_percent_bar(current_humidity, humidity_bar_x, humidity_bar_y,
+                              width=self._perc_bar_width, length=self._perc_bar_length,
+                              color=self._get_color('lightblue'))
+
+        # add clouds info
+        clouds_text = self.digit_font.render("{}%".format(current_clouds), True, self._get_color('white'))
+        clouds_x = humidity_x + humidity_text.get_width() + 5
+        clouds_y = humidity_y
+        self.add_shape(Rectangle(self._get_color('lightgray'), clouds_x, clouds_y,
+                                 clouds_text.get_width(), clouds_text.get_height(),
+                                 line_width=0, alpha=180))
+        self.add_shape(Text(clouds_text, (clouds_x, clouds_y)))
+
+        clouds_bar_x = clouds_x + (clouds_text.get_width() - self._perc_bar_width) // 2
+        clouds_bar_y = clouds_y - self._perc_bar_length
+        self._add_percent_bar(current_clouds, clouds_bar_x, clouds_bar_y,
+                              width=self._perc_bar_width, length=self._perc_bar_length,
+                              color=self._get_color('orange'))
+
+        # add change info
         change_info = []
         change_count = 0
         for pred in self._forecast_weather['list'][:8]:
@@ -660,9 +679,23 @@ class Weather(Widget):
             self.add_shape(Text(rendered_change_text, (x, y)))
             self.add_shape(Text(self._change_icons[icon_id], (x + rendered_change_text.get_width(), y)))
             y += rendered_change_text.get_height()
-        
+
         self._weather_x = x
         self._weather_y = y
+
+    def _add_percent_bar(self, perc, x, y, width=10, length=30, color=(255, 255, 255), intervals=4):
+        bar_length = int(length * perc / 100)
+        self.add_shape(Rectangle(color, x, y + length - bar_length, width, bar_length, line_width=0))
+        self.add_shape(Line(self._get_color('white'), (x, y), (x, y + length)))
+
+        interval_length = length // intervals
+        for i in range(intervals + 1):
+            interval_y = y + i * interval_length
+            if i == intervals:
+                interval_y = y + length
+            start_pos = (x, interval_y)
+            end_pos = (x + width // 2, interval_y)
+            self.add_shape(Line(self._get_color('white'), start_pos, end_pos))
 
     def _load_icons(self):
         for icon_path in glob.glob(os.path.join(self._icon_directory, "*.png")):
@@ -930,10 +963,9 @@ class Calendar(Widget):
         else:
             alpha = self._background_alpha
 
-        background_surface = pygame.Surface((self.get_width(), self.get_height()))
-        background_surface.fill(self._get_color('lightgray'))
-        background_surface.set_alpha(alpha)
-        screen.blit(background_surface, (self.x, self.y))
+        self._draw_transparent_rect(screen, self.x, self.y,
+                                    self.get_width(), self.get_height(), alpha,
+                                    color=self._get_color('lightgray'))
 
     def _handle_widget_events(self, event):
         if event.type == pygame.KEYDOWN:
@@ -1251,10 +1283,10 @@ class Traffic(Widget):
         pass
 
     def _draw_background(self, screen):
-        background_surface = pygame.Surface((self.get_width(), self.get_height()))
-        background_surface.fill(self._get_color('lightgray'))
-        background_surface.set_alpha(self._background_alpha)
-        screen.blit(background_surface, (self.x, self.y))
+        self._draw_transparent_rect(screen, self.x, self.y,
+                                    self.get_width(), self.get_height(),
+                                    self._background_alpha,
+                                    color=self._get_color('lightgray'))
 
 
 class Stock(Widget):
@@ -2033,10 +2065,10 @@ class Input(Widget):
         if not self.is_active:
             return
 
-        background_surface = pygame.Surface((self.width, self.height))
-        background_surface.fill(self._get_color('lightgray'))
-        background_surface.set_alpha(self._background_alpha)
-        screen.blit(background_surface, (self.x, self.y))
+        self._draw_transparent_rect(screen, self.x, self.y,
+                                    self.get_width(), self.get_height(),
+                                    self._background_alpha,
+                                    color=self._get_color('lightgray'))
 
     def _input(self, s):
         if ctrl_pressed():
