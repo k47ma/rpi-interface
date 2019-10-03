@@ -574,6 +574,7 @@ class Weather(Widget):
         self._weather_y = self.y
         self._perc_bar_length = int(get_font_height(self.weather_font) * 0.7)
         self._perc_bar_width = 10
+        self._perc_bar_padding = 5
 
         self._weather_key = "508b76be5129c25115e5e60848b4c20c"
         self._current_url = "http://api.openweathermap.org/data/2.5/weather"
@@ -584,9 +585,11 @@ class Weather(Widget):
 
         self._current_icon_size = 35
         self._change_icon_size = 25
-        self._icon_directory = os.path.join("images", "weather_icons")
+        self._perc_icon_size = 18
+        self._icon_directory = os.path.join("images", "weather")
         self._current_icons = {}
         self._change_icons = {}
+        self._perc_icons = {}
 
     def _get_weather(self):
         current_res = requests.get(self._current_url, params=self._weather_payload)
@@ -631,7 +634,7 @@ class Weather(Widget):
 
         # add humidity info
         humidity_text = self.digit_font.render("{}%".format(current_humidity), True, self._get_color('white'))
-        humidity_x = self.x + current_text.get_width()
+        humidity_x = self.x + current_text.get_width() + 10
         humidity_y = self.y + desc_text.get_height() + current_text.get_height() - humidity_text.get_height()
         self.add_shape(Rectangle(self._get_color('lightgray'), humidity_x, humidity_y,
                                  humidity_text.get_width(), humidity_text.get_height(),
@@ -640,9 +643,13 @@ class Weather(Widget):
 
         humidity_bar_x = humidity_x + (humidity_text.get_width() - self._perc_bar_width) // 2
         humidity_bar_y = humidity_y - self._perc_bar_length
-        self._add_percent_bar(current_humidity, humidity_bar_x, humidity_bar_y,
+        self._add_percent_bar(current_humidity, humidity_bar_x, humidity_bar_y - self._perc_bar_padding,
                               width=self._perc_bar_width, length=self._perc_bar_length,
                               color=self._get_color('lightblue'))
+
+        humidity_icon_x = humidity_x + (humidity_text.get_width() - self._perc_icon_size) // 2
+        humidity_icon_y = humidity_y + humidity_text.get_height()
+        self.add_shape(ScreenSurface(self._perc_icons['water'], (humidity_icon_x, humidity_icon_y)))
 
         # add clouds info
         clouds_text = self.digit_font.render("{}%".format(current_clouds), True, self._get_color('white'))
@@ -655,9 +662,13 @@ class Weather(Widget):
 
         clouds_bar_x = clouds_x + (clouds_text.get_width() - self._perc_bar_width) // 2
         clouds_bar_y = clouds_y - self._perc_bar_length
-        self._add_percent_bar(current_clouds, clouds_bar_x, clouds_bar_y,
+        self._add_percent_bar(current_clouds, clouds_bar_x, clouds_bar_y - self._perc_bar_padding,
                               width=self._perc_bar_width, length=self._perc_bar_length,
                               color=self._get_color('orange'))
+
+        clouds_icon_x = clouds_x + (clouds_text.get_width() - self._perc_icon_size) // 2
+        clouds_icon_y = clouds_y + clouds_text.get_height()
+        self.add_shape(ScreenSurface(self._perc_icons['cloud'], (clouds_icon_x, clouds_icon_y)))
 
         # add change info
         change_info = []
@@ -675,7 +686,7 @@ class Weather(Widget):
         x = self.x
         y = self.y + desc_text.get_height() + current_text.get_height() + forecast_text.get_height() + 5
         for desc, timestamp, icon_id in change_info:
-            rendered_change_text = self.change_font.render("{} -> {}".format(timestamp, desc), True, self._get_color('white'))
+            rendered_change_text = self.change_font.render("{} -> {} ".format(timestamp, desc), True, self._get_color('white'))
             self.add_shape(Text(rendered_change_text, (x, y)))
             self.add_shape(Text(self._change_icons[icon_id], (x + rendered_change_text.get_width(), y)))
             y += rendered_change_text.get_height()
@@ -699,12 +710,15 @@ class Weather(Widget):
 
     def _load_icons(self):
         for icon_path in glob.glob(os.path.join(self._icon_directory, "*.png")):
-            icon_name = icon_path[-7:-4]
+            icon_name = icon_path.split('/')[-1].split('.')[0]
             icon = pygame.image.load(icon_path)
-            current_icon = pygame.transform.scale(icon, (self._current_icon_size, self._current_icon_size))
-            change_icon = pygame.transform.scale(icon, (self._change_icon_size, self._change_icon_size))
-            self._current_icons[icon_name] = current_icon.convert_alpha()
-            self._change_icons[icon_name] = change_icon.convert_alpha()
+            if re.match(r'\d+[dn]', icon_name):
+                current_icon = pygame.transform.scale(icon, (self._current_icon_size, self._current_icon_size))
+                change_icon = pygame.transform.scale(icon, (self._change_icon_size, self._change_icon_size))
+                self._current_icons[icon_name] = current_icon.convert_alpha()
+                self._change_icons[icon_name] = change_icon.convert_alpha()
+            else:
+                self._perc_icons[icon_name] = icon.convert_alpha()
 
     def _on_setup(self):
         self._load_icons()
@@ -718,7 +732,7 @@ class Weather(Widget):
 
     def _on_draw(self, screen):
         # draw last update time
-        last_update_mins = (time.time() - self._weather_last_update) // 60
+        last_update_mins = int((time.time() - self._weather_last_update) / 60)
         last_update_text = "Last Update: {} min ago".format(last_update_mins)
         rendered_last_update_text = self.last_update_font.render(last_update_text, True, self._get_color('white'))
         screen.blit(rendered_last_update_text, (self._weather_x, self._weather_y))
