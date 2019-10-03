@@ -680,16 +680,18 @@ class Weather(Widget):
             icon_id = pred['weather'][0]['icon']
             if (not change_info and pred_desc != current_desc) or \
                (change_info and pred_desc != change_info[-1][0]):
-                change_info.append((pred_desc, pred['dt_txt'][11:16], icon_id))
+                change_text = "{} -> {} ".format(pred['dt_txt'][11:16], pred_desc)
+                rendered_text = self.change_font.render(change_text, True, self._get_color('white'))
+                change_info.append((rendered_text, icon_id))
                 change_count += 1
 
         x = self.x
         y = self.y + desc_text.get_height() + current_text.get_height() + forecast_text.get_height() + 5
-        for desc, timestamp, icon_id in change_info:
-            rendered_change_text = self.change_font.render("{} -> {} ".format(timestamp, desc), True, self._get_color('white'))
-            self.add_shape(Text(rendered_change_text, (x, y)))
-            self.add_shape(Text(self._change_icons[icon_id], (x + rendered_change_text.get_width(), y)))
-            y += rendered_change_text.get_height()
+        max_text_width = max([text.get_width() for text, _ in change_info])
+        for text, icon_id in change_info:
+            self.add_shape(Text(text, (x, y)))
+            self.add_shape(ScreenSurface(self._change_icons[icon_id], (x + max_text_width, y)))
+            y += text.get_height()
 
         self._weather_x = x
         self._weather_y = y
