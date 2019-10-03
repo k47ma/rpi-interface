@@ -682,16 +682,16 @@ class Weather(Widget):
                (change_info and pred_desc != change_info[-1][0]):
                 change_text = "{} -> {} ".format(pred['dt_txt'][11:16], pred_desc)
                 rendered_text = self.change_font.render(change_text, True, self._get_color('white'))
-                change_info.append((rendered_text, icon_id))
+                change_info.append((pred_desc, rendered_text, icon_id))
                 change_count += 1
 
         x = self.x
         y = self.y + desc_text.get_height() + current_text.get_height() + forecast_text.get_height() + 5
-        max_text_width = max([text.get_width() for text, _ in change_info])
-        for text, icon_id in change_info:
-            self.add_shape(Text(text, (x, y)))
+        max_text_width = max([info[1].get_width() for info in change_info])
+        for text, rendered_text, icon_id in change_info:
+            self.add_shape(Text(rendered_text, (x, y)))
             self.add_shape(ScreenSurface(self._change_icons[icon_id], (x + max_text_width, y)))
-            y += text.get_height()
+            y += rendered_text.get_height()
 
         self._weather_x = x
         self._weather_y = y
