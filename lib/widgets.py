@@ -635,7 +635,7 @@ class Weather(Widget):
         self.add_shape(Text(degree_text, (self.x + current_text.get_width() + 5,
                                           self.y + desc_text.get_height() + 5)))
         self.add_shape(Text(forecast_text, (self.x, self.y + desc_text.get_height()
-                                                    + current_text.get_height())))
+                                            + current_text.get_height())))
 
         # add humidity info
         humidity_text = self.digit_font.render("{}%".format(current_humidity), True, self._get_color('white'))
