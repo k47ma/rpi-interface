@@ -560,6 +560,7 @@ class Weather(Widget):
         super(Weather, self).__init__(parent, x, y)
 
         self.weather_font = pygame.font.Font("fonts/FreeSans.ttf", 50)
+        self.degree_font = pygame.font.Font("fonts/FreeSans.ttf", 35)
         self.forecast_font = pygame.font.Font("fonts/FreeSans.ttf", 25)
         self.desc_font = pygame.font.Font("fonts/FreeSans.ttf", 25)
         self.digit_font = pygame.font.Font("fonts/FreeSans.ttf", 12)
@@ -607,7 +608,7 @@ class Weather(Widget):
         try:
             current_desc = self._current_weather['weather'][0]['main']
             current_temp = int(self._current_weather['main']['temp'])
-            current_str = u"{}℃".format(current_temp)
+            current_str = u"{}".format(current_temp)
             current_icon = self._current_icons[self._current_weather['weather'][0]['icon']]
             current_humidity = self._current_weather['main']['humidity']
             current_clouds = self._current_weather['clouds']['all']
@@ -625,16 +626,21 @@ class Weather(Widget):
 
         desc_text = self.desc_font.render(current_desc, True, self._get_color('white'))
         current_text = self.weather_font.render(current_str, True, self._get_color('white'))
+        degree_text = self.degree_font.render('℃', True, self._get_color('white'))
         forecast_text = self.forecast_font.render(forecast_str, True, self._get_color('white'))
 
         self.add_shape(Text(desc_text, (self.x, self.y)))
         self.add_shape(Text(current_icon, (self.x + desc_text.get_width(), self.y)))
         self.add_shape(Text(current_text, (self.x, self.y + desc_text.get_height())))
-        self.add_shape(Text(forecast_text, (self.x, self.y + desc_text.get_height() + current_text.get_height())))
+        self.add_shape(Text(degree_text, (self.x + current_text.get_width() + 5,
+                                          self.y + desc_text.get_height() + 5)))
+        self.add_shape(Text(forecast_text, (self.x, self.y + desc_text.get_height()
+                                                    + current_text.get_height())))
 
         # add humidity info
         humidity_text = self.digit_font.render("{}%".format(current_humidity), True, self._get_color('white'))
-        humidity_x = self.x + current_text.get_width() + 10
+        humidity_x = self.x + max(current_text.get_width() + degree_text.get_width() + 10,
+                                  forecast_text.get_width())
         humidity_y = self.y + desc_text.get_height() + current_text.get_height() - humidity_text.get_height()
         self.add_shape(Rectangle(self._get_color('lightgray'), humidity_x, humidity_y,
                                  humidity_text.get_width(), humidity_text.get_height(),
