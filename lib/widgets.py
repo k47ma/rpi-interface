@@ -1103,6 +1103,7 @@ class TextCalendar(Widget):
     def _on_update(self):
         curr_day = dt.now().day
         if curr_day != self._cal_last_update:
+            self._reset_date()
             self._load_cal()
             self._cal_last_update = curr_day
 
@@ -1158,7 +1159,8 @@ class TextCalendar(Widget):
             self._total_width = max(self._total_width, rendered_line.get_width())
             if is_present_month and str(self._curr_day) in line.split():
                 curr_day_ind = line.split().index(str(self._curr_day))
-                offset_x = self._cal_font_width * curr_day_ind * 3
+                leading_space_ind = (len(line) - len(line.lstrip(' '))) // 3
+                offset_x = self._cal_font_width * (curr_day_ind + leading_space_ind) * 3
 
                 self.add_shape(Rectangle(
                     self._cal_selector_color,
