@@ -693,7 +693,7 @@ class Weather(Widget):
 
         x = self.x
         y = self.y + desc_text.get_height() + current_text.get_height() + forecast_text.get_height() + 5
-        max_text_width = max([info[1].get_width() for info in change_info])
+        max_text_width = max([info[1].get_width() for info in change_info]) if change_info else 0
         for text, rendered_text, icon_id in change_info:
             self.add_shape(Text(rendered_text, (x, y)))
             self.add_shape(ScreenSurface(self._change_icons[icon_id], (x + max_text_width, y)))
