@@ -1363,7 +1363,8 @@ class Stock(Widget):
         self._chart_widget = None
         if self.chart:
             self._chart_widget = Chart(self.parent, self.x, self.y + self.stock_font_height + self._input_widget.get_height() + 10,
-                                       label_font=self.stock_label_font, width=self.chart_width, height=self.chart_height)
+                                       label_font=self.stock_label_font, width=self.chart_width, height=self.chart_height,
+                                       background=True, background_color=self._get_color('lightgray'), background_alpha=180)
             self._subwidgets.append(self._chart_widget)
 
     def _search(self, reset=True):
@@ -1542,7 +1543,7 @@ class Stock(Widget):
         current_stock_info = self._stock_info[range_key]
         if current_stock_info is None:
             return
-        elif current_stock_info.get('Note'):
+        elif current_stock_info.get("Note"):
             self._display_info(screen, "Searching is too frequent!")
             return
         elif current_stock_info.get("Error Message"):
@@ -1560,7 +1561,7 @@ class Stock(Widget):
             return
 
         change = self._current_price - self._last_close_price
-        percent = change // self._last_close_price * 100
+        percent = change / self._last_close_price * 100
         if change > 0:
             color = "green"
             arrow = u'▲'
@@ -2224,10 +2225,9 @@ class Input(Widget):
 
 class Chart(Widget):
     def __init__(self, parent, x, y, info=None, label_font=None, constants=[], width=100, height=100,
-                 max_x=100, max_y=100, min_x=0, min_y=0, info_colors=None,
-                 x_unit=1, y_unit=1,
-                 x_label_interval=None, y_label_interval=None,
-                 background=False, background_color=(255, 255, 255)):
+                 max_x=100, max_y=100, min_x=0, min_y=0, info_colors=None, line_width=1,
+                 x_unit=1, y_unit=1, x_label_interval=None, y_label_interval=None,
+                 background=False, background_color=(255, 255, 255), background_alpha=255):
         super(Chart, self).__init__(parent, x, y)
 
         self.info = info
@@ -2240,18 +2240,25 @@ class Chart(Widget):
         self.min_x = min_x
         self.min_y = min_y
         self.info_colors = info_colors
+        self.line_width = line_width
         self.x_unit = x_unit
         self.y_unit = y_unit
         self.x_label_interval = x_label_interval
         self.y_label_interval = y_label_interval
         self.background = background
         self.background_color = background_color
+        self.background_alpha = background_alpha
 
     def _on_setup(self):
         pass
 
     def _on_update(self):
         self.clear_shapes()
+
+        if self.background:
+            self.add_shape(Rectangle(self.background_color, self.x, self.y,
+                                     self.get_width(), self.get_height(),
+                                     line_width=0, alpha=self.background_alpha))
 
         self._add_labels()
         self._add_curves()
@@ -2269,7 +2276,7 @@ class Chart(Widget):
                 if i == int(self.max_x / self.x_label_interval):
                     x = self.x + self.width
                 if i > 0:
-                    self.add_shape(Line(self._get_color('lightgray'), (x, self.y), (x, y)))
+                    self.add_shape(Line(self._get_color('white'), (x, self.y), (x, y)))
                     self.add_shape(Text(rendered_label_text, (x - text_width / 2, y + 2)))
                 else:
                     self.add_shape(Text(rendered_label_text, (x, y + 2)))
@@ -2286,7 +2293,7 @@ class Chart(Widget):
                 if i == int(self.max_y / self.y_label_interval):
                     y = self.y
                 if i > 0:
-                    self.add_shape(Line(self._get_color('lightgray'), (x, y), (x + self.width, y)))
+                    self.add_shape(Line(self._get_color('white'), (x, y), (x + self.width, y)))
                 self.add_shape(Text(rendered_label_text, (x - rendered_label_text.get_width() - 3, y - text_height / 2)))
                 y -= y_label_interval_distance
 
@@ -2320,17 +2327,14 @@ class Chart(Widget):
             color = self._get_color(color_name)
             if not color:
                 color = self._get_color('white')
-            curve = Lines(color, False, points, anti_alias=True)
+            curve = Lines(color, False, points, anti_alias=True, width=self.line_width)
             self.add_shape(curve)
-
-            if self.background:
-                background_points = points + [(points[-1][0], self.y + self.height), (points[0][0], self.y + self.height)]
-                self.add_shape(Polygon(self.background_color, background_points, width=0))
 
         for constant in self.constants:
             y = int(self.y + self.height - y_unit_distance * (constant - self.min_y))
             rendered_label_text = self.label_font.render(str(constant), True, self._get_color('white'))
-            self.add_shape(DashLine(self._get_color('white'), (self.x, y), (self.x + self.width, y)))
+            self.add_shape(DashLine(self._get_color('white'), (self.x, y), (self.x + self.width, y),
+                                    width=self.line_width))
             self.add_shape(Text(rendered_label_text, (self.x + self.width - rendered_label_text.get_width(),
                                                       y - rendered_label_text.get_height())))
 
