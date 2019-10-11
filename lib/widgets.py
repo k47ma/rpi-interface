@@ -747,7 +747,7 @@ class Weather(Widget):
 
 
 class Calendar(Widget):
-    def __init__(self, parent, x, y, max_rows=-1, max_past_days=-1, timeout=10, align=None):
+    def __init__(self, parent, x, y, max_rows=-1, max_past_days=-1, timeout=10, align=None, max_name_length=None):
         super(Calendar, self).__init__(parent, x, y)
 
         self.max_rows = max_rows
@@ -756,6 +756,7 @@ class Calendar(Widget):
         self.content_font = pygame.font.Font("fonts/arial.ttf", 16)
         self.timeout = timeout
         self.align = align
+        self.max_name_length = max_name_length
 
         self.set_timeout(self.timeout)
 
@@ -792,10 +793,13 @@ class Calendar(Widget):
         self._calendar_last_active = time.time()
         if self._text_cal_mode:
             self._text_cal.is_active = True
+        
+        self._load_table()
 
     def _on_exit(self):
         self._text_cal.reset()
         self._text_cal.is_active = False
+        self._load_table()
 
     def _load_calendar(self):
         current_day = dt.now().day
@@ -823,9 +827,9 @@ class Calendar(Widget):
             calendar_status.append(status_tag.get_text())
 
         for content_row in content_rows:
-            self._parsed_calendar.append([content.get_text() for ind, content in enumerate(content_row)])
+            self._parsed_calendar.append([content.get_text() for content in content_row])
 
-        self._add_days(self._parsed_calendar, calendar_status)
+        self._add_days_col(self._parsed_calendar, calendar_status)
 
         self._parsed_calendar.sort(key=lambda x: (int(x[-2]), int(x[-1])))
         self._parsed_calendar_display = copy.deepcopy(self._parsed_calendar)
@@ -840,7 +844,7 @@ class Calendar(Widget):
         self._calendar_last_update = current_day
         log_to_file("Calendar updated")
 
-    def _add_days(self, calendar, status):
+    def _add_days_col(self, calendar, status):
         try:
             time_ind = self._calendar_titles.index("Date")
         except NameError:
@@ -929,7 +933,9 @@ class Calendar(Widget):
             row_name = row_tag.find_all('td')[0].get_text()
             row_date = row_tag.find_all('td')[1].get_text()
             row_status = row_tag.find('status').get_text()
-            if (row_name, row_date, row_status) == (target_name, target_date, target_status):
+            is_alter = (target_name.endswith('...') and row_name.startswith(target_name[:-3]))
+            if ((row_name, row_date, row_status) == (target_name, target_date, target_status)
+                    or is_alter):
                 row_tag.extract()
 
         self._save_calendar_file(soup)
@@ -950,8 +956,14 @@ class Calendar(Widget):
             self._selected_color = self._get_color('red')
         else:
             self._selected_color = self._get_color('green')
+        self._load_table()
 
     def _load_table(self):
+        if self.max_name_length is not None:
+            for row in self._parsed_calendar_display:
+                if len(row[0]) > self.max_name_length:
+                    row[0] = row[0][:self.max_name_length] + "..."
+
         calendar_contents = [row[:-1] for row in self._parsed_calendar_display]
         calendar_status = [bool(int(row[-1])) for row in self._parsed_calendar_display]
         self._calendar_table = Table(calendar_contents, titles=self._calendar_titles,
@@ -960,23 +972,22 @@ class Calendar(Widget):
                                      selected=self.is_active, selected_row=self._calendar_selected_row,
                                      selected_line_color=self._selected_color, row_status=calendar_status)
 
+        self._shapes = self._calendar_table.get_shapes()
+
     def _on_setup(self):
-        pass
+        self._load_table()
 
     def _on_update(self):
         current_day = dt.now().day
         if current_day != self._calendar_last_update:
-            self._load_calendar()
-            self._text_cal.set_events(self._parsed_calendar)
-
-        self._load_table()
+            self.reload_calendar()
 
         self._text_cal.update()
 
     def _on_draw(self, screen):
         if self._text_cal_mode:
             self._text_cal.draw(screen)
-        elif self._calendar_table:
+        elif self.is_active and self._calendar_table:
             self._calendar_table.draw(screen)
 
     def _draw_background(self, screen):
@@ -997,10 +1008,12 @@ class Calendar(Widget):
                 if event.key == pygame.K_UP:
                     if self._parsed_calendar_display:
                         self._calendar_selected_row = max(self._calendar_selected_row - 1, 0)
+                        self._load_table()
                 elif event.key == pygame.K_DOWN:
                     if self._parsed_calendar_display:
                         self._calendar_selected_row = min(self._calendar_selected_row + 1,
                                                           len(self._parsed_calendar_display) - 1)
+                        self._load_table()
                 elif event.key == pygame.K_RETURN:
                     if self._delete_mode:
                         target = self._get_selected_event()

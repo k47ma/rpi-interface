@@ -153,3 +153,6 @@ class Table:
             return len(self.rows) == 1
         else:
             return len(self.rows) == 0
+    
+    def get_shapes(self):
+        return self.shapes
