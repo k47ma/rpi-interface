@@ -784,23 +784,6 @@ class Calendar(Widget):
             self._text_cal_mode = True
         self.set_align(self.align)
 
-    def _on_enter(self):
-        self._calendar_selected_row = 0
-        if self._delete_mode:
-            self._delete_mode = False
-            self._selected_color = self._get_color('green')
-
-        self._calendar_last_active = time.time()
-        if self._text_cal_mode:
-            self._text_cal.is_active = True
-        
-        self._load_table()
-
-    def _on_exit(self):
-        self._text_cal.reset()
-        self._text_cal.is_active = False
-        self._load_table()
-
     def _load_calendar(self):
         current_day = dt.now().day
         with open(self._calendar_file, 'r') as file:
@@ -959,6 +942,9 @@ class Calendar(Widget):
         self._load_table()
 
     def _load_table(self):
+        if self._text_cal_mode:
+            return
+
         if self.max_name_length is not None:
             for row in self._parsed_calendar_display:
                 if len(row[0]) > self.max_name_length:
@@ -989,6 +975,23 @@ class Calendar(Widget):
             self._text_cal.draw(screen)
         elif self.is_active and self._calendar_table:
             self._calendar_table.draw(screen)
+
+    def _on_enter(self):
+        self._calendar_selected_row = 0
+        if self._delete_mode:
+            self._delete_mode = False
+            self._selected_color = self._get_color('green')
+
+        self._calendar_last_active = time.time()
+        if self._text_cal_mode:
+            self._text_cal.is_active = True
+        
+        self._load_table()
+
+    def _on_exit(self):
+        self._text_cal.reset()
+        self._text_cal.is_active = False
+        self._load_table()
 
     def _draw_background(self, screen):
         if self.is_active:
