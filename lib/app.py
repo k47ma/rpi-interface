@@ -57,6 +57,7 @@ class App:
         self.main_panel.always_update = True
         self.night_panel = NightPanel(self)
         self.news_panel = NewsPanel(self)
+        self.news_panel.always_update = True
         self.search_panel = SearchPanel(self)
         self.system_info_panel = SystemInfoPanel(self)
         self.system_info_panel.always_update = True

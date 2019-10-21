@@ -297,20 +297,22 @@ class News(Widget):
             self._news_info = response.get("articles")
             self._news_index = 0
 
-        self._news_last_update = time.time()
         log_to_file("News updated")
 
     def _on_setup(self):
         self._get_news()
 
     def _on_update(self):
-        if time.time() - self._news_last_update > self._news_info_update_interval or self._news_info is None:
+        curr_time = time.time()
+        if curr_time - self._news_last_update > self._news_info_update_interval or self._news_info is None:
             self._get_news()
-        elif time.time() - self._news_index_last_update > self._news_line_update_interval and self._news_info:
+            self._news_last_update = curr_time
+
+        if curr_time - self._news_index_last_update > self._news_line_update_interval and self._news_info:
             self._news_index += 1
             if self._news_index == len(self._news_info):
                 self._news_index = 0
-            self._news_index_last_update = time.time()
+            self._news_index_last_update = curr_time
 
     def _on_draw(self, screen):
         if self._news_info:
@@ -344,16 +346,19 @@ class NewsList(News):
 
         self.max_width = max_width
         self.max_height = max_height
+        self.width = max_width
+        self.height = max_height
         self.title_widget = title_widget
+        self._background_alpha = 120
         self._news_title_font = pygame.font.Font("fonts/FreeSans.ttf", 17)
-        self._prefix = "- "
+        self._prefix = " - "
         self._news_image_directory = "news_images"
         self._title_contents = []
         self._display_lines = []
         self._display_count = 0
         self._start_index = 0
         self._active_index = 0
-        self._sidebar_width = 5
+        self._sidebar_width = 6
         self._sidebar_length = int(self.max_height * 0.618)
         self._active_news = False
         self._display_image = False
@@ -438,17 +443,16 @@ class NewsList(News):
                 self._page_down()
             self._parse_news()
 
-    def _active_news(self):
-        self._news_status = True
-
     def _on_setup(self):
         self._get_news()
         self._parse_news()
 
     def _on_update(self):
-        if time.time() - self._news_last_update > self._news_info_update_interval or self._news_info is None:
+        curr_time = time.time()
+        if curr_time - self._news_last_update > self._news_info_update_interval or self._news_info is None:
             self._get_news()
             self._parse_news()
+            self._news_last_update = curr_time
 
     def _on_draw(self, screen):
         total_height = 0
@@ -470,6 +474,9 @@ class NewsList(News):
             pygame.draw.line(screen, self._get_color('white'),
                              (self.x + self.max_width - self._sidebar_width // 2, self.y + self.max_height),
                              (self.x + self.max_width + self._sidebar_width // 2, self.y + self.max_height), 1)
+            if self.is_active:
+                pygame.draw.rect(screen, self._get_color('white'),
+                                 (self.x, self.y, self.get_width(), self.get_height()), 1)
 
         # draw image
         if self._display_image:
@@ -514,6 +521,10 @@ class NewsList(News):
                 self._draw_no_image_message(screen)
         elif self.title_widget:
             self.title_widget.set_text("")
+    
+    def _draw_background(self, screen):
+        self._draw_transparent_rect(screen, self.x, self.y, self.get_width(), self.get_height(), self._background_alpha,
+                                    color=self._get_color('lightgray'))
 
     def _draw_no_image_message(self, screen):
         pygame.draw.rect(screen, self._get_color('black'), (self.x, self.y, self.max_width, self.max_height), 0)
@@ -553,6 +564,9 @@ class NewsList(News):
                     self._active_news = True
                     self._active_index = self._start_index
                     self._parse_news()
+    
+    def get_width(self):
+        return self.width + self._sidebar_width
 
 
 class Weather(Widget):
