@@ -770,9 +770,9 @@ class GameFlip(Game):
         self._board = []
 
         self._size_widget = Input(self.parent, self._score_padding, self._score_height,
-                                   font=self.scoreboard_font, width=30,
-                                   limit_chars=list(string.digits), max_char=3,
-                                   enter_key_event=self._confirm_settings)
+                                  font=self.scoreboard_font, width=30,
+                                  limit_chars=list(string.digits), max_char=3,
+                                  enter_key_event=self._confirm_settings)
         self._size_widget.set_text(str(self.board_size))
         self._size_widget.bind_key(pygame.K_TAB, self._toggle_input_widget)
 
@@ -883,8 +883,8 @@ class GameFlip(Game):
 
         self._scoreboard_lines.append(("Board Size: ", self._get_color("white")))
         self._size_widget.set_pos(self._score_padding + size_text.get_width(),
-                                   self._score_height - size_text.get_height()
-                                   - randomness_text.get_height() - self._score_padding * 2)
+                                  self._score_height - size_text.get_height()
+                                  - randomness_text.get_height() - self._score_padding * 2)
 
         self._scoreboard_lines.append(("Randomness: ", self._get_color("white")))
         self._randomness_widget.set_pos(self._score_padding + randomness_text.get_width(),
