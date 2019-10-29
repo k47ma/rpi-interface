@@ -726,11 +726,12 @@ class TetrisPoint:
 
 
 class GameFlip(Game):
-    def __init__(self, parent, exit_event, board_size=20, border_width=1):
+    def __init__(self, parent, exit_event, board_size=20, border_width=1, randomness=0.05):
         super(GameFlip, self).__init__(parent, exit_event)
 
         self.board_size = board_size
         self.border_width = border_width
+        self.randomness = randomness
 
         self._max_board_size = 100
         self._score_width = 160
@@ -738,6 +739,11 @@ class GameFlip(Game):
         self._board_x = self._score_width
         self._board_y = 0
         self._cell_size = 0
+        self._board_width = 0
+        self._board_height = 0
+        self._board_border_width = 1
+        self._progress_bar_width = 130
+        self._progress_bar_height = 10
 
         self._game_started = False
         self._game_over = False
@@ -763,12 +769,21 @@ class GameFlip(Game):
         self._progress_time = 0
         self._board = []
 
-        self._input_widget = Input(self.parent, self._score_padding, self._score_height,
+        self._size_widget = Input(self.parent, self._score_padding, self._score_height,
                                    font=self.scoreboard_font, width=30,
                                    limit_chars=list(string.digits), max_char=3,
-                                   enter_key_event=self._set_board_size)
-        self._input_widget.set_text(str(self.board_size))
-        self._subwidgets = [self._input_widget]
+                                   enter_key_event=self._confirm_settings)
+        self._size_widget.set_text(str(self.board_size))
+        self._size_widget.bind_key(pygame.K_TAB, self._toggle_input_widget)
+
+        self._randomness_widget = Input(self.parent, self._score_padding, self._score_height,
+                                        font=self.scoreboard_font, width=40,
+                                        limit_chars=list(string.digits + '.'), max_char=5,
+                                        enter_key_event=self._confirm_settings)
+        self._randomness_widget.set_text(str(self.randomness))
+        self._randomness_widget.bind_key(pygame.K_TAB, self._toggle_input_widget)
+
+        self._subwidgets = [self._size_widget, self._randomness_widget]
 
     def _init_game(self):
         self._game_over = False
@@ -818,6 +833,8 @@ class GameFlip(Game):
                 self.buttons.append(cell)
                 cell_row.append(cell)
             self._board.append(cell_row)
+        
+        self._board_width = self._board_height = self._cell_size * self.board_size
 
     def _start_game(self):
         self._game_started = True
@@ -852,11 +869,8 @@ class GameFlip(Game):
         self._scoreboard_lines.append(("Time: {:02}:{:02}".format(min, sec), self._get_color("white")))
         self._scoreboard_lines.append(("Player1 ({}): {} {}".format(self._player1_mode, player1_total, suffix1), self._player1_color))
         self._scoreboard_lines.append(("Player2 ({}): {} {}".format(self._player2_mode, player2_total, suffix2), self._player2_color))
-        self._scoreboard_lines.append(("Completion: {}%".format(int((player1_total + player2_total) / self.board_size ** 2 * 100)),
+        self._scoreboard_lines.append(("Progress: {}%".format(int((player1_total + player2_total) / self.board_size ** 2 * 100)),
                                        self._get_color("darkgreen")))
-        self._scoreboard_lines.append(("S - Start game".format(min, sec), self._get_color("white")))
-        self._scoreboard_lines.append(("T - Toggle player mode", self._get_color("white")))
-        self._scoreboard_lines.append(("R - Reset to manual", self._get_color("white")))
 
         if self._game_over:
             if self._winner == 0:
@@ -864,24 +878,68 @@ class GameFlip(Game):
             else:
                 self._scoreboard_lines.append(("Player{} Wins!".format(self._winner), self._winner_color))
 
+        randomness_text = self.scoreboard_font.render("Randomness: ", True, self._get_color("white"))
+        size_text = self.scoreboard_font.render("Board Size: ", True, self._get_color("white"))
+
         self._scoreboard_lines.append(("Board Size: ", self._get_color("white")))
-        temp_text = self.scoreboard_font.render("Board Size: ", True, self._get_color("white"))
-        temp_width = temp_text.get_width()
-        temp_height = temp_text.get_height()
-        self._input_widget.set_pos(self._score_padding + temp_width,
-                                   self._score_height - temp_height - self._score_padding)
+        self._size_widget.set_pos(self._score_padding + size_text.get_width(),
+                                   self._score_height - size_text.get_height()
+                                   - randomness_text.get_height() - self._score_padding * 2)
+
+        self._scoreboard_lines.append(("Randomness: ", self._get_color("white")))
+        self._randomness_widget.set_pos(self._score_padding + randomness_text.get_width(),
+                                        self._score_height - randomness_text.get_height() - self._score_padding)
 
     def _draw_board(self, screen):
         for row in self._board:
             for cell in row:
                 cell.draw(screen)
+        
+        # draw boarder
+        border_rect = (self._board_x + self._board_padding, self._board_y + self._board_padding,
+                       self._board_width, self._board_height)
+        pygame.draw.rect(screen, self._get_color('white'), border_rect, self._board_border_width)
+
+        self._draw_progress_bar(screen)
+    
+    def _draw_progress_bar(self, screen):
+        progress_bar_x = self._score_padding
+        progress_bar_y = self._score_height + self._score_padding
+
+        player1_total = len(self._player1_cells)
+        player2_total = len(self._player2_cells)
+        player1_width = int(player1_total / (player1_total + player2_total) * self._progress_bar_width)
+        player2_width = self._progress_bar_width - player1_width
+        player1_rect = (progress_bar_x, progress_bar_y,
+                        player1_width, self._progress_bar_height)
+        player2_rect = (progress_bar_x + player1_width, progress_bar_y,
+                        player2_width, self._progress_bar_height)
+        line_start = (progress_bar_x + self._progress_bar_width // 2, progress_bar_y)
+        line_end = (progress_bar_x + self._progress_bar_width // 2,
+                    progress_bar_y + self._progress_bar_height)
+
+        progress_bar_y += self._progress_bar_height + self._score_padding
+
+        total_cells = self.board_size ** 2
+        progress_width = int((player1_total + player2_total) / total_cells * self._progress_bar_width)
+        background_rect = (progress_bar_x, progress_bar_y,
+                           self._progress_bar_width, self._progress_bar_height)
+        progress_rect = (progress_bar_x, progress_bar_y,
+                         progress_width, self._progress_bar_height)
+
+        pygame.draw.rect(screen, self._player1_color, player1_rect, 0)
+        pygame.draw.rect(screen, self._player2_color, player2_rect, 0)
+        pygame.draw.line(screen, self._get_color("white"), line_start, line_end, 2)
+        pygame.draw.rect(screen, self._origin_color, background_rect, 0)
+        pygame.draw.rect(screen, self._get_color("darkgreen"), progress_rect, 0)
 
     def _game_on_enter(self):
         pygame.mouse.set_visible(True)
         for row in self._board:
             for cell in row:
                 cell.set_active(True)
-        self._input_widget.set_text(str(self.board_size))
+        self._size_widget.set_text(str(self.board_size))
+        self._randomness_widget.set_text(str(self.randomness))
 
         self._game_paused = False
         if self._game_started:
@@ -905,7 +963,15 @@ class GameFlip(Game):
             elif event.key == pygame.K_t:
                 self._toggle_current_player_mode()
             elif event.key == pygame.K_RETURN:
-                self._input_widget.set_active(True)
+                self._size_widget.set_active(True)
+    
+    def _toggle_input_widget(self):
+        if self._size_widget.is_active:
+            self._size_widget.set_active(False)
+            self._randomness_widget.set_active(True)
+        elif self._randomness_widget.is_active:
+            self._randomness_widget.set_active(False)
+            self._size_widget.set_active(True)
 
     def _is_valid_pos(self, row, col):
         return 0 <= row < self.board_size and 0 <= col < self.board_size
@@ -924,19 +990,23 @@ class GameFlip(Game):
             self._player1_mode = self._curr_mode
         else:
             self._player2_mode = self._curr_mode
+    
+    def _confirm_settings(self):
+        self._set_board_size()
+        self._set_randomness()
 
     def _set_board_size(self):
-        if self._input_widget.is_empty():
+        if self._size_widget.is_empty():
             return
 
-        new_board_size = int(self._input_widget.get_text())
+        new_board_size = int(self._size_widget.get_text())
         if self.board_size == new_board_size \
            or new_board_size > self._max_board_size \
            or new_board_size <= 0:
             return
 
         self.board_size = new_board_size
-        self._input_widget.set_text(str(new_board_size))
+        self._size_widget.set_text(str(new_board_size))
         self._init_board()
         self._init_game()
 
@@ -944,7 +1014,24 @@ class GameFlip(Game):
             for cell in row:
                 cell.set_active(True)
 
-        self._input_widget.set_active(False)
+        self._size_widget.set_active(False)
+    
+    def _set_randomness(self):
+        if self._randomness_widget.is_empty():
+            return
+        
+        try:
+            new_randomness = float(self._randomness_widget.get_text())
+        except ValueError:
+            self._randomness_widget.set_text(str(self.randomness))
+            return
+
+        if 0 <= new_randomness <= 1:
+            self.randomness = new_randomness
+        else:
+            self._randomness_widget.set_text(str(self.randomness))
+
+        self._randomness_widget.set_active(False)
 
     def _click_cell(self, pos):
         row, col = pos
@@ -990,6 +1077,10 @@ class GameFlip(Game):
     def _find_best_move(self):
         max_flips = 0
         max_flip_cell = random.choice(list(self._possible_next_cells))
+
+        if random.random() < self.randomness:
+            return max_flip_cell
+
         for row, col in self._possible_next_cells:
             flips = self._flip_cells(row, col, mutate_board=False)
             if flips > max_flips:
