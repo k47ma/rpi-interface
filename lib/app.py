@@ -7,6 +7,7 @@ import glob
 import random
 import pygame
 import numpy as np
+import RPi.GPIO as gpio
 from datetime import datetime as dt
 from lib.panels import MainPanel, NightPanel, NewsPanel, SearchPanel, \
     SystemInfoPanel, StockPanel, MapPanel, CameraPanel, GamePanel, CalculatorPanel
@@ -18,6 +19,14 @@ class App:
         pygame.init()
 
         self.args = args
+
+        # set up fan on GPIO
+        self._FAN_GPIO = 26
+        gpio.setmode(gpio.BCM)
+        gpio.setwarnings(False)
+        gpio.cleanup(self._FAN_GPIO)
+        gpio.setup(self._FAN_GPIO, gpio.OUT)
+        gpio.output(self._FAN_GPIO, gpio.HIGH)
 
         self._screen_width = 480
         self._screen_height = 320
@@ -241,6 +250,7 @@ class App:
         if os.path.isdir('news_images'):
             for image_file in glob.glob('news_images/*'):
                 os.remove(image_file)
+        gpio.cleanup(self._FAN_GPIO)
 
     def set_active_panel(self, panel):
         if self.active_panel is not panel:
