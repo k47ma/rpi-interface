@@ -151,15 +151,15 @@ class MainPanel(Panel):
         super(MainPanel, self).__init__(app)
 
         self.news_widget = News(self, 30, 300)
-        # self.weather_widget = Weather(self, 10, 75)
+        self.weather_widget = Weather(self, 10, 75)
         self.time_widget = Time(self)
         self.calendar_widget = Calendar(self, 215, 100, max_rows=9, max_past_days=2,
                                         align="right", max_name_length=20)
         self.stock_widget = Stock(self, 5, 5)
         self.systeminfo_widget = SystemInfo(self, 10, 10)
         self.traffic_widget = Traffic(self, 180, 10)
-        self.widgets = [self.news_widget, self.time_widget, self.calendar_widget,
-                        self.systeminfo_widget, self.traffic_widget]
+        self.widgets = [self.news_widget, self.weather_widget, self.time_widget,
+                        self.calendar_widget, self.systeminfo_widget, self.traffic_widget]
 
         self._night_image_path = "images/night.gif"
         self._night_image = pygame.transform.scale(pygame.image.load(self._night_image_path), (30, 30))
