@@ -15,6 +15,7 @@ import polyline
 import calendar
 from PIL import Image
 from bs4 import BeautifulSoup
+from gpiozero import CPUTemperature
 from datetime import datetime as dt
 from abc import ABCMeta, abstractmethod
 from string import printable, digits, ascii_letters
@@ -1663,6 +1664,7 @@ class SystemInfo(Widget):
         self._cpu_percent = 0.0
         self._memory_percent = 0.0
         self._disk_percent = 0.0
+        self._cpu_temp = CPUTemperature()
         self._disk_partitions = [partition.mountpoint for partition in psutil.disk_partitions()]
         self._disk_total = 0
         self._last_net_sent_bytes = psutil.net_io_counters().bytes_sent
@@ -1722,9 +1724,12 @@ class SystemInfo(Widget):
         rendered_disk_text = self.font.render("Disk: ", True, self._get_color('white'))
         percent_bar_x = self.x + max(rendered_cpu_text.get_width(), rendered_memory_text.get_width())
         percent_bar_y = self.y + (self._info_text_height - self._percent_bar_height) / 2
-        rendered_cpu_percent_text = self.font.render(" {:.2f}%".format(self._cpu_percent), True, self._get_color('white'))
-        rendered_memory_percent_text = self.font.render(" {:.2f}%".format(self._memory_percent), True, self._get_color('white'))
-        rendered_disk_percent_text = self.font.render(" {:.2f}%".format(self._disk_percent), True, self._get_color('white'))
+        rendered_cpu_percent_text = self.font.render(" {:.2f}% | {:.1f}℃".format(self._cpu_percent, self._cpu_temp.temperature),
+                                                     True, self._get_color('white'))
+        rendered_memory_percent_text = self.font.render(" {:.2f}%".format(self._memory_percent),
+                                                        True, self._get_color('white'))
+        rendered_disk_percent_text = self.font.render(" {:.2f}%".format(self._disk_percent),
+                                                      True, self._get_color('white'))
 
         if self.percent_bar:
             self._add_percent_bar(self._cpu_percent, percent_bar_x, percent_bar_y)
@@ -2408,7 +2413,7 @@ class ChartCaption(Widget):
     def _on_setup(self):
         x, y = self.x, self.y
         content_widgets = []
-        for name in self.info_colors:
+        for name in sorted(self.info_colors.keys()):
             content_widget = Content(self.parent, x, y, name, font=self.font)
             content_widget.setup()
             content_widgets.append(content_widget)

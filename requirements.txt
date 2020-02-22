@@ -36,3 +36,4 @@ wcwidth==0.1.7
 wrapt==1.11.2
 zipp==0.5.2
 lxml==4.4.1
+gpiozero==1.4.1
