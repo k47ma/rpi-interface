@@ -1661,6 +1661,7 @@ class SystemInfo(Widget):
         self._info_text_height = self.font.render(' ', True, self._get_color('white')).get_height()
 
         self._cpu_percent = 0.0
+        self._cpu_temp = 0.0
         self._memory_percent = 0.0
         self._disk_percent = 0.0
         self._disk_partitions = [partition.mountpoint for partition in psutil.disk_partitions()]
@@ -1680,6 +1681,13 @@ class SystemInfo(Widget):
         self._memory_percent = psutil.virtual_memory().percent
         self._cpu_percent = psutil.cpu_percent()
 
+        temperatures = psutil.sensors_temperatures()
+        for sensor_name in temperatures:
+            if sensor_name.find('cpu') != -1:
+                cpu_temps = temperatures[sensor_name]
+                if len(cpu_temps) > 0:
+                    self._cpu_temp = cpu_temps[0].current
+        
         try:
             disk_used = float(sum(psutil.disk_usage(path).used for path in self._disk_partitions))
             if not self._disk_total:
@@ -1718,20 +1726,12 @@ class SystemInfo(Widget):
     def _on_draw(self, screen):
         self.clear_shapes()
 
-        cpu_temp = -1.0
-        temperatures = psutil.sensors_temperatures()
-        for sensor_name in temperatures:
-            if sensor_name.find('cpu') != -1:
-                cpu_temps = temperatures[sensor_name]
-                if len(cpu_temps) > 0:
-                    cpu_temp = cpu_temps[0].current
-
         rendered_cpu_text = self.font.render("CPU: ", True, self._get_color('white'))
         rendered_memory_text = self.font.render("Memory: ", True, self._get_color('white'))
         rendered_disk_text = self.font.render("Disk: ", True, self._get_color('white'))
         percent_bar_x = self.x + max(rendered_cpu_text.get_width(), rendered_memory_text.get_width())
         percent_bar_y = self.y + (self._info_text_height - self._percent_bar_height) / 2
-        rendered_cpu_percent_text = self.font.render(" {:.2f}% | {:.1f}℃".format(self._cpu_percent, cpu_temp),
+        rendered_cpu_percent_text = self.font.render(" {:.2f}% | {:.1f}℃".format(self._cpu_percent, self._cpu_temp),
                                                      True, self._get_color('white'))
         rendered_memory_percent_text = self.font.render(" {:.2f}%".format(self._memory_percent),
                                                         True, self._get_color('white'))
