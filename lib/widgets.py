@@ -805,15 +805,15 @@ class Calendar(Widget):
             file.close()
 
         # parse html file into a BeautifulSoup object
-        soup = BeautifulSoup(calendar_text, "html.parser")
+        soup = BeautifulSoup(calendar_text, 'xml')
         calendar_table = soup.find('table')
 
         # get table rows
-        rows = calendar_table.find_all('tr')
         status_tags = calendar_table.find_all('status')
-        titles = rows[0].find_all('th')
+        events = calendar_table.find_all('event')
+        titles = calendar_table.find('tr').find_all('th')
         title_texts = [tag.get_text() for tag in titles]
-        content_rows = [row.find_all('td') for row in rows[1:]]
+        content_rows = [[event.find('name'), event.find('date')] for event in events]
 
         # add contents to list
         self._parsed_calendar = []
@@ -874,18 +874,18 @@ class Calendar(Widget):
             file.close()
 
     def _toggle_calendar_row_status(self, row_index):
-        self._parsed_calendar_display[row_index][-1] = "0" if bool(int(self._parsed_calendar_display[row_index][-1])) else "1"
+        self._parsed_calendar_display[row_index][-1] = '0' if self._parsed_calendar_display[row_index][-1] == '1' else '1'
 
+        target_name = self._parsed_calendar_display[row_index][0]
+        if target_name.endswith('...'):
+            target_name = target_name[:-3]
         soup = self._open_calendar_file()
-        calendar_rows = soup.find_all('tr')[1:]
-        for row_tag in calendar_rows:
-            row_name = row_tag.find('td').get_text()
-            names = [cal[0] for cal in self._parsed_calendar_display]
-            try:
-                target_ind = names.index(row_name)
-            except ValueError:
-                continue
-            row_tag.find('status').string = self._parsed_calendar_display[target_ind][-1]
+        events = soup.find_all('event')
+        for row_tag in events:
+            row_name = row_tag.find('name').get_text()
+            if row_name.startswith(target_name):
+                row_tag.find('status').string = self._parsed_calendar_display[row_index][-1]
+                break
 
         self._save_calendar_file(soup)
         self.reload_calendar()
@@ -894,12 +894,12 @@ class Calendar(Widget):
         e = self.parent.popup.get_input()
         status = '0' if e.get('Active') is False else '1'
 
-        new_soup = BeautifulSoup('<tr></tr>', features='lxml')
-        row_tag = new_soup.tr
-        name_tag = new_soup.new_tag('td')
+        new_soup = BeautifulSoup('<event></event>', features='lxml')
+        row_tag = new_soup.event
+        name_tag = new_soup.new_tag('name')
         name_tag.string = e['Event']
         row_tag.append(name_tag)
-        date_tag = new_soup.new_tag('td')
+        date_tag = new_soup.new_tag('date')
         date_tag.string = e['Date']
         row_tag.append(date_tag)
         status_tag = new_soup.new_tag('status')
@@ -925,10 +925,10 @@ class Calendar(Widget):
         target_status = target[-1]
 
         soup = self._open_calendar_file()
-        calendar_rows = soup.find_all('tr')[1:]
-        for row_tag in calendar_rows:
-            row_name = row_tag.find_all('td')[0].get_text()
-            row_date = row_tag.find_all('td')[1].get_text()
+        events = soup.find_all('event')
+        for row_tag in events:
+            row_name = row_tag.find('name').get_text()
+            row_date = row_tag.find('date').get_text()
             row_status = row_tag.find('status').get_text()
             is_alter = (target_name.endswith('...') and row_name.startswith(target_name[:-3]))
             if ((row_name, row_date, row_status) == (target_name, target_date, target_status)

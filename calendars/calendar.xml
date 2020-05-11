@@ -2,36 +2,46 @@
 <body><table>
 <tbody>
 <tr><th>Event</th><th>Date</th></tr>
-<tr><td>CS 370 A1</td><td>2019-09-18</td><status>0</status></tr>
-<tr><td>CS 370 A2</td><td>2019-10-07</td><status>0</status></tr>
-<tr><td>CS 370 A3</td><td>2019-10-25</td><status>0</status></tr>
-<tr><td>CS 370 A5</td><td>2019-12-02</td><status>0</status></tr>
-<tr><td>CO 456 A1</td><td>2019-09-11</td><status>0</status></tr>
-<tr><td>CO 456 A2</td><td>2019-09-18</td><status>0</status></tr>
-<tr><td>CO 456 A3</td><td>2019-09-25</td><status>0</status></tr>
-<tr><td>CO 456 A5</td><td>2019-10-23</td><status>0</status></tr>
-<tr><td>CO 456 A6</td><td>2019-10-30</td><status>0</status></tr>
-<tr><td>CO 456 A7</td><td>2019-11-06</td><status>0</status></tr>
-<tr><td>CO 456 A8</td><td>2019-11-20</td><status>0</status></tr>
-<tr><td>CO 456 A9</td><td>2019-11-27</td><status>0</status></tr>
-<tr><td>CO 456 A10</td><td>2019-12-03</td><status>0</status></tr>
-<tr><td>FR 101 Introduce</td><td>2019-09-13</td><status>0</status></tr>
-<tr><td>FR 101 Test 1</td><td>2019-09-27</td><status>0</status></tr>
-<tr><td>FR 101 Test 2</td><td>2019-10-11</td><status>0</status></tr>
-<tr><td>FR 101 Test 3</td><td>2019-11-08</td><status>0</status></tr>
-<tr><td>FR 101 Test 4</td><td>2019-11-29</td><status>0</status></tr>
-<tr><td>ECON 322 A1</td><td>2019-09-19</td><status>0</status></tr>
-<tr><td>ECON 322 A2</td><td>2019-09-26</td><status>0</status></tr>
-<tr><td>CS 456 A1</td><td>2019-10-07</td><status>0</status></tr>
-<tr><td>ECON 322 Midterm 2</td><td>2019-11-07</td><status>0</status></tr>
-<tr><td>CS 370 Midterm</td><td>2019-10-29</td><status>0</status></tr>
-<tr><td>CO 456 Midterm 1</td><td>2019-10-09</td><status>0</status></tr>
-<tr><td>CO 456 Midterm 2</td><td>2019-11-13</td><status>0</status></tr>
-<tr><td>CS 370 Final</td><td>2019-12-11</td><status>0</status></tr>
-<tr><td>CS 456 Final</td><td>2019-12-14</td><status>0</status></tr>
-<tr><td>CO 456 Final</td><td>2019-12-20</td><status>0</status></tr>
-<tr><td>ECON 322 Final</td><td>2019-12-17</td><status>0</status></tr>
-<tr><td>FR 101 Final</td><td>2019-12-06</td><status>0</status></tr>
-<tr><td>ECON 322 Midterm 1</td><td>2019-10-03</td><status>0</status></tr><tr><td>CO 456 A4</td><td>2019-10-03</td><status>0</status></tr><tr><td>FR 101 Oral A2</td><td>2019-10-25</td><status>0</status></tr><tr><td>FR 101 Final Topic</td><td>2019-11-01</td><status>0</status></tr><tr><td>CS 456 Midterm</td><td>2019-11-04</td><status>0</status></tr><tr><td>ECON 322 A3-4</td><td>2019-10-24</td><status>0</status></tr><tr><td>ECON 322 A6</td><td>2019-11-05</td><status>0</status></tr><tr><td>CS 456 A2</td><td>2019-11-11</td><status>0</status></tr><tr><td>CS 370 A4</td><td>2019-11-15</td><status>0</status></tr><tr><td>FR 101 Oral A3</td><td>2019-11-15</td><status>0</status></tr><tr><td>FR 101 Final Project</td><td>2019-11-22</td><status>0</status></tr><tr><td>CS 456 A3</td><td>2019-12-03</td><status>0</status></tr><tr><td>ECON 322 Final Proje...</td><td>2019-12-03</td><status>0</status></tr></tbody>
+<event><name>CS 488 A0</name><date>2020-05-21</date><status>1</status></event>
+<event><name>CS 488 Quiz 0</name><date>2020-05-28</date><status>1</status></event>
+<event><name>CS 488 A1</name><date>2020-06-04</date><status>1</status></event>
+<event><name>CS 488 Quiz 1</name><date>2020-06-11</date><status>1</status></event>
+<event><name>CS 488 A2</name><date>2020-06-18</date><status>1</status></event>
+<event><name>CS 488 Quiz 2</name><date>2020-06-25</date><status>1</status></event>
+<event><name>CS 488 A3</name><date>2020-07-02</date><status>1</status></event>
+<event><name>CS 488 Quiz 3</name><date>2020-07-09</date><status>1</status></event>
+<event><name>CS 488 A4</name><date>2020-07-16</date><status>1</status></event>
+<event><name>CS 488 Quiz 4</name><date>2020-07-23</date><status>1</status></event>
+<event><name>CS 488 Quiz 5</name><date>2020-07-30</date><status>1</status></event>
+<event><name>CS 488 A5</name><date>2020-08-04</date><status>1</status></event>
+<event><name>CS 488 Final Assessment</name><date>2020-08-14</date><status>1</status></event>
+<event><name>CO 342 Practice Quiz</name><date>2020-05-12</date><status>1</status></event>
+<event><name>CO 342 Supervision 1</name><date>2020-05-12</date><status>1</status></event>
+<event><name>CO 342 Quiz 1</name><date>2020-05-17</date><status>1</status></event>
+<event><name>CO 486 Lecture 1 Quiz</name><date>2020-05-12</date><status>1</status></event>
+<event><name>CO 486 Lecture 2 Quiz</name><date>2020-05-14</date><status>1</status></event>
+<event><name>CO 486 Lecture 3 Quiz</name><date>2020-05-20</date><status>1</status></event>
+<event><name>CO 486 Lecture 4 Quiz</name><date>2020-05-26</date><status>1</status></event>
+<event><name>CO 486 Lecture 5 Quiz</name><date>2020-05-28</date><status>1</status></event>
+<event><name>CO 486 Quiz 1</name><date>2020-05-29</date><status>1</status></event>
+<event><name>CO 486 Lecture 6 Quiz</name><date>2020-06-02</date><status>1</status></event>
+<event><name>CO 486 Quiz 2</name><date>2020-06-12</date><status>1</status></event>
+<event><name>CO 486 Quiz 3</name><date>2020-06-26</date><status>1</status></event>
+<event><name>CO 486 Quiz 4</name><date>2020-07-10</date><status>1</status></event>
+<event><name>CO 486 Quiz 5</name><date>2020-07-17</date><status>1</status></event>
+<event><name>CO 486 Quiz 6</name><date>2020-07-31</date><status>1</status></event>
+<event><name>CO 480 A1</name><date>2020-05-19</date><status>1</status></event>
+<event><name>CO 480 A2</name><date>2020-05-26</date><status>1</status></event>
+<event><name>FR 151 Test 1</name><date>2020-05-28</date><status>1</status></event>
+<event><name>FR 151 Test 2</name><date>2020-06-11</date><status>1</status></event>
+<event><name>FR 151 Written Assignment Part A</name><date>2020-06-19</date><status>1</status></event>
+<event><name>FR 151 Test 3</name><date>2020-06-25</date><status>1</status></event>
+<event><name>FR 151 Written Assignment Part B</name><date>2020-06-26</date><status>1</status></event>
+<event><name>FR 151 Written Assignment Part C</name><date>2020-07-03</date><status>1</status></event>
+<event><name>FR 151 Test 4</name><date>2020-07-09</date><status>1</status></event>
+<event><name>FR 151 Oral Assignment</name><date>2020-07-17</date><status>1</status></event>
+<event><name>FR 151 Test 5</name><date>2020-07-23</date><status>1</status></event>
+<event><name>FR 151 Final Test</name><date>2020-07-30</date><status>1</status></event>
+</tbody>
 </table>
 </body></html>
