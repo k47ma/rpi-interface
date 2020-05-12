@@ -2994,7 +2994,7 @@ class QRCode(Widget):
     def _on_setup(self):
         self._version_input.set_text(self._version_default)
         self._version_input.set_pos(self._version_x + self._version_widget.get_width() + 5,
-                                    self._version_y + self._version_widget.get_height() - \
+                                    self._version_y + self._version_widget.get_height() -
                                     self._setting_font_height)
 
         self._input_widget.bind_key(pygame.K_TAB, self._toggle_input_widget)
@@ -3107,7 +3107,7 @@ class QRCode(Widget):
             if self._level < self._total_levels - 1:
                 self._level += 1
         elif self._level > 0:
-                self._level -= 1
+            self._level -= 1
         new_level_text = self._levels_text[self._level]
         if old_level_text == new_level_text:
             return
