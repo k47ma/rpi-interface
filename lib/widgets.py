@@ -10,6 +10,7 @@ import time
 import queue
 import pygame
 import psutil
+import qrcode
 import requests
 import polyline
 import calendar
@@ -654,7 +655,7 @@ class Weather(Widget):
         # add humidity info
         humidity_text = self.digit_font.render("{}%".format(current_humidity), True, self._get_color('white'))
         humidity_x = self.x + max(current_text.get_width() + degree_text.get_width() + 10,
-                                  forecast_text.get_width())
+                                  forecast_text.get_width()) + 10
         humidity_y = self.y + desc_text.get_height() + current_text.get_height() - humidity_text.get_height()
         self.add_shape(Rectangle(self._get_color('lightgray'), humidity_x, humidity_y,
                                  humidity_text.get_width(), humidity_text.get_height(),
@@ -1915,12 +1916,16 @@ class Content(Widget):
         self.setup()
 
     def get_width(self):
+        width = 0
+        contents = self.content_texts[1:] if self.prefix else self.content_texts
+        for text, pos in contents:
+            rendered_text = self.font.render(text, True, self.color)
+            width = max(width, rendered_text.get_width())
+
         if self.prefix:
-            return self.prefix_width + self.font.render(str(self.content_texts[1][0]), True, self.color).get_width()
-        elif self.content_texts:
-            return self.font.render(str(self.content_texts[0][0]), True, self.color).get_width()
+            return self.prefix_width + width
         else:
-            return 0
+            return width
 
     def get_height(self):
         if self.prefix:
@@ -1944,8 +1949,11 @@ class Content(Widget):
 
     def set_underline(self, status):
         self.underline = status
+    
+    def get_text_color(self):
+        return self.color
 
-    def set_color(self, color):
+    def set_text_color(self, color):
         self.color = color
 
     def add_offset(self, x_offset, y_offset):
@@ -2262,7 +2270,7 @@ class Input(Widget):
 
     def set_color(self, color):
         self.color = color
-        self._content_widget.set_color(color)
+        self._content_widget.set_text_color(color)
 
 
 class Chart(Widget):
@@ -2920,3 +2928,203 @@ class Calculator(Widget):
 
     def reset(self):
         self._input_widget.reset()
+
+
+class QRCode(Widget):
+    def __init__(self, parent, x, y, width=450, height=300):
+        super(QRCode, self).__init__(parent, x, y)
+
+        self.width = width
+        self.height = height
+
+        self._background_alpha = 255
+
+        self._title_font = pygame.font.SysFont(self.default_font_name, 35)
+        self._input_font = pygame.font.Font("fonts/FreeSans.ttf", 18)
+        self._setting_font = pygame.font.Font("fonts/FreeSans.ttf", 16)
+
+        self._title_widget = Content(self.parent, self.x, self.y,
+                                     "QR Code Generator", font=self._title_font)
+
+        self._input_font_height = get_font_height(self._input_font)
+        self._setting_font_height = get_font_height(self._setting_font)
+
+        self._input_x = self.x + 15
+        self._input_y = self.y + 35
+        self._input_widget = Input(self.parent, self._input_x, self._input_y, 
+                                   font=self._input_font, width=self.width,
+                                   enter_key_event=self._validate_and_generate)
+
+        self._total_levels = 4
+        self._level = 1
+        self._levels = [qrcode.constants.ERROR_CORRECT_L, qrcode.constants.ERROR_CORRECT_M,
+                        qrcode.constants.ERROR_CORRECT_Q, qrcode.constants.ERROR_CORRECT_H]
+        self._levels_text = ['7%', '15%', '25%', '30%']
+
+        self._setting_width = 150
+        self._qr_text = ''
+        self._qr_image = None
+        self._qr_padding = 20
+        self._qr_image_size = self.height - self._input_font_height - self._qr_padding * 2
+        self._qr_image_x = self._input_x + (self.width - self._qr_image_size + self._setting_width) // 2
+        self._qr_image_y = self._input_y + self._input_font_height + self._qr_padding
+
+        self._version_default = 'auto'
+        self._version_x = self._input_x
+        self._version_y = self._qr_image_y
+        self._version_widget = Content(self.parent, self._version_x, self._version_y,
+                                       "Version [auto|1-40]:", font=self._setting_font,
+                                       max_width=120)
+        self._version_input = Input(self.parent, self._version_x, self._version_y,
+                                    font=self._setting_font, width=50,
+                                    enter_key_event=self._validate_and_generate)
+
+        self._level_bar_width = 10
+        self._level_x = self._version_x
+        self._level_y = self._version_y + self._setting_font_height * 2 + 10
+        self._level_widget_text = "Error Correction Level: {}".format(self._levels_text[self._level])
+        self._level_widget = Content(self.parent, self._level_x, self._level_y,
+                                     self._level_widget_text, font=self._setting_font,
+                                     max_width=120)
+
+        self._subwidgets = [self._title_widget, self._input_widget,
+                            self._version_widget, self._version_input,
+                            self._level_widget]
+
+    def _on_setup(self):
+        self._version_input.set_text(self._version_default)
+        self._version_input.set_pos(self._version_x + self._version_widget.get_width() + 5,
+                                    self._version_y + self._version_widget.get_height() - \
+                                    self._setting_font_height)
+
+        self._input_widget.bind_key(pygame.K_TAB, self._toggle_input_widget)
+        self._input_widget.bind_key(pygame.K_UP, self._move_level_up)
+        self._input_widget.bind_key(pygame.K_DOWN, self._move_level_down)
+        self._version_input.bind_key(pygame.K_TAB, self._toggle_input_widget)
+        self._version_input.bind_key(pygame.K_UP, self._move_level_up)
+        self._version_input.bind_key(pygame.K_DOWN, self._move_level_down)
+
+        qr_text = self._setting_font.render("QR Code Here", True, self._get_color('white'))
+        qr_text_x = self._qr_image_x + (self._qr_image_size - qr_text.get_width()) // 2
+        qr_text_y = self._qr_image_y + (self._qr_image_size - qr_text.get_height()) // 2
+        self.add_shape(Text(qr_text, (qr_text_x, qr_text_y)))
+
+        line_color = self._get_color('white')
+        line_dash_length = 10
+        line_width = 1
+        tl = (self._qr_image_x + line_width, self._qr_image_y + line_width)
+        tr = (self._qr_image_x + self._qr_image_size - line_width, self._qr_image_y + line_width)
+        bl = (self._qr_image_x + line_width, self._qr_image_y + self._qr_image_size - line_width)
+        br = (self._qr_image_x + self._qr_image_size - line_width,
+              self._qr_image_y + self._qr_image_size - line_width)
+        self.add_shape(DashLine(line_color, tl, tr, dash_length=line_dash_length, width=line_width))
+        self.add_shape(DashLine(line_color, tr, br, dash_length=line_dash_length, width=line_width))
+        self.add_shape(DashLine(line_color, br, bl, dash_length=line_dash_length, width=line_width))
+        self.add_shape(DashLine(line_color, bl, tl, dash_length=line_dash_length, width=line_width))
+
+    def _on_update(self):
+        pass
+
+    def _on_draw(self, screen):
+        if self._qr_image is None:
+            return
+
+        screen.blit(self._qr_image, (self._qr_image_x, self._qr_image_y))
+
+    def _handle_widget_events(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN:
+                self._input_widget.set_active(True)
+            elif event.key == pygame.K_TAB:
+                self._toggle_input_widget()
+            elif event.key == pygame.K_UP:
+                self._move_level_up()
+            elif event.key == pygame.K_DOWN:
+                self._move_level_down()
+
+    def _on_enter(self):
+        self._input_widget.set_active(True)
+    
+    def _validate_and_generate(self):
+        version_text = self._version_input.get_text()
+        valid = True
+        try:
+            version = int(version_text)
+            if version < 1 or version > 40:
+                valid = False
+        except ValueError:
+            if version_text.lower() != self._version_default:
+                valid = False
+        
+        if valid:
+            self._version_widget.set_text_color(self._get_color('white'))
+            self._generate()
+        else:
+            self._version_widget.set_text_color(self._get_color('red'))
+
+    def _generate(self):
+        input_text = self._input_widget.get_text()
+        if not input_text:
+            return
+
+        self._qr_text = input_text
+
+        qr = qrcode.QRCode(
+            version=None,
+            error_correction=self._levels[self._level],
+            box_size=10,
+            border=1,
+        )
+        qr.add_data(self._qr_text)
+        qr.make(fit=True)
+
+        image = qr.make_image(fill_color='black', back_color='white')
+        image_mode = 'RGB'
+        image = image.convert(image_mode)
+        raw_str = image.tobytes('raw', image_mode)
+        image = pygame.image.fromstring(raw_str, image.size, image.mode)
+        self._qr_image = pygame.transform.scale(image, (self._qr_image_size, self._qr_image_size))
+
+    def _toggle_input_widget(self):
+        if self._input_widget.is_active:
+            self._input_widget.set_active(False)
+            self._version_input.set_active(True)
+        elif self._version_input.is_active:
+            self._version_input.set_active(False)
+            self._input_widget.set_active(True)
+        else:
+            self._input_widget.set_active(True)
+
+    def _move_level_up(self):
+        self._move_level('up')
+
+    def _move_level_down(self):
+        self._move_level('down')
+
+    def _move_level(self, direction):
+        old_level_text = self._levels_text[self._level]
+        if direction == 'up':
+            if self._level < self._total_levels - 1:
+                self._level += 1
+        elif self._level > 0:
+                self._level -= 1
+        new_level_text = self._levels_text[self._level]
+        if old_level_text == new_level_text:
+            return
+
+        self._level_widget_text = self._level_widget_text.replace(old_level_text,
+                                                                  new_level_text)
+        self._level_widget.set_text(self._level_widget_text)
+
+    def _draw_background(self, screen):
+        self._draw_transparent_rect(screen, 0, 0, self._screen_width, self._screen_height,
+                                    self._background_alpha, color=self._get_color('black'))
+
+    def reset(self):
+        if self._version_widget.get_text_color() == self._get_color('red'):
+            self._version_input.set_text(self._version_default)
+        self._version_widget.set_text_color(self._get_color('white'))
+
+        self._input_widget.reset()
+        self._qr_text = ''
+        self._qr_image = None

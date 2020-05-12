@@ -10,7 +10,7 @@ from lib.buttons import Button
 from lib.games import GameSnake, GameTetris, GameFlip
 from lib.widgets import News, NewsList, Weather, Calendar, Traffic, Stock, \
     SystemInfo, Time, NightTime, Content, Search, Chart, ChartCaption, Map, \
-    List, Calculator, Camera
+    List, Calculator, Camera, QRCode
 from lib.popups import InfoPopup, ConfirmPopup, InputPopup
 
 
@@ -426,3 +426,24 @@ class CalculatorPanel(Panel):
 
     def _on_exit(self):
         self.calculator_widget.reset()
+
+
+class QRCodePanel(Panel):
+    def __init__(self, app):
+        super(QRCodePanel, self).__init__(app)
+
+        self.qr_widget = QRCode(self, 10, 10, width=430, height=260)
+        self.widgets = [self.qr_widget]
+
+        self.set_active_widget(self.qr_widget)
+
+    def handle_panel_events(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN:
+                self.set_active_widget(self.qr_widget)
+
+    def _on_enter(self):
+        self.set_active_widget(self.qr_widget)
+
+    def _on_exit(self):
+        self.qr_widget.reset()

@@ -69,7 +69,7 @@ class DashLine(Shape):
         lines = []
         total_lines = int(distance(self.start_pos, self.end_pos) / self.dash_length)
         x_distance = self.end_pos[0] - self.start_pos[0]
-        y_distance = self.end_pos[1] - self.end_pos[1]
+        y_distance = self.end_pos[1] - self.start_pos[1]
         for ind in range(total_lines):
             if ind % 2:
                 continue

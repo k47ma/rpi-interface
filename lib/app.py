@@ -10,8 +10,10 @@ import numpy as np
 import RPi.GPIO as gpio
 from datetime import datetime as dt
 from lib.panels import MainPanel, NightPanel, NewsPanel, SearchPanel, \
-    SystemInfoPanel, StockPanel, MapPanel, CameraPanel, GamePanel, CalculatorPanel
-from lib.backgrounds import Background, DynamicImage, DynamicTriangle, DynamicTrace
+    SystemInfoPanel, StockPanel, MapPanel, CameraPanel, GamePanel, \
+    CalculatorPanel, QRCodePanel
+from lib.backgrounds import Background, DynamicImage, \
+    DynamicTriangle, DynamicTrace
 
 
 class App:
@@ -75,9 +77,10 @@ class App:
         self.camera_panel = CameraPanel(self, self.camera)
         self.game_panel = GamePanel(self)
         self.calculator_panel = CalculatorPanel(self)
+        self.qrcode_panel = QRCodePanel(self)
         self.panels = [self.main_panel, self.night_panel, self.news_panel, self.search_panel,
                        self.system_info_panel, self.stock_panel, self.map_panel, self.camera_panel,
-                       self.game_panel, self.calculator_panel]
+                       self.game_panel, self.calculator_panel, self.qrcode_panel]
         self.active_panel = None
         self._night_mode = False
 
@@ -122,6 +125,11 @@ class App:
         self.set_active_panel(self.main_panel)
 
     def _handle_events(self):
+        pressed = pygame.key.get_pressed()
+        if pressed[pygame.K_q] and (pressed[pygame.K_LCTRL] or pressed[pygame.K_RCTRL]):
+            self._done = True
+            return
+
         for event in pygame.event.get():
             handled = self.active_panel.handle_events(event)
 
@@ -148,16 +156,14 @@ class App:
                     self.set_active_panel(self.game_panel)
                 elif event.key == pygame.K_a:
                     self.set_active_panel(self.calculator_panel)
+                elif event.key == pygame.K_q:
+                    self.set_active_panel(self.qrcode_panel)
                 elif event.key == pygame.K_p:
                     self._toggle_background_type()
-            
+
             if event.type == pygame.MOUSEMOTION:
                 self._mouse_last_move = time.time()
                 self._set_mouse_visible(True)
-
-        pressed = pygame.key.get_pressed()
-        if pressed[pygame.K_q] and (pressed[pygame.K_LCTRL] or pressed[pygame.K_RCTRL]):
-            self._done = True
 
     def _draw_screen(self):
         self.screen.fill((0, 0, 0))
