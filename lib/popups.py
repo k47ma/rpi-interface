@@ -338,7 +338,7 @@ class InputPopup(Popup):
             if not isinstance(t[2], Input):
                 continue
 
-            t[1].set_color(self._get_color('white'))
+            t[1].set_text_color(self._get_color('white'))
 
             req = self.required[ind]
             entry_valid = True
@@ -350,7 +350,7 @@ class InputPopup(Popup):
                 entry_valid = False
 
             if not entry_valid:
-                t[1].set_color(self._get_color('red'))
+                t[1].set_text_color(self._get_color('red'))
                 result = False
 
         if result:
