@@ -156,7 +156,7 @@ class MainPanel(Panel):
         self.calendar_widget = Calendar(self, 215, 100, max_rows=9, max_past_days=2,
                                         align="right", max_name_length=20)
         self.stock_widget = Stock(self, 5, 5)
-        self.systeminfo_widget = SystemInfo(self, 10, 10)
+        self.systeminfo_widget = SystemInfo(self, 10, 10, ip_info=False)
         self.traffic_widget = Traffic(self, 180, 10)
         self.widgets = [self.news_widget, self.weather_widget, self.time_widget,
                         self.calendar_widget, self.systeminfo_widget, self.traffic_widget]
@@ -285,9 +285,10 @@ class SystemInfoPanel(Panel):
                                   x_label_interval=10, y_label_interval=20,
                                   background=True, background_color=(75, 75, 75),
                                   background_alpha=180)
-        self._info_widget = SystemInfo(self, 160, 20, font=self._info_font,
+        self._info_widget = SystemInfo(self, 160, 10, font=self._info_font,
                                        cpu_info=False, memory_info=False,
-                                       disk_info=False, percent_bar=False)
+                                       disk_info=False, percent_bar=False,
+                                       ip_info=True)
         self.caption_widget = ChartCaption(self, 360, 10, self._info_colors,
                                            font=self._caption_font)
         self.widgets = [self.title_widget, self.chart_widget, self._info_widget, self.caption_widget]

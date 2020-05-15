@@ -156,7 +156,7 @@ class App:
                     self.set_active_panel(self.game_panel)
                 elif event.key == pygame.K_a:
                     self.set_active_panel(self.calculator_panel)
-                elif event.key == pygame.K_q:
+                elif event.key == pygame.K_r:
                     self.set_active_panel(self.qrcode_panel)
                 elif event.key == pygame.K_p:
                     self._toggle_background_type()

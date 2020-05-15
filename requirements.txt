@@ -37,3 +37,4 @@ wrapt==1.11.2
 zipp==0.5.2
 lxml==4.4.1
 qrcode==6.1
+netifaces==0.10.9

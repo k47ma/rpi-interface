@@ -14,6 +14,7 @@ import qrcode
 import requests
 import polyline
 import calendar
+import netifaces as ni
 from PIL import Image
 from bs4 import BeautifulSoup
 from datetime import datetime as dt
@@ -1650,7 +1651,9 @@ class Stock(Widget):
 
 
 class SystemInfo(Widget):
-    def __init__(self, parent, x, y, font=None, cpu_info=True, memory_info=True, disk_info=True, internet_info=True, percent_bar=True):
+    def __init__(self, parent, x, y, font=None,
+                 cpu_info=True, memory_info=True, disk_info=True,
+                 internet_info=True, percent_bar=True, ip_info=True):
         super(SystemInfo, self).__init__(parent, x, y)
 
         self.font = font if font is not None else pygame.font.Font("fonts/FreeSans.ttf", 12)
@@ -1659,6 +1662,7 @@ class SystemInfo(Widget):
         self.disk_info = disk_info
         self.internet_info = internet_info
         self.percent_bar = percent_bar
+        self.ip_info = ip_info
         self._info_text_height = self.font.render(' ', True, self._get_color('white')).get_height()
 
         self._cpu_percent = 0.0
@@ -1714,6 +1718,16 @@ class SystemInfo(Widget):
         width = int(self._percent_bar_width * percent / 100)
         self.add_shape(Rectangle(self._get_color('lightgray'), x, y, self._percent_bar_width, self._percent_bar_height, line_width=0))
         self.add_shape(Rectangle(color, x, y, width, self._percent_bar_height, line_width=0))
+    
+    def _get_ip_addr(self):
+        for interface in ['wlan0', 'eth0']:
+            try:
+                info = ni.ifaddresses(interface)
+                return info[ni.AF_INET][0]['addr']
+            except ValueError:
+                continue
+
+        return None
 
     def _on_setup(self):
         self._update_info()
@@ -1748,6 +1762,11 @@ class SystemInfo(Widget):
         download_speed = bytes_to_string(self._net_recv_speed)
         rendered_net_text = self.font.render(u"Internet: \u2193{}/s \u2191{}/s".format(download_speed, upload_speed), True, self._get_color('white'))
 
+        ip_addr = self._get_ip_addr()
+        if ip_addr is None:
+            ip_addr = 'unknown'
+        rendered_ip_text = self.font.render("IP Address: {}".format(ip_addr), True, self._get_color('white'))
+
         y = self.y
         if self.cpu_info:
             screen.blit(rendered_cpu_text, (self.x, y))
@@ -1762,6 +1781,10 @@ class SystemInfo(Widget):
         if self.disk_info:
             screen.blit(rendered_disk_text, (self.x, y))
             screen.blit(rendered_disk_percent_text, (percent_bar_x + self._percent_bar_width, y))
+            y += self._info_text_height
+
+        if self.ip_info:
+            screen.blit(rendered_ip_text, (self.x, y))
             y += self._info_text_height
 
         if self.internet_info:
