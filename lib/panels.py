@@ -273,12 +273,14 @@ class SystemInfoPanel(Panel):
         self._cpu_info = queue.Queue(maxsize=self._max_size)
         self._last_cpu_info = 0
         self._memory_info = queue.Queue(maxsize=self._max_size)
-        self._system_info = {"CPU": self._cpu_info, "Memory": self._memory_info}
-        self._info_colors = {"CPU": "green", "Memory": "yellow"}
+        self._cputemp_info = queue.Queue(maxsize=self._max_size)
+        self._system_info = {"CPU": self._cpu_info, "Memory": self._memory_info,
+                             "CPU Temp": self._cputemp_info}
+        self._info_colors = {"CPU": "green", "Memory": "yellow", "CPU Temp": "orange"}
 
         self.title_widget = Content(self, 10, 10, "System Info", font=self._title_font)
-        self.chart_widget = Chart(self, 30, 50, info=self._system_info,
-                                  width=self.screen_width - 70, height=self.screen_height - 80,
+        self.chart_widget = Chart(self, 30, 70, info=self._system_info,
+                                  width=self.screen_width - 50, height=self.screen_height - 100,
                                   max_x=int(self._max_size * self._update_interval),
                                   info_colors=self._info_colors, line_width=2,
                                   x_unit=self._update_interval, y_unit=1,
@@ -289,7 +291,7 @@ class SystemInfoPanel(Panel):
                                        cpu_info=False, memory_info=False,
                                        disk_info=False, percent_bar=False,
                                        ip_info=True)
-        self.caption_widget = ChartCaption(self, 360, 10, self._info_colors,
+        self.caption_widget = ChartCaption(self, 357, 10, self._info_colors,
                                            font=self._caption_font)
         self.widgets = [self.title_widget, self.chart_widget, self._info_widget, self.caption_widget]
 
@@ -303,6 +305,8 @@ class SystemInfoPanel(Panel):
             self._cpu_info.get_nowait()
         if self._memory_info.full():
             self._memory_info.get_nowait()
+        if self._cputemp_info.full():
+            self._cputemp_info.get_nowait()
 
         cpu_info = psutil.cpu_percent()
         if cpu_info == 0:
@@ -311,6 +315,14 @@ class SystemInfoPanel(Panel):
             self._last_cpu_info = cpu_info
         self._cpu_info.put(cpu_info)
         self._memory_info.put(psutil.virtual_memory().percent)
+
+        temperatures = psutil.sensors_temperatures()
+        for sensor_name in temperatures:
+            if sensor_name.find('cpu') != -1:
+                cpu_temps = temperatures[sensor_name]
+                if len(cpu_temps) > 0:
+                    cpu_temp = cpu_temps[0].current
+                    self._cputemp_info.put(cpu_temp)
 
         self._last_update = current_time
 

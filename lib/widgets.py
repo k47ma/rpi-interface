@@ -2400,7 +2400,7 @@ class Chart(Widget):
             color = self._get_color(color_name)
             if not color:
                 color = self._get_color('white')
-            curve = Lines(color, False, points, anti_alias=True, width=self.line_width)
+            curve = Lines(color, False, points, anti_alias=False, width=self.line_width)
             self.add_shape(curve)
 
         for constant in self.constants:
@@ -2448,15 +2448,26 @@ class ChartCaption(Widget):
         self.font = font if font is not None else self.default_font
         self.line_length = line_length
 
+        self._font_height = get_font_height(self.font)
+
     def _on_setup(self):
         x, y = self.x, self.y
         content_widgets = []
+        max_content_width = 0
         for name in sorted(self.info_colors.keys()):
             content_widget = Content(self.parent, x, y, name, font=self.font)
             content_widget.setup()
             content_widgets.append(content_widget)
+            max_content_width = max(max_content_width, content_widget.get_width())
             y += content_widget.get_height()
         self._subwidgets.extend(content_widgets)
+
+        self.add_shape(Rectangle(self._get_color('white'), self.x - 5, self.y,
+                                 max_content_width + self.line_length + 20,
+                                 self._font_height * len(self.info_colors)))
+        self.add_shape(Rectangle(self._get_color('white'), self.x - 5, self.y,
+                                 max_content_width + self.line_length + 20,
+                                 self._font_height * len(self.info_colors), alpha=70))
 
         line_x = self.x + max([widget.get_width() for widget in content_widgets]) + 5
         for content_widget in content_widgets:
