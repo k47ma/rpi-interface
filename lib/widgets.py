@@ -523,7 +523,7 @@ class NewsList(News):
                 self._draw_no_image_message(screen)
         elif self.title_widget:
             self.title_widget.set_text("")
-    
+
     def _draw_background(self, screen):
         self._draw_transparent_rect(screen, self.x, self.y, self.get_width(), self.get_height(), self._background_alpha,
                                     color=self._get_color('lightgray'))
@@ -786,6 +786,8 @@ class Calendar(Widget):
         self._calendar_table = None
         self._calendar_last_update = dt.now().day
         self._calendar_selected_row = 0
+        self._calendar_row_offset = 0
+        self._calendar_overflow = False
 
         self._text_cal = TextCalendar(parent, self.x, self.y)
         self._text_cal.setup()
@@ -838,7 +840,10 @@ class Calendar(Widget):
                                              if row[-1] == '1' or int(row[-2]) >= -self.max_past_days]
 
         if self.max_rows != -1:
-            self._parsed_calendar_display = self._parsed_calendar_display[:self.max_rows]
+            start_ind = self._calendar_row_offset
+            end_ind = self._calendar_row_offset + self.max_rows
+            self._calendar_overflow = end_ind < len(self._parsed_calendar_display)
+            self._parsed_calendar_display = self._parsed_calendar_display[start_ind:end_ind]
 
         self._calendar_last_update = current_day
         log_to_file("Calendar updated")
@@ -939,6 +944,8 @@ class Calendar(Widget):
 
         self._save_calendar_file(soup)
         if reload:
+            if self._calendar_selected_row > 0:
+                self._calendar_selected_row -= 1
             self.reload_calendar()
 
     def _get_selected_event(self):
@@ -1007,7 +1014,8 @@ class Calendar(Widget):
     def _on_exit(self):
         self._text_cal.reset()
         self._text_cal.is_active = False
-        self._load_table()
+        self._calendar_row_offset = 0
+        self.reload_calendar()
 
     def _draw_background(self, screen):
         if self.is_active:
@@ -1026,13 +1034,20 @@ class Calendar(Widget):
             elif not self._text_cal_mode:
                 if event.key == pygame.K_UP:
                     if self._parsed_calendar_display:
-                        self._calendar_selected_row = max(self._calendar_selected_row - 1, 0)
-                        self._load_table()
+                        if self._calendar_selected_row > 0:
+                            self._calendar_selected_row -= 1
+                            self._load_table()
+                        elif self._calendar_row_offset > 0:
+                            self._calendar_row_offset -= 1
+                            self.reload_calendar()
                 elif event.key == pygame.K_DOWN:
                     if self._parsed_calendar_display:
-                        self._calendar_selected_row = min(self._calendar_selected_row + 1,
-                                                          len(self._parsed_calendar_display) - 1)
-                        self._load_table()
+                        if self._calendar_selected_row < len(self._parsed_calendar_display) - 1:
+                            self._calendar_selected_row += 1
+                            self._load_table()
+                        elif self._calendar_overflow:
+                            self._calendar_row_offset += 1
+                            self.reload_calendar()
                 elif event.key == pygame.K_RETURN:
                     if self._delete_mode:
                         target = self._get_selected_event()
