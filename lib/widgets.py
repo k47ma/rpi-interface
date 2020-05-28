@@ -2568,6 +2568,18 @@ class Map(Widget):
         if not self._direction_info:
             return
 
+        if not self._direction_info.get('routes'):
+            request_status = self._direction_info.get('status')
+            error_text = self._result_font.render("Unable to load traffic info. ({})".format(request_status),
+                                                  True, self._get_color('white'))
+            error_text_x = self._map_x + (self.map_width - error_text.get_width()) // 2
+            error_text_y = self._map_y + (self.map_height - error_text.get_height()) // 3
+            self.add_shape(Rectangle(self._get_color('lightgray'), error_text_x, error_text_y,
+                           error_text.get_width(), error_text.get_height(),
+                           line_width=0, alpha=180))
+            self.add_shape(Text(error_text, (error_text_x, error_text_y)))
+            return
+
         self._total_time = sum([step['duration']['value'] for step in self._direction_info['routes'][0]['legs'][0]['steps']])
         self._total_distance = sum([step['distance']['value'] for step in self._direction_info['routes'][0]['legs'][0]['steps']])
 
@@ -2687,6 +2699,11 @@ class Map(Widget):
         self._dest_widget.set_active(False)
 
     def _on_setup(self):
+        self._origin_widget.bind_key(pygame.K_TAB, self._toggle_mode)
+        self._origin_widget.bind_key(pygame.K_DOWN, self._toggle_input_widget)
+        self._dest_widget.bind_key(pygame.K_TAB, self._toggle_mode)
+        self._dest_widget.bind_key(pygame.K_UP, self._toggle_input_widget)
+
         for mode in self._modes:
             image_path = os.path.join(self._icon_directory, mode + ".png")
             image = pygame.image.load(image_path)
@@ -2711,6 +2728,14 @@ class Map(Widget):
             elif event.key == pygame.K_DOWN:
                 self._origin_widget.set_active(False)
                 self._dest_widget.set_active(True)
+    
+    def _toggle_input_widget(self):
+        if self._origin_widget.is_active:
+            self._origin_widget.set_active(False)
+            self._dest_widget.set_active(True)
+        else:
+            self._origin_widget.set_active(True)
+            self._dest_widget.set_active(False)
 
     def _toggle_mode(self):
         if self._mode_ind < len(self._modes) - 1:
