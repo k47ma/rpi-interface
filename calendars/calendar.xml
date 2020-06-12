@@ -2,10 +2,10 @@
 <body><table>
 <tbody>
 <tr><th>Event</th><th>Date</th></tr>
-<event><name>CS 488 A0</name><date>2020-05-21</date><status>1</status></event>
-<event><name>CS 488 Quiz 0</name><date>2020-05-28</date><status>1</status></event>
-<event><name>CS 488 A1</name><date>2020-06-04</date><status>1</status></event>
-<event><name>CS 488 Quiz 1</name><date>2020-06-11</date><status>1</status></event>
+<event><name>CS 488 A0</name><date>2020-05-21</date><status>0</status></event>
+<event><name>CS 488 Quiz 0</name><date>2020-05-28</date><status>0</status></event>
+<event><name>CS 488 A1</name><date>2020-06-04</date><status>0</status></event>
+<event><name>CS 488 Quiz 1</name><date>2020-06-11</date><status>0</status></event>
 <event><name>CS 488 A2</name><date>2020-06-18</date><status>1</status></event>
 <event><name>CS 488 Quiz 2</name><date>2020-06-25</date><status>1</status></event>
 <event><name>CS 488 A3</name><date>2020-07-02</date><status>1</status></event>
@@ -17,31 +17,20 @@
 <event><name>CS 488 Final Assessment</name><date>2020-08-14</date><status>1</status></event>
 <event><name>CO 342 Practice Quiz</name><date>2020-05-12</date><status>0</status></event>
 <event><name>CO 342 Supervision 1</name><date>2020-05-12</date><status>0</status></event>
-<event><name>CO 342 Quiz 1</name><date>2020-05-17</date><status>1</status></event>
+<event><name>CO 342 Quiz 1</name><date>2020-05-17</date><status>0</status></event>
 <event><name>CS 486 Lec 1 Quiz</name><date>2020-05-12</date><status>0</status></event>
 <event><name>CS 486 Lec 2 Quiz</name><date>2020-05-14</date><status>0</status></event>
-<event><name>CS 486 Lec 3 Quiz</name><date>2020-05-20</date><status>1</status></event>
-<event><name>CS 486 Lec 4 Quiz</name><date>2020-05-26</date><status>1</status></event>
-<event><name>CS 486 Lec 5 Quiz</name><date>2020-05-28</date><status>1</status></event>
-<event><name>CS 486 Quiz 1</name><date>2020-05-29</date><status>1</status></event>
-<event><name>CS 486 Lec 6 Quiz</name><date>2020-06-02</date><status>1</status></event>
-<event><name>CS 486 Quiz 2</name><date>2020-06-12</date><status>1</status></event>
+<event><name>CS 486 Lec 5 Quiz</name><date>2020-05-28</date><status>0</status></event>
+<event><name>CS 486 Quiz 1</name><date>2020-05-29</date><status>0</status></event>
+<event><name>CS 486 Lec 6 Quiz</name><date>2020-06-02</date><status>0</status></event>
 <event><name>CS 486 Quiz 3</name><date>2020-06-26</date><status>1</status></event>
-<event><name>CS 486 Quiz 4</name><date>2020-07-10</date><status>1</status></event>
-<event><name>CS 486 Quiz 5</name><date>2020-07-17</date><status>1</status></event>
-<event><name>CS 486 Quiz 6</name><date>2020-07-31</date><status>1</status></event>
 <event><name>CS 480 A1</name><date>2020-05-19</date><status>0</status></event>
-<event><name>CS 480 A2</name><date>2020-05-26</date><status>1</status></event>
-<event><name>FR 151 Test 1</name><date>2020-05-28</date><status>1</status></event>
-<event><name>FR 151 Test 2</name><date>2020-06-11</date><status>1</status></event>
-<event><name>FR 151 Written Assignment Part A</name><date>2020-06-19</date><status>1</status></event>
-<event><name>FR 151 Test 3</name><date>2020-06-25</date><status>1</status></event>
-<event><name>FR 151 Written Assignment Part B</name><date>2020-06-26</date><status>1</status></event>
-<event><name>FR 151 Written Assignment Part C</name><date>2020-07-03</date><status>1</status></event>
-<event><name>FR 151 Test 4</name><date>2020-07-09</date><status>1</status></event>
-<event><name>FR 151 Oral Assignment</name><date>2020-07-17</date><status>1</status></event>
-<event><name>FR 151 Test 5</name><date>2020-07-23</date><status>1</status></event>
-<event><name>FR 151 Final Test</name><date>2020-07-30</date><status>1</status></event>
-</tbody>
+<event><name>CO 342 A1</name><date>2020-05-24</date><status>0</status></event>
+<event><name>CS 486 Lec 3 Quiz</name><date>2020-05-21</date><status>0</status></event>
+<event><name>CS 480 A2</name><date>2020-05-25</date><status>0</status></event>
+<event><name>CS 486 Lec 4 Quiz</name><date>2020-05-26</date><status>0</status></event>
+<event><name>CO 342 Quiz 2</name><date>2020-05-24</date><status>0</status></event>
+<event><name>CO 342 Quiz 3</name><date>2020-05-31</date><status>0</status></event>
+<event><name>CO 342 A2</name><date>2020-05-31</date><status>0</status></event><event><name>CS 480 A3</name><date>2020-06-01</date><status>0</status></event><event><name>CO 342 A3</name><date>2020-06-07</date><status>0</status></event><event><name>CO 342 Quiz 4</name><date>2020-06-07</date><status>0</status></event><event><name>CS 486 A1</name><date>2020-06-10</date><status>0</status></event><event><name>CS 480 A4</name><date>2020-06-08</date><status>0</status></event><event><name>CS 480 A5</name><date>2020-06-15</date><status>1</status></event><event><name>CS 480 A6</name><date>2020-06-29</date><status>1</status></event><event><name>CS 480 A7</name><date>2020-07-06</date><status>1</status></event><event><name>CS 480 A8</name><date>2020-07-13</date><status>1</status></event><event><name>CS 480 A9</name><date>2020-07-20</date><status>1</status></event><event><name>CS 480 A10</name><date>2020-07-27</date><status>1</status></event><event><name>CO 342 A4</name><date>2020-06-14</date><status>1</status></event><event><name>CS 486 Project M1</name><date>2020-06-23</date><status>1</status></event><event><name>CS 486 Project M2</name><date>2020-07-21</date><status>1</status></event><event><name>CS 486 Project Report</name><date>2020-08-11</date><status>1</status></event><event><name>CS 486 Quiz 2</name><date>2020-06-12</date><status>0</status></event><event><name>CS 486 Quiz 3</name><date>2020-06-19</date><status>1</status></event><event><name>CS 486 Quiz 6</name><date>2020-07-24</date><status>1</status></event><event><name>CS 486 Quiz 4</name><date>2020-07-10</date><status>1</status></event><event><name>CS 486 Quiz 5</name><date>2020-07-17</date><status>1</status></event><event><name>CO 342 Test 2</name><date>2020-07-29</date><status>1</status></event><event><name>CO 342 Test 1</name><date>2020-06-24</date><status>1</status></event><event><name>CS 486 Lec 9 Quiz</name><date>2020-06-12</date><status>0</status></event><event><name>CO 342 Quiz 5</name><date>2020-06-14</date><status>1</status></event></tbody>
 </table>
 </body></html>

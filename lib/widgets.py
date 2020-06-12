@@ -2755,10 +2755,10 @@ class Map(Widget):
 
 
 class Camera(Widget):
-    def __init__(self, parent, x, y, camera):
+    def __init__(self, parent, x, y):
         super(Camera, self).__init__(parent, x, y)
 
-        self.camera = camera
+        self.camera = None
 
         self._camera_font = pygame.font.Font("fonts/FreeSans.ttf", 15)
         self._message_font = pygame.font.Font("fonts/FreeSans.ttf", 20)
@@ -2794,6 +2794,13 @@ class Camera(Widget):
         screen.blit(rotated_image, (0, 0))
 
         self._add_framerate(screen)
+
+    def _on_enter(self):
+        self.camera = cv2.VideoCapture(0)
+    
+    def _on_exit(self):
+        self.camera.release()
+        self.camera = None
 
     def _add_framerate(self, screen):
         current_time = time.time()

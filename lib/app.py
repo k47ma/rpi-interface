@@ -1,13 +1,11 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 import os
-import cv2
 import time
 import glob
 import random
 import pygame
 import numpy as np
-import RPi.GPIO as gpio
 from datetime import datetime as dt
 from lib.panels import MainPanel, NightPanel, NewsPanel, SearchPanel, \
     SystemInfoPanel, StockPanel, MapPanel, CameraPanel, GamePanel, \
@@ -21,14 +19,6 @@ class App:
         pygame.init()
 
         self.args = args
-
-        # set up fan on GPIO
-        self._FAN_GPIO = 26
-        gpio.setmode(gpio.BCM)
-        gpio.setwarnings(False)
-        gpio.cleanup(self._FAN_GPIO)
-        gpio.setup(self._FAN_GPIO, gpio.OUT)
-        gpio.output(self._FAN_GPIO, gpio.HIGH)
 
         self._screen_width = 480
         self._screen_height = 320
@@ -62,8 +52,6 @@ class App:
 
         self.clock = pygame.time.Clock()
 
-        self.camera = cv2.VideoCapture(0) if self.args.camera else None
-
         self.main_panel = MainPanel(self)
         self.main_panel.always_update = True
         self.night_panel = NightPanel(self)
@@ -74,7 +62,7 @@ class App:
         self.system_info_panel.always_update = True
         self.stock_panel = StockPanel(self)
         self.map_panel = MapPanel(self)
-        self.camera_panel = CameraPanel(self, self.camera)
+        self.camera_panel = CameraPanel(self)
         self.game_panel = GamePanel(self)
         self.calculator_panel = CalculatorPanel(self)
         self.qrcode_panel = QRCodePanel(self)
@@ -104,11 +92,6 @@ class App:
         self.backgrounds = [self.triangle_background, self.image_background,
                             self.trace_background, self.blank_background]
         self._background_type = 0
-
-        self._brightness_last_update = time.time()
-        self._brightness_update_interval = 1
-        self._brightness_thres = 80
-        self._brightness = 1.0
 
         self._frame_rate_font = pygame.font.Font('fonts/FreeSans.ttf', 15)
         self._actual_frame_rate = 0
@@ -170,7 +153,6 @@ class App:
 
         self._draw_background(self.screen)
         self.active_panel.draw(self.screen)
-        self._apply_brightness(self.screen)
         if self._debug_mode:
             self._draw_frame_rate(self.screen)
         if self._invert_screen:
@@ -181,9 +163,6 @@ class App:
 
     def _update_screen(self):
         current_time = time.time()
-        if self.camera and current_time - self._brightness_last_update > self._brightness_update_interval:
-            self._update_brightness()
-            self._brightness_last_update = current_time
         
         if self._mouse_visible and current_time - self._mouse_last_move > self._mouse_timeout:
             self._set_mouse_visible(False)
@@ -209,7 +188,7 @@ class App:
         self.backgrounds[self._background_type].draw(background_surface)
         screen.blit(background_surface.convert(), (0, 0))
 
-    def _apply_brightness(self, screen):
+    def _apply_brightness(self, screen, brightbess):
         if self.active_panel is self.camera_panel:
             return
 
@@ -218,22 +197,9 @@ class App:
 
         brightness_surface = pygame.Surface((self._screen_width, self._screen_height))
         brightness_surface.fill((0, 0, 0))
-        alpha_factor = min((1 - self._brightness), 0.3)
+        alpha_factor = min((1 - brightbess), 0.3)
         brightness_surface.set_alpha(int(alpha_factor * 255))
         screen.blit(brightness_surface.convert(), (0, 0))
-
-    def _update_brightness(self):
-        if not self.camera:
-            return
-
-        ret, frame = self.camera.read()
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        samples = random.sample(list(np.ravel(gray)), 100)
-        samples_avg = sum(samples) / len(samples)
-        if samples_avg >= self._brightness_thres:
-            self._brightness = 1.0
-        else:
-            self._brightness = samples_avg / self._brightness_thres
 
     def _draw_frame_rate(self, screen):
         current_time = time.time()
@@ -256,7 +222,6 @@ class App:
         if os.path.isdir('news_images'):
             for image_file in glob.glob('news_images/*'):
                 os.remove(image_file)
-        gpio.cleanup(self._FAN_GPIO)
 
     def set_active_panel(self, panel):
         if self.active_panel is not panel:
@@ -291,8 +256,5 @@ class App:
             if self._dryrun_timeout != -1 \
                and time.time() - self._start_time > self._dryrun_timeout:
                 self._done = True
-
-        if self.camera:
-            self.camera.release()
 
         self._clear_cache()
