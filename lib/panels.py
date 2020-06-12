@@ -383,6 +383,11 @@ class CameraPanel(Panel):
     def _on_enter(self):
         self.set_active_widget(self.camera_widget)
 
+    def handle_panel_events(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN:
+                self.set_active_widget(self.camera_widget)
+
 
 class GamePanel(Panel):
     def __init__(self, app):

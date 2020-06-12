@@ -1,0 +1,1 @@
+flake8 --ignore=E501,F,W lib/*.py main.py

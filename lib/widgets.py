@@ -2768,6 +2768,7 @@ class Camera(Widget):
         self._frame = None
         self._frame_last_update = time.time()
         self._text_last_update = time.time()
+        self._camera_paused = False
 
     def _on_setup(self):
         pass
@@ -2795,11 +2796,27 @@ class Camera(Widget):
 
         self._add_framerate(screen)
 
+        if self._camera_paused:
+            message = "Camera Paused"
+            message_text = self._camera_font.render(message, True, self._get_color('white'))
+
+            message_x = (self._screen_width - message_text.get_width() - 15)
+            message_y = 10
+            
+            self._draw_transparent_rect(screen, message_x - 5, message_y,
+                                        message_text.get_width() + 10, message_text.get_height(), 
+                                        120, color=self._get_color('black'))
+            screen.blit(message_text, (message_x, message_y))
+
     def _on_enter(self):
         self.camera = cv2.VideoCapture(0)
+        self._camera_paused = False
     
     def _on_exit(self):
-        self.camera.release()
+        if self.camera:
+            self.camera.release()
+            self._camera_paused = True
+
         self.camera = None
 
     def _add_framerate(self, screen):
