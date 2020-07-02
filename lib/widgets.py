@@ -938,9 +938,11 @@ class Calendar(Widget):
             row_date = row_tag.find('date').get_text()
             row_status = row_tag.find('status').get_text()
             is_alter = (target_name.endswith('...') and row_name.startswith(target_name[:-3]))
-            if ((row_name, row_date, row_status) == (target_name, target_date, target_status)
-                    or is_alter):
+            if (row_name == target_name or is_alter) and \
+               row_date == target_date and \
+               row_status == target_status:
                 row_tag.extract()
+                break
 
         self._save_calendar_file(soup)
         if reload:
