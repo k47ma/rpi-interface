@@ -1,7 +1,18 @@
 <html>
 <body><table>
+<tbody>
 <tr><th>Event</th><th>Date</th></tr>
-<event><name>Event 0</name><date>2021-01-01</date><status>0</status></event>
-<event><name>Event 1</name><date>2021-01-01</date><status>1</status></event>
+<event><name>Assignment 1</name><date>2020-09-15</date><status>0</status></event>
+<event><name>Assignment 2</name><date>2020-09-22</date><status>1</status></event>
+<event><name>Assignment 3</name><date>2020-09-29</date><status>1</status></event>
+<event><name>Assignment 4</name><date>2020-10-06</date><status>1</status></event>
+<event><name>Assignment 5</name><date>2020-10-20</date><status>1</status></event>
+<event><name>Assignment 6</name><date>2020-10-27</date><status>1</status></event>
+<event><name>Reading Test</name><date>2020-11-03</date><status>1</status></event>
+<event><name>Oral Test</name><date>2020-11-10</date><status>1</status></event>
+<event><name>Writing Test 1</name><date>2020-11-17</date><status>1</status></event>
+<event><name>Listening Test</name><date>2020-11-24</date><status>1</status></event>
+<event><name>Writing Test 2</name><date>2020-12-10</date><status>1</status></event>
+</tbody>
 </table>
 </body></html>

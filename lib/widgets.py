@@ -582,6 +582,7 @@ class Weather(Widget):
         self.digit_font = pygame.font.Font("fonts/FreeSans.ttf", 12)
         self.change_font = pygame.font.Font("fonts/FreeSans.ttf", 16)
         self.last_update_font = pygame.font.Font("fonts/FreeSans.ttf", 10)
+        self.location_font = pygame.font.Font("fonts/FreeSansBold.ttf", 18)
 
         self._weather_last_update = time.time()
         self._current_weather = None
@@ -593,20 +594,47 @@ class Weather(Widget):
         self._perc_bar_width = 10
         self._perc_bar_padding = 5
 
+        self._default_location = "Waterloo,ca"
         self._weather_key = "508b76be5129c25115e5e60848b4c20c"
         self._current_url = "http://api.openweathermap.org/data/2.5/weather"
         self._forecase_url = "http://api.openweathermap.org/data/2.5/forecast"
-        self._weather_payload = {"q": "Waterloo,ca", "appid": self._weather_key,
+        self._ip_url = "http://checkip.amazonaws.com"
+        self._location_url = "http://ip-api.com/json/"
+        self._location_city, self._location_country = self._get_location()
+        self._weather_payload = {"q": "{},{}".format(self._location_city, self._location_country),
+                                 "appid": self._weather_key,
                                  "units": "metric"}
         self._waterloo_key = "97a591e399f591e64a5f4536d08d9574"
 
+        self._forecast_max_items = 2
         self._current_icon_size = 35
         self._change_icon_size = 25
         self._perc_icon_size = 18
+        self._location_icon_size = 20
         self._icon_directory = os.path.join("images", "weather")
+        self._location_icon_path = os.path.join("images", "icon", "location.png")
         self._current_icons = {}
         self._change_icons = {}
         self._perc_icons = {}
+        self._location_icon = None
+
+    def _get_location(self):
+        default_city = "Waterloo"
+        default_country = "CA"
+
+        try:
+            public_ip = requests.get(self._ip_url).text.strip()
+        except ConnectionError:
+            return default_city, default_country
+
+        location_res = requests.get(self._location_url + public_ip)
+        location_json = location_res.json()
+        city = location_json.get("city")
+        country = location_json.get("countryCode")
+        if city and country:
+            return city, country
+        else:
+            return default_city, default_country
 
     def _get_weather(self):
         current_res = requests.get(self._current_url, params=self._weather_payload)
@@ -692,11 +720,20 @@ class Weather(Widget):
         clouds_icon_y = clouds_y + clouds_text.get_height()
         self.add_shape(ScreenSurface(self._perc_icons['cloud'], (clouds_icon_x, clouds_icon_y)))
 
+        # add location info
+        location_str = self._location_city
+        location_text = self.location_font.render(location_str, True, self._get_color('white'))
+        location_x = self.x
+        location_y = self.y + desc_text.get_height() + current_text.get_height() + forecast_text.get_height()
+        icon_offset = (self._location_icon_size - location_text.get_height()) // 2
+        self.add_shape(ScreenSurface(self._location_icon, (location_x, location_y - icon_offset)))
+        self.add_shape(Text(location_text, (location_x + self._location_icon_size + 5, location_y)))
+        
         # add change info
         change_info = []
         change_count = 0
         for pred in self._forecast_weather['list'][:8]:
-            if change_count == 3:
+            if change_count == self._forecast_max_items:
                 break
             pred_desc = pred['weather'][0]['main']
             icon_id = pred['weather'][0]['icon']
@@ -708,7 +745,8 @@ class Weather(Widget):
                 change_count += 1
 
         x = self.x
-        y = self.y + desc_text.get_height() + current_text.get_height() + forecast_text.get_height() + 5
+        y = self.y + desc_text.get_height() + current_text.get_height() + \
+            forecast_text.get_height() + location_text.get_height() + 5
         max_text_width = max([info[1].get_width() for info in change_info]) if change_info else 0
         for text, rendered_text, icon_id in change_info:
             self.add_shape(Text(rendered_text, (x, y)))
@@ -743,6 +781,10 @@ class Weather(Widget):
                 self._change_icons[icon_name] = change_icon.convert_alpha()
             else:
                 self._perc_icons[icon_name] = icon.convert_alpha()
+
+        location_img = pygame.image.load(self._location_icon_path)
+        location_icon = pygame.transform.scale(location_img, (self._location_icon_size, self._location_icon_size))
+        self._location_icon = location_icon.convert_alpha()
 
     def _on_setup(self):
         self._load_icons()

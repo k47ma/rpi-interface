@@ -161,10 +161,12 @@ class MainPanel(Panel):
         self.widgets = [self.news_widget, self.weather_widget, self.time_widget,
                         self.calendar_widget, self.systeminfo_widget, self.traffic_widget]
 
-        self._night_image_path = "images/night.gif"
-        self._night_image = pygame.transform.scale(pygame.image.load(self._night_image_path), (30, 30))
-        self.night_button = Button(self, -1, self.screen_height - 29, image=self._night_image,
-                                   on_click=self.enter_night_mode)
+        self._night_icon_path = "images/night.gif"
+        self._night_icon_size = 25
+        self._night_icon = pygame.transform.scale(pygame.image.load(self._night_icon_path),
+                                                  (self._night_icon_size, self._night_icon_size))
+        self.night_button = Button(self, -1, self.screen_height - self._night_icon_size + 1,
+                                   image=self._night_icon, on_click=self.enter_night_mode)
         self.buttons = [self.night_button]
 
     def _on_update(self):
