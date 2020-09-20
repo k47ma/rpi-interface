@@ -1,6 +1,8 @@
 import math
 import pygame
 import random
+import requests
+import netifaces as ni
 from datetime import datetime as dt
 
 
@@ -215,3 +217,24 @@ def get_font_width(font):
 def get_font_height(font):
     rendered_text = font.render(' ', True, (255, 255, 255))
     return rendered_text.get_height()
+
+
+def get_private_ip():
+    """Get the private IP address of current network"""
+    for interface in ['wlan0', 'eth0']:
+        try:
+            info = ni.ifaddresses(interface)
+            return info[ni.AF_INET][0]['addr']
+        except ValueError:
+            continue
+    return ""
+
+
+def get_public_ip():
+    """Get the public IP address of current network"""
+    url = "http://checkip.amazonaws.com"
+    try:
+        public_ip = requests.get(url).text.strip()
+        return public_ip
+    except ConnectionError:
+        return ""

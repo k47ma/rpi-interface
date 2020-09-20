@@ -14,7 +14,6 @@ import qrcode
 import requests
 import polyline
 import calendar
-import netifaces as ni
 from PIL import Image
 from bs4 import BeautifulSoup
 from datetime import datetime as dt
@@ -27,7 +26,7 @@ from lib.shapes import Rectangle, Text, Line, Lines, DashLine, Polygon, \
     Circle, ScreenSurface
 from lib.util import log_to_file, shift_pressed, ctrl_pressed, \
     bytes_to_string, pygame_key_to_char, char_to_pygame_key, \
-    get_font_height
+    get_font_height, get_private_ip, get_public_ip
 
 
 class Widget:
@@ -598,7 +597,6 @@ class Weather(Widget):
         self._weather_key = "508b76be5129c25115e5e60848b4c20c"
         self._current_url = "http://api.openweathermap.org/data/2.5/weather"
         self._forecase_url = "http://api.openweathermap.org/data/2.5/forecast"
-        self._ip_url = "http://checkip.amazonaws.com"
         self._location_url = "http://ip-api.com/json/"
         self._location_city, self._location_country = self._get_location()
         self._weather_payload = {"q": "{},{}".format(self._location_city, self._location_country),
@@ -622,9 +620,8 @@ class Weather(Widget):
         default_city = "Waterloo"
         default_country = "CA"
 
-        try:
-            public_ip = requests.get(self._ip_url).text.strip()
-        except ConnectionError:
+        public_ip = get_public_ip()
+        if not public_ip:
             return default_city, default_country
 
         location_res = requests.get(self._location_url + public_ip)
@@ -1741,6 +1738,9 @@ class SystemInfo(Widget):
         self._update_interval = 1.0
         self._last_update = time.time()
 
+        self._private_ip = ""
+        self._public_ip = ""
+
     def _update_info(self):
         self._memory_percent = psutil.virtual_memory().percent
         self._cpu_percent = psutil.cpu_percent()
@@ -1767,6 +1767,17 @@ class SystemInfo(Widget):
         self._last_net_sent_bytes = current_sent_bytes
         self._last_net_recv_bytes = current_recv_bytes
 
+    def _update_ip_info(self):
+        if not self._private_ip or self._private_ip == 'unknown':
+            self._private_ip = get_private_ip()
+        if not self._public_ip or self._public_ip == 'unknown':
+            self._public_ip = get_public_ip()
+
+        if not self._private_ip:
+            self._private_ip = 'unknown'
+        if not self._public_ip:
+            self._public_ip = 'unknown'
+
     def _add_percent_bar(self, percent, x, y):
         if percent <= 60:
             color = self._get_color('green')
@@ -1778,23 +1789,16 @@ class SystemInfo(Widget):
         self.add_shape(Rectangle(self._get_color('lightgray'), x, y, self._percent_bar_width, self._percent_bar_height, line_width=0))
         self.add_shape(Rectangle(color, x, y, width, self._percent_bar_height, line_width=0))
     
-    def _get_ip_addr(self):
-        for interface in ['wlan0', 'eth0']:
-            try:
-                info = ni.ifaddresses(interface)
-                return info[ni.AF_INET][0]['addr']
-            except ValueError:
-                continue
-
-        return None
-
     def _on_setup(self):
         self._update_info()
+        self._update_ip_info()
 
     def _on_update(self):
         current_time = time.time()
         if current_time - self._last_update > self._update_interval:
             self._update_info()
+            if 'unknown' in [self._private_ip, self._public_ip]:
+                self._update_ip_info()
             self._last_update = current_time
 
     def _on_draw(self, screen):
@@ -1821,10 +1825,10 @@ class SystemInfo(Widget):
         download_speed = bytes_to_string(self._net_recv_speed)
         rendered_net_text = self.font.render(u"Internet: \u2193{}/s \u2191{}/s".format(download_speed, upload_speed), True, self._get_color('white'))
 
-        ip_addr = self._get_ip_addr()
-        if ip_addr is None:
-            ip_addr = 'unknown'
-        rendered_ip_text = self.font.render("IP Address: {}".format(ip_addr), True, self._get_color('white'))
+        rendered_private_ip = self.font.render("Private IP: {}".format(self._private_ip),
+                                               True, self._get_color('white'))
+        rendered_public_ip = self.font.render("Public IP: {}".format(self._public_ip),
+                                              True, self._get_color('white'))
 
         y = self.y
         if self.cpu_info:
@@ -1843,8 +1847,9 @@ class SystemInfo(Widget):
             y += self._info_text_height
 
         if self.ip_info:
-            screen.blit(rendered_ip_text, (self.x, y))
-            y += self._info_text_height
+            screen.blit(rendered_private_ip, (self.x, y))
+            screen.blit(rendered_public_ip, (self.x, y + self._info_text_height))
+            y += 2 * self._info_text_height
 
         if self.internet_info:
             screen.blit(rendered_net_text, (self.x, y))
