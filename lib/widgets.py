@@ -297,6 +297,9 @@ class News(Widget):
         if response.get("status") == "ok":
             self._news_info = response.get("articles")
             self._news_index = 0
+        else:
+            log_to_file("Error: Failed to fetch news")
+            log_to_file(str(response))
 
         log_to_file("News updated")
 
@@ -305,7 +308,7 @@ class News(Widget):
 
     def _on_update(self):
         curr_time = time.time()
-        if curr_time - self._news_last_update > self._news_info_update_interval or self._news_info is None:
+        if curr_time - self._news_last_update > self._news_info_update_interval:
             self._get_news()
             self._news_last_update = curr_time
 
@@ -372,6 +375,9 @@ class NewsList(News):
 
     def _get_news(self):
         super(NewsList, self)._get_news()
+
+        if not self._news_info:
+            return
 
         self._title_contents = []
         start_x, start_y = self.x, self.y
@@ -450,7 +456,7 @@ class NewsList(News):
 
     def _on_update(self):
         curr_time = time.time()
-        if curr_time - self._news_last_update > self._news_info_update_interval or self._news_info is None:
+        if curr_time - self._news_last_update > self._news_info_update_interval:
             self._get_news()
             self._parse_news()
             self._news_last_update = curr_time
