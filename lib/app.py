@@ -5,7 +5,6 @@ import time
 import glob
 import random
 import pygame
-import numpy as np
 from datetime import datetime as dt
 from lib.panels import MainPanel, NightPanel, NewsPanel, SearchPanel, \
     SystemInfoPanel, StockPanel, MapPanel, CameraPanel, GamePanel, \
