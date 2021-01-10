@@ -1,16 +1,18 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
+import os
 import time
+import glob
 import queue
 import psutil
 import pygame
-from datetime import datetime as dt
 from abc import ABCMeta
+from datetime import datetime as dt
 from lib.buttons import Button
 from lib.games import GameSnake, GameTetris, GameFlip
 from lib.widgets import News, NewsList, Weather, Calendar, Traffic, Stock, \
     SystemInfo, Time, NightTime, Content, Search, Chart, ChartCaption, Map, \
-    List, Calculator, Camera, QRCode
+    List, Calculator, Camera, QRCode, StatusBar
 from lib.popups import InfoPopup, ConfirmPopup, InputPopup
 
 
@@ -158,8 +160,10 @@ class MainPanel(Panel):
         self.stock_widget = Stock(self, 5, 5)
         self.systeminfo_widget = SystemInfo(self, 10, 10, ip_info=False)
         self.traffic_widget = Traffic(self, 180, 10)
+        self.statusbar_widget = StatusBar(self, 0, 10)
         self.widgets = [self.news_widget, self.weather_widget, self.time_widget,
-                        self.calendar_widget, self.systeminfo_widget, self.traffic_widget]
+                        self.calendar_widget, self.systeminfo_widget, self.traffic_widget,
+                        self.statusbar_widget]
 
         self._night_icon_path = "images/night.gif"
         self._night_icon_size = 25
@@ -318,7 +322,10 @@ class SystemInfoPanel(Panel):
         self._cpu_info.put(cpu_info)
         self._memory_info.put(psutil.virtual_memory().percent)
 
-        temperatures = psutil.sensors_temperatures()
+        try:
+            temperatures = psutil.sensors_temperatures()
+        except AttributeError:
+            temperatures = []
         for sensor_name in temperatures:
             if sensor_name.find('cpu') != -1:
                 cpu_temps = temperatures[sensor_name]

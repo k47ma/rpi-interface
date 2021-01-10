@@ -238,3 +238,5 @@ def get_public_ip():
         return public_ip
     except ConnectionError:
         return ""
+    except requests.exceptions.ConnectionError:
+        return ""

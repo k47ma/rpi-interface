@@ -7,18 +7,22 @@ import math
 import glob
 import copy
 import time
+import json
 import queue
 import pygame
 import psutil
 import qrcode
+import threading
 import requests
 import polyline
 import calendar
+import netifaces as ni
 from PIL import Image
 from bs4 import BeautifulSoup
 from datetime import datetime as dt
 from abc import ABCMeta, abstractmethod
 from string import printable, digits, ascii_letters
+from pythonping import ping
 from lib.table import Table
 from lib.buttons import Button
 from lib.threads import RequestThread, ImageFetchThread
@@ -292,8 +296,14 @@ class News(Widget):
         self._title_max_width = self._screen_width - self.x - 20
 
     def _get_news(self):
-        res = requests.get(self._news_url, params=self._news_payload)
-        response = res.json()
+        try:
+            res = requests.get(self._news_url, params=self._news_payload)
+            response = res.json()
+        except ConnectionError:
+            response = {}
+        except requests.exceptions.ConnectionError:
+            response = {}
+
         if response.get("status") == "ok":
             self._news_info = response.get("articles")
             self._news_index = 0
@@ -588,11 +598,13 @@ class Weather(Widget):
         self.change_font = pygame.font.Font("fonts/FreeSans.ttf", 16)
         self.last_update_font = pygame.font.Font("fonts/FreeSans.ttf", 10)
         self.location_font = pygame.font.Font("fonts/FreeSansBold.ttf", 18)
+        self.error_font = pygame.font.Font("fonts/arial.ttf", 16)
 
         self._weather_last_update = time.time()
         self._current_weather = None
         self._forecast_weather = None
         self._weather_update_interval = 1800
+        self._weather_retry_interval = 60
         self._weather_x = self.x
         self._weather_y = self.y
         self._perc_bar_length = int(get_font_height(self.weather_font) * 0.7)
@@ -640,11 +652,18 @@ class Weather(Widget):
             return default_city, default_country
 
     def _get_weather(self):
-        current_res = requests.get(self._current_url, params=self._weather_payload)
-        self._current_weather = current_res.json()
+        try:
+            current_res = requests.get(self._current_url, params=self._weather_payload)
+            self._current_weather = current_res.json()
 
-        forecast_res = requests.get(self._forecase_url, params=self._weather_payload)
-        self._forecast_weather = forecast_res.json()
+            forecast_res = requests.get(self._forecase_url, params=self._weather_payload)
+            self._forecast_weather = forecast_res.json()
+        except ConnectionError:
+            self._current_weather = {}
+            self._forecast_weather = {}
+        except requests.exceptions.ConnectionError:
+            self._current_weather = {}
+            self._forecast_weather = {}
 
         self._weather_last_update = time.time()
         self._parse_info()
@@ -652,6 +671,17 @@ class Weather(Widget):
         log_to_file("Weather updated")
 
     def _parse_info(self):
+        curr_res_code = self._current_weather.get('cod')
+        forecast_res_code = self._forecast_weather.get('cod')
+        if (curr_res_code is None or
+            forecast_res_code is None or
+            int(curr_res_code) != 200 or
+            int(forecast_res_code) != 200):
+            log_to_file("Failed to load weather information: respond error code {}, {}".format(curr_res_code, forecast_res_code))
+            self._current_weather = None
+            self._forecast_weather = None
+            return
+
         try:
             current_desc = self._current_weather['weather'][0]['main']
             current_temp = int(self._current_weather['main']['temp'])
@@ -660,7 +690,8 @@ class Weather(Widget):
             current_humidity = self._current_weather['main']['humidity']
             current_clouds = self._current_weather['clouds']['all']
             forecast_temp = [int(pred['main']['temp']) for pred in self._forecast_weather['list'][:8]]
-        except KeyError:
+        except KeyError as e:
+            log_to_file("Failed to load weather information: invalid key {}".format(e))
             self._current_weather = None
             self._forecast_weather = None
             return
@@ -775,7 +806,7 @@ class Weather(Widget):
 
     def _load_icons(self):
         for icon_path in glob.glob(os.path.join(self._icon_directory, "*.png")):
-            icon_name = icon_path.split('/')[-1].split('.')[0]
+            icon_name = os.path.basename(icon_path).split('.')[0]
             icon = pygame.image.load(icon_path)
             if re.match(r'\d+[dn]', icon_name):
                 current_icon = pygame.transform.scale(icon, (self._current_icon_size, self._current_icon_size))
@@ -794,17 +825,30 @@ class Weather(Widget):
         self._get_weather()
 
     def _on_update(self):
-        if (time.time() - self._weather_last_update > self._weather_update_interval
-                or self._current_weather is None
-                or self._forecast_weather is None):
+        curr_time = time.time()
+        need_update = (curr_time - self._weather_last_update > self._weather_update_interval)
+        need_retry = ((self._forecast_weather is None or self._current_weather is None) and
+                      curr_time - self._weather_last_update > self._weather_retry_interval)
+
+        if need_update or need_retry:
             self._get_weather()
 
     def _on_draw(self, screen):
+        text_x = self._weather_x
+        text_y = self._weather_y
+
+        # draw error text if there is no weather information
+        if self._current_weather is None or self._forecast_weather is None:
+            text_y += 20
+            error_text = self.error_font.render("No weather info", True, self._get_color('white'))
+            screen.blit(error_text, (text_x, text_y))
+            text_y += error_text.get_height()
+
         # draw last update time
         last_update_mins = int((time.time() - self._weather_last_update) / 60)
         last_update_text = "Last Update: {} min ago".format(last_update_mins)
         rendered_last_update_text = self.last_update_font.render(last_update_text, True, self._get_color('white'))
-        screen.blit(rendered_last_update_text, (self._weather_x, self._weather_y))
+        screen.blit(rendered_last_update_text, (text_x, text_y))
 
 
 class Calendar(Widget):
@@ -1362,13 +1406,23 @@ class Traffic(Widget):
         self._traffic_payload['origins'] = '+'.join(self._origin_address.split())
         self._traffic_payload['destinations'] = '+'.join(self._dest_address.split())
 
-        traffic_info_res = requests.get(self._traffic_url, params=self._traffic_payload)
-        self._traffic_info = traffic_info_res.json()
+        try:
+            traffic_info_res = requests.get(self._traffic_url, params=self._traffic_payload)
+            self._traffic_info = traffic_info_res.json()
+        except ConnectionError:
+            self._traffic_info = {}
+        except requests.exceptions.ConnectionError:
+            self._traffic_info = {}
 
         try:
             traffic_distance = self._traffic_info['rows'][0]['elements'][0]['distance']['text']
             traffic_duration = self._traffic_info['rows'][0]['elements'][0]['duration']['text']
         except IndexError:
+            log_to_file("Invalid traffic info: {}".format(self._traffic_info))
+            return
+        except KeyError as e:
+            log_to_file("Invalid traffic info key: {}".format(e))
+            log_to_file("Traffic info: {}".format(self._traffic_info))
             return
 
         self._distance_text = self.traffic_font.render(traffic_distance, True, self._get_color('white'))
@@ -1751,7 +1805,10 @@ class SystemInfo(Widget):
         self._memory_percent = psutil.virtual_memory().percent
         self._cpu_percent = psutil.cpu_percent()
 
-        temperatures = psutil.sensors_temperatures()
+        try:
+            temperatures = psutil.sensors_temperatures()
+        except AttributeError:
+            temperatures = []
         for sensor_name in temperatures:
             if sensor_name.find('cpu') != -1:
                 cpu_temps = temperatures[sensor_name]
@@ -2613,20 +2670,27 @@ class Map(Widget):
         self._direction_payload['destination'] = '+'.join(dest_address.split())
         self._direction_payload['mode'] = self._modes[self._mode_ind]
 
-        direction_res = requests.get(self._direction_url, params=self._direction_payload)
-        self._direction_info = direction_res.json()
+        try:
+            direction_res = requests.get(self._direction_url, params=self._direction_payload)
+            self._direction_info = direction_res.json()
+        except ConnectionError:
+            self._direction_info = {}
+        except requests.exceptions.ConnectionError:
+            self._direction_info = {}
 
         self.clear_shapes()
         self._parse_info()
 
     def _parse_info(self):
+        error_msg = ""
         if not self._direction_info:
-            return
-
-        if not self._direction_info.get('routes'):
+            error_msg = "Unable to load traffic info. Please check Internet connection."
+        elif not self._direction_info.get('routes'):
             request_status = self._direction_info.get('status')
-            error_text = self._result_font.render("Unable to load traffic info. ({})".format(request_status),
-                                                  True, self._get_color('white'))
+            error_msg = "Unable to load traffic info. (Error Code: {})".format(request_status)
+        
+        if error_msg:
+            error_text = self._result_font.render(error_msg, True, self._get_color('white'))
             error_text_x = self._map_x + (self.map_width - error_text.get_width()) // 2
             error_text_y = self._map_y + (self.map_height - error_text.get_height()) // 3
             self.add_shape(Rectangle(self._get_color('lightgray'), error_text_x, error_text_y,
@@ -3281,3 +3345,75 @@ class QRCode(Widget):
         self._input_widget.reset()
         self._qr_text = ''
         self._qr_image = None
+
+
+class StatusBar(Widget):
+    def __init__(self, parent, x, y):
+        super(StatusBar, self).__init__(parent, x, y)
+
+        self._ping_timeout = 2
+        self._ping_lock = threading.Lock()
+
+        self._internet_icon_dir = "images/internet"
+        self._internet_icon_size = 20
+        self._internet_icons = {}
+        self._internet_last_update = time.time()
+        self._internet_update_interval = 60
+        self.internet_status = "no-internet"
+
+    def _on_setup(self):
+        for image_path in glob.glob(os.path.join(self._internet_icon_dir, '*')):
+            image_name = os.path.basename(image_path).split('.')[0]
+            image = pygame.image.load(image_path)
+            image = pygame.transform.scale(image, (self._internet_icon_size, self._internet_icon_size))
+            self._internet_icons[image_name] = image.convert_alpha()
+        
+        self._update_internet_status()
+
+    def _on_update(self):
+        if time.time() - self._internet_last_update > self._internet_update_interval:
+            self._update_internet_status()
+            self._internet_last_update = time.time()
+
+    def _update_internet_status(self):
+        
+        class PingThread(threading.Thread):
+            def __init__(self, widget, lock, timeout):
+                threading.Thread.__init__(self)
+
+                self.widget = widget
+                self.lock = lock
+                self.timeout = timeout
+            
+            def run(self):
+                ping_result = ping('8.8.8.8', count=3, timeout=self.timeout)
+                
+                if ping_result.rtt_min == self.timeout:
+                    status = "no-internet"
+                else:
+                    try:
+                        ni.ifaddresses('wlan0')
+                        status = "wifi"
+                    except ValueError:
+                        status = "ethernet"
+                self.lock.acquire()
+                self.widget.internet_status = status
+                self.lock.release()
+
+        ping_thread = PingThread(self, self._ping_lock, self._ping_timeout)
+        ping_thread.start()
+
+    def _on_draw(self, screen):
+        self.width = self._internet_icon_size
+        self.height = self._internet_icon_size
+
+        self.x = (self._screen_width - self.width) // 2
+        icon_x = self.x
+        icon_y = self.y
+
+        self._ping_lock.acquire()
+        internet_icon = self._internet_icons.get(self.internet_status)
+        self._ping_lock.release()
+        if internet_icon:
+            screen.blit(internet_icon, (icon_x, icon_y))
+            icon_x += internet_icon.get_width()
