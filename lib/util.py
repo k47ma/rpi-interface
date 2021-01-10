@@ -227,6 +227,8 @@ def get_private_ip():
             return info[ni.AF_INET][0]['addr']
         except ValueError:
             continue
+        except KeyError:
+            continue
     return ""
 
 

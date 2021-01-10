@@ -497,11 +497,13 @@ class NewsList(News):
 
         # draw image
         if self._display_image:
-            if self.title_widget:
+            if self.title_widget and self._news_info is not None:
                 self.title_widget.set_text(self._news_info[self._active_index]['title'])
             pygame.draw.rect(screen, self._get_color('blue'), (self.x, self.y, self.max_width, self.max_height), 3)
             image = None
-            image_url = self._news_info[self._active_index]['urlToImage']
+            image_url = ""
+            if self._news_info is not None:
+                image_url = self._news_info[self._active_index]['urlToImage']
             if image_url:
                 image_name = self._news_info[self._active_index]['imageName']
                 image_path = os.path.join("news_images", image_name)
@@ -2198,7 +2200,13 @@ class Search(Widget):
             return
 
         self._search_payload['query'] = search_str.replace(' ', '+')
-        res = requests.get(self._search_url, params=self._search_payload)
+        try:
+            res = requests.get(self._search_url, params=self._search_payload)
+        except ConnectionError:
+            return
+        except requests.exceptions.ConnectionError:
+            return
+
         soup = BeautifulSoup(res.content, 'html.parser')
         with open("search_response.html", 'wb') as f:
             f.write(res.content)
@@ -3348,14 +3356,16 @@ class QRCode(Widget):
 
 
 class StatusBar(Widget):
-    def __init__(self, parent, x, y):
+    def __init__(self, parent, x, y, centered=False):
         super(StatusBar, self).__init__(parent, x, y)
+
+        self.centered = centered
 
         self._ping_timeout = 2
         self._ping_lock = threading.Lock()
 
         self._internet_icon_dir = "images/internet"
-        self._internet_icon_size = 20
+        self._internet_icon_size = 16
         self._internet_icons = {}
         self._internet_last_update = time.time()
         self._internet_update_interval = 60
@@ -3407,7 +3417,8 @@ class StatusBar(Widget):
         self.width = self._internet_icon_size
         self.height = self._internet_icon_size
 
-        self.x = (self._screen_width - self.width) // 2
+        if self.centered:
+            self.x = (self._screen_width - self.width) // 2
         icon_x = self.x
         icon_y = self.y
 

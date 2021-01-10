@@ -160,7 +160,7 @@ class MainPanel(Panel):
         self.stock_widget = Stock(self, 5, 5)
         self.systeminfo_widget = SystemInfo(self, 10, 10, ip_info=False)
         self.traffic_widget = Traffic(self, 180, 10)
-        self.statusbar_widget = StatusBar(self, 0, 10)
+        self.statusbar_widget = StatusBar(self, 0, 10, centered=True)
         self.widgets = [self.news_widget, self.weather_widget, self.time_widget,
                         self.calendar_widget, self.systeminfo_widget, self.traffic_widget,
                         self.statusbar_widget]
@@ -299,7 +299,8 @@ class SystemInfoPanel(Panel):
                                        ip_info=True)
         self.caption_widget = ChartCaption(self, 357, 10, self._info_colors,
                                            font=self._caption_font)
-        self.widgets = [self.title_widget, self.chart_widget, self._info_widget, self.caption_widget]
+        self.statusbar_widget = StatusBar(self, 15, 40)
+        self.widgets = [self.title_widget, self.chart_widget, self._info_widget, self.caption_widget, self.statusbar_widget]
 
         self._last_update = time.time()
 
