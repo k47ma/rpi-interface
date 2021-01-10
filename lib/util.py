@@ -192,18 +192,18 @@ def pygame_key_to_char(key):
                 return c
 
 
-def choices(l, k=1):
-    """Randomly choose k items from l"""
-    length = len(l)
+def choices(items, k=1):
+    """Randomly choose k entries from items"""
+    length = len(items)
     if length <= k:
-        return l
+        return items
 
     result = []
     selected = [False for _ in range(length)]
     while len(result) < k:
         ind = random.choice(range(length))
         if not selected[ind]:
-            result.append(l[ind])
+            result.append(items[ind])
             selected[ind] = True
 
     return result

@@ -674,9 +674,9 @@ class Weather(Widget):
         curr_res_code = self._current_weather.get('cod')
         forecast_res_code = self._forecast_weather.get('cod')
         if (curr_res_code is None or
-            forecast_res_code is None or
-            int(curr_res_code) != 200 or
-            int(forecast_res_code) != 200):
+                forecast_res_code is None or
+                int(curr_res_code) != 200 or
+                int(forecast_res_code) != 200):
             log_to_file("Failed to load weather information: respond error code {}, {}".format(curr_res_code, forecast_res_code))
             self._current_weather = None
             self._forecast_weather = None
