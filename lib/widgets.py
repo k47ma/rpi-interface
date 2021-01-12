@@ -860,7 +860,7 @@ class Calendar(Widget):
         self.max_rows = max_rows
         self.max_past_days = max_past_days
         self.header_font = pygame.font.Font("fonts/arial.ttf", 18)
-        self.content_font = pygame.font.Font("fonts/arial.ttf", 16)
+        self.content_font = pygame.font.Font("fonts/arial.ttf", 15)
         self.timeout = timeout
         self.align = align
         self.max_name_length = max_name_length
@@ -1070,7 +1070,8 @@ class Calendar(Widget):
         calendar_status = [bool(int(row[-1])) for row in self._parsed_calendar_display]
         self._calendar_table = Table(calendar_contents, titles=self._calendar_titles,
                                      header_font=self.header_font, content_font=self.content_font,
-                                     x=self.x, y=self.y, content_centered=[False, False, True], x_padding=2,
+                                     x=self.x, y=self.y, content_centered=[False, False, True],
+                                     x_padding=3, y_padding=1,
                                      selected=self.is_active, selected_row=self._calendar_selected_row,
                                      selected_line_color=self._selected_color, row_status=calendar_status)
 

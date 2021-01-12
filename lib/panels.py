@@ -155,8 +155,8 @@ class MainPanel(Panel):
         self.news_widget = News(self, 30, 300)
         self.weather_widget = Weather(self, 10, 75)
         self.time_widget = Time(self)
-        self.calendar_widget = Calendar(self, 215, 100, max_rows=9, max_past_days=2,
-                                        align="right", max_name_length=17)
+        self.calendar_widget = Calendar(self, 215, 90, max_rows=9, max_past_days=2,
+                                        timeout=30, align="right", max_name_length=17)
         self.stock_widget = Stock(self, 5, 5)
         self.systeminfo_widget = SystemInfo(self, 10, 10, ip_info=False)
         self.traffic_widget = Traffic(self, 180, 10)
