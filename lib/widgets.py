@@ -3397,16 +3397,22 @@ class StatusBar(Widget):
                 self.timeout = timeout
             
             def run(self):
-                ping_result = ping('8.8.8.8', count=3, timeout=self.timeout)
-                
-                if ping_result.rtt_min == self.timeout:
-                    status = "no-internet"
-                else:
+                try:
+                    ping_result = ping('8.8.8.8', count=3, timeout=self.timeout)
+                    internet_status = (ping_result.rtt_min >= self.timeout)
+                except PermissionError:
+                    response = requests.get("http://google.com")
+                    internet_status = (response.status_code == 200)
+
+                if internet_status:
                     try:
                         ni.ifaddresses('wlan0')
                         status = "wifi"
                     except ValueError:
                         status = "ethernet"
+                else:
+                    status = "no-internet"
+
                 self.lock.acquire()
                 self.widget.internet_status = status
                 self.lock.release()
