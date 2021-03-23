@@ -44,17 +44,20 @@ class Widget:
         self.width = 0
         self.height = 0
 
-        self._colors = {"black": (0, 0, 0),
-                        "white": (255, 255, 255),
-                        "gray": (100, 100, 100),
-                        "lightgray": (75, 75, 75),
-                        "green": (0, 255, 0),
-                        "darkgreen": (50, 205, 50),
-                        "red": (255, 0, 0),
-                        "blue": (30, 144, 255),
-                        "lightblue": (0, 191, 255),
-                        "yellow": (255, 255, 0),
-                        "orange": (255, 165, 0)}
+        self._colors = {
+            "black": (0, 0, 0),
+            "white": (255, 255, 255),
+            "darkgray": (75, 75, 75),
+            "gray": (100, 100, 100),
+            "lightgray": (75, 75, 75),
+            "green": (0, 255, 0),
+            "darkgreen": (50, 205, 50),
+            "red": (255, 0, 0),
+            "blue": (30, 144, 255),
+            "lightblue": (0, 191, 255),
+            "yellow": (255, 255, 0),
+            "orange": (255, 165, 0)
+        }
         self.default_font_name = pygame.font.get_default_font()
         self.default_font = pygame.font.SysFont(self.default_font_name, 25)
         self.is_active = False
@@ -1845,9 +1848,9 @@ class SystemInfo(Widget):
             self._public_ip = 'unknown'
 
     def _add_percent_bar(self, percent, x, y):
-        if percent <= 60:
+        if percent <= 80:
             color = self._get_color('green')
-        elif percent <= 80:
+        elif percent <= 90:
             color = self._get_color('yellow')
         else:
             color = self._get_color('red')
@@ -1956,8 +1959,8 @@ class NightTime(Time):
         self.night_time_font = pygame.font.SysFont(self.default_font_name, 150)
 
     def _on_draw(self, screen):
-        time_text = self.night_time_font.render(self.time_str, True, self._get_color('gray'))
-        date_text = self.night_date_font.render(self.date_str, True, self._get_color('gray'))
+        time_text = self.night_time_font.render(self.time_str, True, self._get_color('darkgray'))
+        date_text = self.night_date_font.render(self.date_str, True, self._get_color('darkgray'))
         time_pos = ((self._screen_width - time_text.get_width()) // 2,
                     (self._screen_height - time_text.get_height()) // 2 - 30)
         date_pos = ((self._screen_width - date_text.get_width()) // 2,
