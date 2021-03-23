@@ -616,15 +616,13 @@ class Weather(Widget):
         self._perc_bar_width = 10
         self._perc_bar_padding = 5
 
-        self._default_location = "Waterloo,ca"
         self._weather_key = "508b76be5129c25115e5e60848b4c20c"
         self._current_url = "http://api.openweathermap.org/data/2.5/weather"
         self._forecase_url = "http://api.openweathermap.org/data/2.5/forecast"
         self._location_url = "http://ip-api.com/json/"
-        self._location_city, self._location_country = self._get_location()
-        self._weather_payload = {"q": "{},{}".format(self._location_city, self._location_country),
-                                 "appid": self._weather_key,
-                                 "units": "metric"}
+        self._location_city = ""
+        self._location_country = ""
+        self._weather_payload = {"q": "", "appid": self._weather_key, "units": "metric"}
         self._waterloo_key = "97a591e399f591e64a5f4536d08d9574"
 
         self._forecast_max_items = 2
@@ -638,6 +636,7 @@ class Weather(Widget):
         self._change_icons = {}
         self._perc_icons = {}
         self._location_icon = None
+        self._auto_get_location = True
 
     def _get_location(self):
         default_city = "Waterloo"
@@ -657,7 +656,11 @@ class Weather(Widget):
             return default_city, default_country
 
     def _get_weather(self):
+        if self._auto_get_location:
+            self._location_city, self._location_country = self._get_location()
+
         try:
+            self._weather_payload['q'] = "{},{}".format(self._location_city, self._location_country)
             current_res = requests.get(self._current_url, params=self._weather_payload)
             self._current_weather = current_res.json()
 
@@ -854,6 +857,23 @@ class Weather(Widget):
         last_update_text = "Last Update: {} min ago".format(last_update_mins)
         rendered_last_update_text = self.last_update_font.render(last_update_text, True, self._get_color('white'))
         screen.blit(rendered_last_update_text, (text_x, text_y))
+
+    def _set_location_from_popup(self):
+        info = self.parent.popup.get_input()
+        self._location_city = info['City']
+        self._location_country = info['Country']
+        self._auto_get_location = info['Auto Update']
+        self._get_weather()
+
+    def get_location_from_popup(self):
+        self.parent.create_popup('input', self.parent, 300, 200, input_width=150,
+                                 text="Please enter location:",
+                                 entries=["City", "Country", "Auto Update"],
+                                 values=[self._location_city, self._location_country, self._auto_get_location],
+                                 styles=['input', 'input', 'selector'],
+                                 required=[True, r'^[A-Za-z]{2}$'],
+                                 close_action=self._set_location_from_popup)
+        self.parent.popup.set_title('Set Location')
 
 
 class Calendar(Widget):
@@ -3365,7 +3385,6 @@ class StatusBar(Widget):
 
         self.centered = centered
 
-        self._ping_timeout = 2
         self._ping_lock = threading.Lock()
 
         self._internet_icon_dir = "images/internet"
@@ -3392,20 +3411,15 @@ class StatusBar(Widget):
     def _update_internet_status(self):
         
         class PingThread(threading.Thread):
-            def __init__(self, widget, lock, timeout):
+            def __init__(self, widget, lock):
                 threading.Thread.__init__(self)
 
                 self.widget = widget
                 self.lock = lock
-                self.timeout = timeout
             
             def run(self):
-                try:
-                    ping_result = ping('8.8.8.8', count=3, timeout=self.timeout)
-                    internet_status = (ping_result.rtt_min >= self.timeout)
-                except PermissionError:
-                    response = requests.get("http://google.com")
-                    internet_status = (response.status_code == 200)
+                response = requests.get("http://google.com")
+                internet_status = (response.status_code == 200)
 
                 if internet_status:
                     try:
@@ -3420,7 +3434,7 @@ class StatusBar(Widget):
                 self.widget.internet_status = status
                 self.lock.release()
 
-        ping_thread = PingThread(self, self._ping_lock, self._ping_timeout)
+        ping_thread = PingThread(self, self._ping_lock)
         ping_thread.start()
 
     def _on_draw(self, screen):

@@ -184,6 +184,8 @@ class MainPanel(Panel):
                 self.set_active_widget(self.calendar_widget)
             elif event.key == pygame.K_t:
                 self.traffic_widget.set_locations()
+            elif event.key == pygame.K_l:
+                self.weather_widget.get_location_from_popup()
 
     def enter_night_mode(self):
         self.app.set_active_panel(self.app.night_panel)

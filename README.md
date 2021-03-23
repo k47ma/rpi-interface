@@ -3,8 +3,7 @@ Informational panel for Raspberry Pi.
 ### Usage:
 - **A**: calculator
   - **ENTER(RETURN)**: evaluate
-- **B**: search on Best Buy
-  - **ENTER(RETURN)**: search
+- **C**: calendar
 - **D**: night mode
 - **G**: games
   - **Snake**:
@@ -25,6 +24,7 @@ Informational panel for Raspberry Pi.
     - **T**: toggle current player mode
     - **ENTER/RETURN**: enter/confirm board size setting
 - **I**: system info
+- **L**: set location
 - **M**: map
   - **UP/DOWN**: select origin/destination entry
   - **TAB**: toggle mode
@@ -35,8 +35,10 @@ Informational panel for Raspberry Pi.
   - **UP/DOWN** (on select mode): news title up/down
   - **ENTER(RETURN)** (on select mode): toggle news image
 - **P**: change background type
+- **R**: QR code generator
 - **S**: stock info
   - **ENTER(RETURN)**: search
+- **T**: set traffic info
 - **V**: camera preview
 - **ESC**: back
 - **CTRL+Q**: quit
