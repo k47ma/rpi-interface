@@ -998,13 +998,15 @@ class Calendar(Widget):
         self._parsed_calendar_display[row_index][-1] = '0' if self._parsed_calendar_display[row_index][-1] == '1' else '1'
 
         target_name = self._parsed_calendar_display[row_index][0]
+        target_date = self._parsed_calendar_display[row_index][1]
         if target_name.endswith('...'):
             target_name = target_name[:-3]
         soup = self._open_calendar_file()
         events = soup.find_all('event')
         for row_tag in events:
             row_name = row_tag.find('name').get_text()
-            if row_name.startswith(target_name):
+            row_date = row_tag.find('date').get_text()
+            if row_name.startswith(target_name) and row_date == target_date:
                 row_tag.find('status').string = self._parsed_calendar_display[row_index][-1]
                 break
 
