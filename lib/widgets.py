@@ -47,9 +47,9 @@ class Widget:
         self._colors = {
             "black": (0, 0, 0),
             "white": (255, 255, 255),
-            "darkgray": (75, 75, 75),
             "gray": (100, 100, 100),
             "lightgray": (75, 75, 75),
+            "night": (50, 50, 50),
             "green": (0, 255, 0),
             "darkgreen": (50, 205, 50),
             "red": (255, 0, 0),
@@ -1981,8 +1981,8 @@ class NightTime(Time):
         self.night_time_font = pygame.font.SysFont(self.default_font_name, 150)
 
     def _on_draw(self, screen):
-        time_text = self.night_time_font.render(self.time_str, True, self._get_color('darkgray'))
-        date_text = self.night_date_font.render(self.date_str, True, self._get_color('darkgray'))
+        time_text = self.night_time_font.render(self.time_str, True, self._get_color('night'))
+        date_text = self.night_date_font.render(self.date_str, True, self._get_color('night'))
         time_pos = ((self._screen_width - time_text.get_width()) // 2,
                     (self._screen_height - time_text.get_height()) // 2 - 30)
         date_pos = ((self._screen_width - date_text.get_width()) // 2,
