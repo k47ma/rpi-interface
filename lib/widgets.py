@@ -389,6 +389,12 @@ class NewsList(News):
     def _get_news(self):
         super(NewsList, self)._get_news()
 
+        if not os.path.isdir(self._news_image_directory):
+            os.mkdir(self._news_image_directory)
+        old_images = glob.glob(os.path.join(self._news_image_directory, '*'))
+        for old_image in old_images:
+            os.remove(old_image)
+
         if not self._news_info:
             return
 
@@ -408,12 +414,9 @@ class NewsList(News):
             if not image_url:
                 continue
 
-            if image_url:
-                if not os.path.isdir(self._news_image_directory):
-                    os.mkdir(self._news_image_directory)
-                image_thread = ImageFetchThread(image_url, news, self._news_image_directory)
-                image_thread.daemon = True
-                image_thread.start()
+            image_thread = ImageFetchThread(image_url, news, self._news_image_directory)
+            image_thread.daemon = True
+            image_thread.start()
 
     def _parse_news(self):
         self.clear_shapes()
