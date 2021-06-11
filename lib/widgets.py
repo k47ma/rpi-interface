@@ -22,7 +22,6 @@ from bs4 import BeautifulSoup
 from datetime import datetime as dt
 from abc import ABCMeta, abstractmethod
 from string import printable, digits, ascii_letters
-from pythonping import ping
 from lib.table import Table
 from lib.buttons import Button
 from lib.threads import RequestThread, ImageFetchThread
@@ -633,12 +632,15 @@ class Weather(Widget):
         self._change_icon_size = 25
         self._perc_icon_size = 18
         self._location_icon_size = 20
+        self._auto_location_icon_size = 16
         self._icon_directory = os.path.join("images", "weather")
         self._location_icon_path = os.path.join("images", "icon", "location.png")
+        self._auto_location_icon_path = os.path.join("images", "icon", "antenna.png")
         self._current_icons = {}
         self._change_icons = {}
         self._perc_icons = {}
         self._location_icon = None
+        self._auto_location_icon = None
         self._auto_get_location = True
 
     def _get_location(self):
@@ -770,9 +772,14 @@ class Weather(Widget):
         location_text = self.location_font.render(location_str, True, self._get_color('white'))
         location_x = self.x
         location_y = self.y + desc_text.get_height() + current_text.get_height() + forecast_text.get_height()
-        icon_offset = (self._location_icon_size - location_text.get_height()) // 2
-        self.add_shape(ScreenSurface(self._location_icon, (location_x, location_y - icon_offset)))
+        location_icon_offset = (self._location_icon_size - location_text.get_height()) // 2
+        self.add_shape(ScreenSurface(self._location_icon, (location_x, location_y - location_icon_offset)))
         self.add_shape(Text(location_text, (location_x + self._location_icon_size + 5, location_y)))
+        if self._auto_get_location:
+            auto_location_icon_offset = (self._auto_location_icon_size - location_text.get_height()) // 2
+            icon_x = location_x + self._location_icon_size + location_text.get_width() + 10
+            icon_y = location_y - auto_location_icon_offset
+            self.add_shape(ScreenSurface(self._auto_location_icon, (icon_x, icon_y)))
         
         # add change info
         change_info = []
@@ -828,8 +835,12 @@ class Weather(Widget):
                 self._perc_icons[icon_name] = icon.convert_alpha()
 
         location_img = pygame.image.load(self._location_icon_path)
-        location_icon = pygame.transform.scale(location_img, (self._location_icon_size, self._location_icon_size))
+        location_icon = pygame.transform.scale(location_img, (self._location_icon_size, ) * 2)
         self._location_icon = location_icon.convert_alpha()
+
+        auto_location_img = pygame.image.load(self._auto_location_icon_path)
+        auto_location_icon = pygame.transform.scale(auto_location_img, (self._auto_location_icon_size, ) * 2)
+        self._auto_location_icon = auto_location_icon.convert_alpha()
 
     def _on_setup(self):
         self._load_icons()
@@ -869,6 +880,7 @@ class Weather(Widget):
         self._get_weather()
 
     def get_location_from_popup(self):
+        self._auto_get_location = False
         self.parent.create_popup('input', self.parent, 300, 200, input_width=150,
                                  text="Please enter location:",
                                  entries=["City", "Country", "Auto Update"],
