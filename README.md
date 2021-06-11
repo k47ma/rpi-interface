@@ -3,6 +3,10 @@ Informational panel for Raspberry Pi.
 ### Usage:
 - **A**: calculator
   - **ENTER(RETURN)**: evaluate
+- **B**: Bing search
+  - **ENTER(RETURN)**: search/focus on input bar
+  - **UP**: page up
+  - **DOWN**: page down
 - **C**: calendar
 - **D**: night mode
 - **G**: games

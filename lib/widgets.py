@@ -2171,8 +2171,9 @@ class Search(Widget):
 
         self._page_footnote_font = pygame.font.Font("fonts/FreeSans.ttf", 12)
 
-        self._search_url = "https://www.bestbuy.ca/en-CA/Search/SearchResults.aspx"
-        self._search_payload = {"query": ""}
+        self._search_url = "https://www.bing.com/search"
+        self._search_payload = {"q": "", "first": 1}
+        self._search_timeout = 10
         self._search_str_pos = (self.x + 10, self.y + 10)
         self._search_str_widget = Input(parent, self._search_str_pos[0], self._search_str_pos[1],
                                         font=self.str_font, width=self.max_width, enter_key_event=self._search)
@@ -2221,7 +2222,7 @@ class Search(Widget):
             screen.blit(rendered_page_text, page_text_pos)
 
         # draw source string
-        source_text = "source: bestbuy.ca"
+        source_text = "source: bing.com"
         rendered_source_text = self._page_footnote_font.render(source_text, True, self._get_color('white'))
         source_text_pos = (self.x + self.max_width - rendered_source_text.get_width(),
                            self.y + self.max_height + rendered_page_text.get_height())
@@ -2235,54 +2236,55 @@ class Search(Widget):
             if self._page_index < len(self._search_result_pages) - 1:
                 self._page_index += 1
 
+    def _display_error(self, text):
+        title_content = Content(self.parent, 0, 0, text, font=self.result_font, max_width=self.max_width)
+        title_content.setup()
+        offset_x = (self._screen_width - title_content.get_width()) // 2
+        offset_y = self._search_result_pos[1] + (self._screen_height - self._search_result_pos[1] - 
+                                                 title_content.get_height()) // 2
+        title_content.add_offset(offset_x, offset_y)
+        self._search_result_pages.append([title_content])
+
     def _search(self):
+        self._page_index = 0
+        self._search_result_pages = []
+        page_contents = []
+        
         search_str = self._search_str_widget.get_text()
         if not search_str or search_str.isspace():
             return
 
-        self._search_payload['query'] = search_str.replace(' ', '+')
+        self._search_payload['q'] = search_str.replace(' ', '+')
+        self._search_payload['first'] = self._page_index * 10 + 1
         try:
-            res = requests.get(self._search_url, params=self._search_payload)
+            res = requests.get(self._search_url, params=self._search_payload, timeout=self._search_timeout)
         except ConnectionError:
+            self._display_error("Connection Error. Please check Internet status.")
             return
         except requests.exceptions.ConnectionError:
+            self._display_error("Connection Error. Please check Internet status.")
+            return
+        except requests.exceptions.Timeout:
+            self._display_error("Request Timeout. Please check Internet status.")
             return
 
         soup = BeautifulSoup(res.content, 'html.parser')
-        with open("search_response.html", 'wb') as f:
-            f.write(res.content)
-        search_results = soup.find_all('li', class_=re.compile("listing-item"))
+        search_results = soup.find_all('li', class_="b_algo")
 
-        self._page_index = 0
-        self._search_result_pages = []
-        page_contents = []
-
-        if soup.find('div', class_="search-no-results"):
-            title_content = Content(self.parent, self._search_result_pos[0], self._search_result_pos[1],
-                                    "Can't find any results...",
-                                    font=self.result_font, max_width=self.max_width)
-            title_content.setup()
-            self._search_result_pages.append([title_content])
-            return
-
+        item_x, item_y = self._search_result_pos
         for item in search_results:
-            name = item.find('h4', class_="prod-title").get_text()
-            price = item.find('span', class_="amount").get_text()
-            stars_tag = item.find('div', class_="rating-stars-yellow")
-            stars = ""
-            if stars_tag:
-                stars = stars_tag.get("style")[7:-1]
+            title = item.find('h2').get_text()
 
-            x = self._search_result_pos[0]
-            y = sum([content.get_height() for content in page_contents]) + self._search_result_pos[1]
-            item_text = u'{} - {}'.format(name, price)
-            if stars:
-                item_text += u' | {}'.format(stars)
-            title_content = Content(self.parent, x, y, item_text, font=self.result_font, max_width=self.max_width, prefix="- ")
+            title_content = Content(self.parent, item_x, item_y, title, 
+                                    font=self.result_font,
+                                    max_width=self.max_width, 
+                                    prefix="- ")
             title_content.setup()
+            item_y += title_content.get_height()
 
-            if y + title_content.get_height() > self.y + self.max_height:
-                title_content.set_pos(x, self._search_result_pos[1])
+            if item_y > self.y + self.max_height:
+                item_y = self._search_result_pos[1]
+                title_content.set_pos(item_x, item_y)
                 title_content.setup()
                 self._search_result_pages.append(page_contents)
                 page_contents = []
@@ -2291,6 +2293,9 @@ class Search(Widget):
 
         if page_contents:
             self._search_result_pages.append(page_contents)
+            self._search_str_widget.set_active(False)
+        else:
+            self._display_error("Can't find anything about {}...".format(search_str))
 
     def reset(self):
         self._search_results = []

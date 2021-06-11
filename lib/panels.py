@@ -251,7 +251,7 @@ class SearchPanel(Panel):
         self.search_widget = Search(self, 10, 10, str_font=self._search_str_font,
                                     result_font=self._search_result_font,
                                     max_width=self.screen_width - 40,
-                                    max_height=self.screen_height - 40)
+                                    max_height=self.screen_height - 45)
         self.widgets = [self.search_widget]
 
         self.set_active_widget(self.search_widget)
