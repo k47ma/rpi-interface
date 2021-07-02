@@ -7,8 +7,46 @@ import os
 import glob
 import time
 import math
+import subprocess as sp
 from lib.threads import ImageRotateThread
-from lib.util import distance, choices
+from lib.util import log_to_file, distance, choices
+
+
+class MovePoint:
+    def __init__(self, min_x, min_y, max_x, max_y, radius=20, speed=1, speed_variant=0):
+        self.min_x = min_x
+        self.min_y = min_y
+        self.max_x = max_x
+        self.max_y = max_y
+        self.radius = radius
+        self.speed = speed * random.uniform(1 - speed_variant, 1 + speed_variant)
+
+        self.x = random.randrange(self.min_x, self.max_x)
+        self.y = random.randrange(self.min_x, self.max_y)
+
+        self.target_x = random.randrange(self.min_x, self.max_x)
+        self.target_y = random.randrange(self.min_x, self.max_y)
+
+    def update(self):
+        dist = distance((self.x, self.y), (self.target_x, self.target_y))
+        if dist < self.speed:
+            self.target_x = random.randrange(int(max(self.x - self.radius, self.min_x)),
+                                             int(min(self.x + self.radius, self.max_x)))
+            self.target_y = random.randrange(int(max(self.y - self.radius, self.min_y)),
+                                             int(min(self.y + self.radius, self.max_y)))
+            return
+
+        ratio = self.speed / dist
+        self.x += (self.target_x - self.x) * ratio
+        self.y += (self.target_y - self.y) * ratio
+
+
+class Triangle:
+    def __init__(self, points):
+        self.points = points
+
+    def get_points(self):
+        return [(int(point.x), int(point.y)) for point in self.points]
 
 
 class Background:
@@ -225,38 +263,66 @@ class DynamicTrace(Background):
         surface.blit(surface2, (0, 0))
 
 
-class MovePoint:
-    def __init__(self, min_x, min_y, max_x, max_y, radius=20, speed=1, speed_variant=0):
-        self.min_x = min_x
-        self.min_y = min_y
-        self.max_x = max_x
-        self.max_y = max_y
-        self.radius = radius
-        self.speed = speed * random.uniform(1 - speed_variant, 1 + speed_variant)
+class VideoPlayer(Background):
+    def __init__(self, width=480, height=320, color=(0, 0, 0), alpha=255,
+                 video_path="", fps=10, reverse_play=False):
+        super(VideoPlayer, self).__init__(width=width, height=height, color=color)
 
-        self.x = random.randrange(self.min_x, self.max_x)
-        self.y = random.randrange(self.min_x, self.max_y)
+        self.video_path = video_path
+        self.fps = fps
+        self.reverse_play = reverse_play
 
-        self.target_x = random.randrange(self.min_x, self.max_x)
-        self.target_y = random.randrange(self.min_x, self.max_y)
+        self._tmp_dir = os.path.join("videos", "tmp")
+        self._curr_frame = 0
+        self._last_update = time.time()
+        self._frames = self._load_video(self.video_path, self._tmp_dir)
+        self._total_frames = len(self._frames)
+        self._reverse_order = False
+
+    def _load_video(self, video_path, tmp_dir):
+        if not os.path.isdir(tmp_dir):
+            os.mkdir(tmp_dir)
+        old_images = glob.glob(os.path.join(tmp_dir, "*"))
+        for old_image in old_images:
+            os.remove(old_image)
+
+        output_path = os.path.join(tmp_dir, "%03d.png")
+        command = "ffmpeg -i {} {}".format(video_path, output_path)
+        p = sp.run(command, shell=True, capture_output=True)
+        if p.returncode != 0:
+            log_to_file("Error: Failed to load video frames (retcode = {})".format(p.returncode))
+            log_to_file(p.stderr)
+            return []
+
+        images = glob.glob(os.path.join(tmp_dir, "*"))
+        images.sort()
+        log_to_file("Loaded {} background frames from video {}".format(len(images), video_path))
+        return images
 
     def update(self):
-        dist = distance((self.x, self.y), (self.target_x, self.target_y))
-        if dist < self.speed:
-            self.target_x = random.randrange(int(max(self.x - self.radius, self.min_x)),
-                                             int(min(self.x + self.radius, self.max_x)))
-            self.target_y = random.randrange(int(max(self.y - self.radius, self.min_y)),
-                                             int(min(self.y + self.radius, self.max_y)))
+        curr_time = time.time()
+        if self.fps <= 0 or curr_time - self._last_update > 1 / self.fps:
+            if self._reverse_order:
+                if self._curr_frame == 0:
+                    self._reverse_order = False
+                else:
+                    self._curr_frame -= 1
+            else:
+                if self._curr_frame == self._total_frames - 1:
+                    if self.reverse_play:
+                        self._reverse_order = True
+                    else:
+                        self._curr_frame = 0
+                else:
+                    self._curr_frame += 1
+        
+            self._last_update = curr_time
+
+    def draw(self, surface):
+        if not self._frames:
+            super(VideoPlayer, self).draw(surface)
             return
 
-        ratio = self.speed / dist
-        self.x += (self.target_x - self.x) * ratio
-        self.y += (self.target_y - self.y) * ratio
-
-
-class Triangle:
-    def __init__(self, points):
-        self.points = points
-
-    def get_points(self):
-        return [(int(point.x), int(point.y)) for point in self.points]
+        image_surface = pygame.image.load(self._frames[self._curr_frame]).convert_alpha()
+        surface.blit(image_surface, (0, 0))
+        surface.set_alpha(self.alpha)

@@ -10,7 +10,7 @@ from lib.panels import MainPanel, NightPanel, NewsPanel, SearchPanel, \
     SystemInfoPanel, StockPanel, MapPanel, CameraPanel, GamePanel, \
     CalculatorPanel, QRCodePanel
 from lib.backgrounds import Background, DynamicImage, \
-    DynamicTriangle, DynamicTrace
+    DynamicTriangle, DynamicTrace, VideoPlayer
 
 
 class App:
@@ -88,7 +88,12 @@ class App:
                                              alpha=160, color1=(255, 215, 0),
                                              color2=(135, 200, 255),
                                              steps=50, radius=4, trace_length=75)
-        self.backgrounds = [self.triangle_background, self.image_background,
+        self.video_background = VideoPlayer(width=self._screen_width,
+                                            height=self._screen_height,
+                                            color=(0, 0, 0), alpha=160,
+                                            video_path=os.path.join('videos', 'background.mov'),
+                                            fps=24, reverse_play=True)
+        self.backgrounds = [self.video_background, self.triangle_background, self.image_background,
                             self.trace_background, self.blank_background]
         self._background_type = 0
 

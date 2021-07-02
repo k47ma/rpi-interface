@@ -3,6 +3,7 @@
 *.DS_Store
 .coverage
 news_images/*
+videos/tmp/*
 search_response.html
 .pytest_cache/*
 .vscode/*
