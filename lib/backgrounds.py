@@ -7,7 +7,7 @@ import os
 import glob
 import time
 import math
-import subprocess as sp
+import ffmpeg
 from lib.threads import ImageRotateThread
 from lib.util import log_to_file, distance, choices
 
@@ -265,64 +265,56 @@ class DynamicTrace(Background):
 
 class VideoPlayer(Background):
     def __init__(self, width=480, height=320, color=(0, 0, 0), alpha=255,
-                 video_path="", fps=10, reverse_play=False):
+                 video_path="", fps=10):
         super(VideoPlayer, self).__init__(width=width, height=height, color=color)
 
-        self.video_path = video_path
+        self.video_path = os.path.abspath(video_path)
         self.fps = fps
-        self.reverse_play = reverse_play
 
-        self._tmp_dir = os.path.join("videos", "tmp")
         self._curr_frame = 0
         self._last_update = time.time()
-        self._frames = self._load_video(self.video_path, self._tmp_dir)
-        self._total_frames = len(self._frames)
-        self._reverse_order = False
+        self._video_process = None
+        self._frame = None
 
-    def _load_video(self, video_path, tmp_dir):
-        if not os.path.isdir(tmp_dir):
-            os.mkdir(tmp_dir)
-        old_images = glob.glob(os.path.join(tmp_dir, "*"))
-        for old_image in old_images:
-            os.remove(old_image)
+    def _load_video(self, video_path):
+        if not os.path.isfile(video_path):
+            log_to_file("Error: Unable to load video file {}. File doesn't exist.".format(video_path))
+            return None
 
-        output_path = os.path.join(tmp_dir, "%03d.png")
-        command = "ffmpeg -i {} {}".format(video_path, output_path)
-        p = sp.run(command, shell=True, capture_output=True)
-        if p.returncode != 0:
-            log_to_file("Error: Failed to load video frames (retcode = {})".format(p.returncode))
-            log_to_file(p.stderr)
-            return []
+        process = (
+            ffmpeg
+            .input(video_path)
+            .output('pipe:', format='rawvideo', pix_fmt='rgb24')
+            .run_async(pipe_stdout=True, pipe_stderr=True)
+        )
 
-        images = glob.glob(os.path.join(tmp_dir, "*"))
-        images.sort()
-        log_to_file("Loaded {} background frames from video {}".format(len(images), video_path))
-        return images
+        return process
+
+    def _on_enter(self):
+        self._video_process = self._load_video(self.video_path)
+
+    def _on_exit(self):
+        if self._video_process:
+            self._video_process.terminate()
 
     def update(self):
+        if self._video_process is None:
+            return
+
         curr_time = time.time()
-        if self.fps <= 0 or curr_time - self._last_update > 1 / self.fps:
-            if self._reverse_order:
-                if self._curr_frame == 0:
-                    self._reverse_order = False
-                else:
-                    self._curr_frame -= 1
+        if self._frame is None or self.fps <= 0 or \
+           curr_time - self._last_update > 1 / self.fps:
+            image_bytes = self._video_process.stdout.read(self.width * self.height * 3)
+            if image_bytes:
+                self._frame = pygame.image.fromstring(image_bytes, (self.width, self.height), 'RGB')
+                self._last_update = curr_time
             else:
-                if self._curr_frame == self._total_frames - 1:
-                    if self.reverse_play:
-                        self._reverse_order = True
-                    else:
-                        self._curr_frame = 0
-                else:
-                    self._curr_frame += 1
-        
-            self._last_update = curr_time
+                self._video_process = self._load_video(self.video_path)
 
     def draw(self, surface):
-        if not self._frames:
+        if self._frame is None:
             super(VideoPlayer, self).draw(surface)
             return
 
-        image_surface = pygame.image.load(self._frames[self._curr_frame]).convert_alpha()
-        surface.blit(image_surface, (0, 0))
+        surface.blit(self._frame, (0, 0))
         surface.set_alpha(self.alpha)

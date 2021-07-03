@@ -92,7 +92,7 @@ class App:
                                             height=self._screen_height,
                                             color=(0, 0, 0), alpha=160,
                                             video_path=os.path.join('videos', 'background.mov'),
-                                            fps=24, reverse_play=True)
+                                            fps=24)
         self.backgrounds = [self.video_background, self.triangle_background, self.image_background,
                             self.trace_background, self.blank_background]
         self._background_type = 0
@@ -107,6 +107,9 @@ class App:
         self._setup()
 
     def _setup(self):
+        if self.backgrounds:
+            self.backgrounds[self._background_type].enter()
+
         for panel in self.panels:
             panel.setup()
         self.set_active_panel(self.main_panel)
@@ -222,7 +225,11 @@ class App:
         self._mouse_visible = status
         pygame.mouse.set_visible(self._mouse_visible)
 
-    def _clear_cache(self):
+    def _cleanup(self):
+        # clean up background
+        self.backgrounds[self._background_type].exit()
+        
+        # delete cached news images
         if os.path.isdir('news_images'):
             for image_file in glob.glob('news_images/*'):
                 os.remove(image_file)
@@ -261,4 +268,4 @@ class App:
                and time.time() - self._start_time > self._dryrun_timeout:
                 self._done = True
 
-        self._clear_cache()
+        self._cleanup()
