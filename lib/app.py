@@ -29,6 +29,8 @@ class App:
         self._fullscreen = self.args.fullscreen if self.args else False
         self._debug_mode = self.args.debug if self.args else False
         self._dryrun_timeout = self.args.dryrun if self.args else -1
+        self._dryrun_background_timeout = 2
+        self._dryrun_background_last_update = time.time()
 
         if self._fullscreen:
             self.display = pygame.display.set_mode(self._screen_size, pygame.FULLSCREEN)
@@ -264,8 +266,13 @@ class App:
             self._draw_screen()
             self.clock.tick(self._frame_rate)
 
-            if self._dryrun_timeout != -1 \
-               and time.time() - self._start_time > self._dryrun_timeout:
-                self._done = True
+            curr_time = time.time()
+            if self._dryrun_timeout != -1:
+                if curr_time - self._dryrun_background_last_update > self._dryrun_background_timeout:
+                    self._toggle_background_type()
+                    self._dryrun_background_last_update = curr_time
+
+                if curr_time - self._start_time > self._dryrun_timeout:
+                    self._done = True
 
         self._cleanup()
