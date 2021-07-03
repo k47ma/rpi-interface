@@ -1,6 +1,6 @@
 #!/bin/bash
 
 while true; do
-    sudo python3 main.py -i -f > /dev/null 2>> error.log
+    python3 main.py -i -f > /dev/null 2>> error.log
     sleep 5
 done
