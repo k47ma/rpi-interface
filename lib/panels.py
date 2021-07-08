@@ -48,6 +48,9 @@ class Panel:
     def _on_update(self):
         pass
 
+    def _on_draw(self, screen):
+        pass
+
     def _on_enter(self):
         pass
 
@@ -84,6 +87,7 @@ class Panel:
                 self.popup = None
 
     def draw(self, screen):
+        self._on_draw(screen)
         for widget in self.widgets:
             widget.draw(screen)
         for button in self.buttons:
@@ -197,6 +201,8 @@ class NightPanel(Panel):
 
         self.time_widget = NightTime(self)
         self.widgets = [self.time_widget]
+
+        self._background_alpha = 160
         self._curr_hour = dt.now().hour
         self._curr_minute = dt.now().minute
 
@@ -206,6 +212,12 @@ class NightPanel(Panel):
         self.curr_minute = now.minute
         self.curr_sec = now.second
         self._auto_set_night()
+
+    def _on_draw(self, screen):
+        background_surface = pygame.Surface((self.screen_width, self.screen_height))
+        background_surface.fill((0, 0, 0))
+        background_surface.set_alpha(self._background_alpha)
+        screen.blit(background_surface, (0, 0))
 
     def _auto_set_night(self):
         if self.curr_hour == 6 and self.curr_minute == 0 and self.curr_sec == 0:

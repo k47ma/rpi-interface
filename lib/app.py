@@ -90,12 +90,18 @@ class App:
                                              alpha=160, color1=(255, 215, 0),
                                              color2=(135, 200, 255),
                                              steps=50, radius=4, trace_length=75)
-        self.video_background = VideoPlayer(width=self._screen_width,
-                                            height=self._screen_height,
-                                            color=(0, 0, 0), alpha=160,
-                                            video_path=os.path.join('videos', 'background.mov'),
-                                            fps=24)
-        self.backgrounds = [self.video_background, self.triangle_background, self.image_background,
+        self.video_background1 = VideoPlayer(width=self._screen_width,
+                                             height=self._screen_height,
+                                             color=(0, 0, 0), alpha=160,
+                                             video_path=os.path.join('videos', 'car.mov'),
+                                             fps=10)
+        self.video_background2 = VideoPlayer(width=self._screen_width,
+                                             height=self._screen_height,
+                                             color=(0, 0, 0), alpha=160,
+                                             video_path=os.path.join('videos', 'wireframe.mov'),
+                                             fps=24)
+        self.backgrounds = [self.video_background1, self.video_background2,
+                            self.triangle_background, self.image_background,
                             self.trace_background, self.blank_background]
         self._background_type = 0
 
