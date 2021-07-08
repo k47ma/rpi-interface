@@ -279,6 +279,12 @@ class Widget:
     def bind_key(self, key, func, shift=False, ctrl=False):
         self._key_binds[key] = {'func': func, 'shift': shift, 'ctrl': ctrl}
 
+    def get_setting(self, name, default=None):
+        return self.parent.get_setting(name, default=default)
+
+    def set_setting(self, name, value):
+        return self.parent.set_setting(name, value)
+
 
 class News(Widget):
     def __init__(self, parent, x, y):
@@ -622,8 +628,8 @@ class Weather(Widget):
         self._current_url = "http://api.openweathermap.org/data/2.5/weather"
         self._forecase_url = "http://api.openweathermap.org/data/2.5/forecast"
         self._location_url = "http://ip-api.com/json/"
-        self._location_city = ""
-        self._location_country = ""
+        self._location_city = self.get_setting('weather_city', default="")
+        self._location_country = self.get_setting('weather_country', default="")
         self._weather_payload = {"q": "", "appid": self._weather_key, "units": "metric"}
         self._waterloo_key = "97a591e399f591e64a5f4536d08d9574"
 
@@ -641,9 +647,15 @@ class Weather(Widget):
         self._perc_icons = {}
         self._location_icon = None
         self._auto_location_icon = None
-        self._auto_get_location = True
+        self._auto_get_location = self.get_setting('weather_auto_location', default=True)
 
     def _get_location(self):
+        if not self._auto_get_location:
+            city = self.get_setting('weather_city', default="")
+            country = self.get_setting('weather_country', default="")
+            if city and country:
+                return city, country
+
         default_city = "Waterloo"
         default_country = "CA"
 
@@ -655,14 +667,16 @@ class Weather(Widget):
         location_json = location_res.json()
         city = location_json.get("city")
         country = location_json.get("countryCode")
+
         if city and country:
+            self.set_setting('weather_city', city)
+            self.set_setting('weather_country', country)
             return city, country
         else:
             return default_city, default_country
 
     def _get_weather(self):
-        if self._auto_get_location:
-            self._location_city, self._location_country = self._get_location()
+        self._location_city, self._location_country = self._get_location()
 
         try:
             self._weather_payload['q'] = "{},{}".format(self._location_city, self._location_country)
@@ -877,6 +891,11 @@ class Weather(Widget):
         self._location_city = info['City']
         self._location_country = info['Country']
         self._auto_get_location = info['Auto Update']
+        
+        self.set_setting('weather_city', self._location_city)
+        self.set_setting('weather_country', self._location_country)
+        self.set_setting('weather_auto_location', self._auto_get_location)
+
         self._get_weather()
 
     def get_location_from_popup(self):

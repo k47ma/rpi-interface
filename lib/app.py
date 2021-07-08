@@ -3,6 +3,7 @@
 import os
 import time
 import glob
+import yaml
 import random
 import pygame
 from datetime import datetime as dt
@@ -11,6 +12,7 @@ from lib.panels import MainPanel, NightPanel, NewsPanel, SearchPanel, \
     CalculatorPanel, QRCodePanel
 from lib.backgrounds import Background, DynamicImage, \
     DynamicTriangle, DynamicTrace, VideoPlayer
+from lib.util import log_to_file
 
 
 class App:
@@ -43,6 +45,10 @@ class App:
 
         self.screen = pygame.Surface(self._screen_size)
         self._invert_screen = self.args.invert if self.args else False
+
+        self._setting_file = 'settings.yaml'
+        self._settings = None
+        self._load_settings()
 
         self._done = False
 
@@ -241,6 +247,45 @@ class App:
         if os.path.isdir('news_images'):
             for image_file in glob.glob('news_images/*'):
                 os.remove(image_file)
+
+    def _load_settings(self):
+        settings = {}
+        if not os.path.isfile(self._setting_file):
+            self._settings = settings
+            return
+
+        with open(self._setting_file, 'r') as f:
+            try:
+                settings = yaml.safe_load(f)
+            except yaml.YAMLError as e:
+                print("Unable to load settings from {}".format(self._setting_file))
+
+        self._settings = settings
+
+    def _save_settings(self):
+        with open(self._setting_file, 'w') as f:
+            yaml.dump(self._settings, f)
+        log_to_file("Settings saved to {}".format(self._setting_file))
+
+    def get_setting(self, name, default=None):
+        if self._settings is None:
+            log_to_file("Unable to get value for {}. Setting is not ready.".format(name))
+            return default
+
+        if name not in self._settings:
+            self._settings[name] = default
+            self._save_settings()
+
+        return self._settings[name]
+
+    def set_setting(self, name, value):
+        if self._settings is None:
+            log_to_file("Unable to set {}={}. Setting is not ready.".format(name, value))
+            return False
+
+        self._settings[name] = value
+        self._save_settings()
+        return True
 
     def set_active_panel(self, panel):
         if self.active_panel is not panel:

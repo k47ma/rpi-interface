@@ -10,3 +10,4 @@ search_response.html
 env/*
 lib/python*
 calendars/*
+settings.yaml

@@ -130,6 +130,12 @@ class Panel:
     def get_screen_size(self):
         return self.screen_width, self.screen_height
 
+    def get_setting(self, name, default=None):
+        return self.app.get_setting(name, default=default)
+
+    def set_setting(self, name, value):
+        return self.app.set_setting(name, value)
+
     def handle_panel_events(self, event):
         pass
 
@@ -202,7 +208,7 @@ class NightPanel(Panel):
         self.time_widget = NightTime(self)
         self.widgets = [self.time_widget]
 
-        self._background_alpha = 160
+        self._background_alpha = self.get_setting('night_alpha', default=160)
         self._curr_hour = dt.now().hour
         self._curr_minute = dt.now().minute
 
