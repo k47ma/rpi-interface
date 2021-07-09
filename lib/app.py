@@ -50,6 +50,9 @@ class App:
         self._settings = None
         self._load_settings()
 
+        self._main_brightness = self.get_setting("main_brightness", default=9)
+        self._night_brightness = self.get_setting("night_brightness", default=3)
+
         self._done = False
 
         self._mouse_last_move = time.time()
@@ -77,7 +80,6 @@ class App:
                        self.system_info_panel, self.stock_panel, self.map_panel, self.camera_panel,
                        self.game_panel, self.calculator_panel, self.qrcode_panel]
         self.active_panel = None
-        self._night_mode = False
 
         self.blank_background = Background(width=self._screen_width,
                                            height=self._screen_height,
@@ -140,8 +142,9 @@ class App:
             if event.type == pygame.QUIT:
                 self._done = True
             
-            if event.type == pygame.KEYDOWN and self.active_panel is self.main_panel \
-                    and not handled:
+            if event.type == pygame.KEYDOWN and \
+               self.active_panel is self.main_panel and \
+               not handled:
                 if event.key == pygame.K_d:
                     self.set_active_panel(self.night_panel)
                 elif event.key == pygame.K_n:
@@ -207,20 +210,20 @@ class App:
     def _draw_background(self, screen):
         background_surface = pygame.Surface((self._screen_width, self._screen_height))
         self.backgrounds[self._background_type].draw(background_surface)
-        screen.blit(background_surface.convert(), (0, 0))
+        screen.blit(background_surface, (0, 0))
+        self._apply_brightness(screen)
 
-    def _apply_brightness(self, screen, brightbess):
+    def _apply_brightness(self, screen):
         if self.active_panel is self.camera_panel:
             return
 
-        if dt.now().hour >= 6:
-            return
+        brightness = self._main_brightness if self.active_panel is self.main_panel else self._night_brightness
 
         brightness_surface = pygame.Surface((self._screen_width, self._screen_height))
         brightness_surface.fill((0, 0, 0))
-        alpha_factor = min((1 - brightbess), 0.3)
-        brightness_surface.set_alpha(int(alpha_factor * 255))
-        screen.blit(brightness_surface.convert(), (0, 0))
+        alpha_factor = min(0.1 + 0.9 / 9 * brightness, 1)
+        brightness_surface.set_alpha(int((1 - alpha_factor) * 255))
+        screen.blit(brightness_surface, (0, 0))
 
     def _draw_frame_rate(self, screen):
         current_time = time.time()
@@ -309,6 +312,18 @@ class App:
             self._frame_rate = self._game_frame_rate
         else:
             self._frame_rate = self._normal_frame_rate
+
+    def get_brightness(self):
+        return self._main_brightness, self._night_brightness
+
+    def set_brightness(self, main, night):
+        if not (0 <= main <= 9 and 0 <= night <= 9):
+            return
+
+        self._main_brightness = main
+        self._night_brightness = night
+        self.set_setting("main_brightness", main)
+        self.set_setting("night_brightness", night)
 
     def start(self):
         while not self._done:

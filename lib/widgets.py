@@ -301,7 +301,7 @@ class News(Widget):
         self._news_info_update_interval = 1800
         self._news_line_update_interval = 15
         self._news_info = None
-        self._title_max_width = self._screen_width - self.x - 20
+        self._title_max_width = self._screen_width - self.x - 45
 
     def _get_news(self):
         try:

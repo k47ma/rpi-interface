@@ -175,18 +175,34 @@ class MainPanel(Panel):
                         self.calendar_widget, self.systeminfo_widget, self.traffic_widget,
                         self.statusbar_widget]
 
-        self._night_icon_path = "images/night.gif"
+        self._night_icon_path = os.path.join("images", "icon", "night.gif")
         self._night_icon_size = 25
         self._night_icon = pygame.transform.scale(pygame.image.load(self._night_icon_path),
-                                                  (self._night_icon_size, self._night_icon_size))
+                                                  (self._night_icon_size, ) * 2)
         self.night_button = Button(self, -1, self.screen_height - self._night_icon_size + 1,
                                    image=self._night_icon, on_click=self.enter_night_mode)
-        self.buttons = [self.night_button]
+
+        self._settings_icon_path = os.path.join("images", "icon", "settings.png")
+        self._settings_icon_size = 24
+        self._settings_icon = pygame.transform.scale(pygame.image.load(self._settings_icon_path),
+                                                     (self._settings_icon_size, ) * 2)
+        self._settings_button = Button(self, self.screen_width - self._settings_icon_size, 
+                                       self.screen_height - self._settings_icon_size,
+                                       image=self._settings_icon, on_click=self.settings_popup,
+                                       background_color=(0, 0, 0), background_alpha=160)
+
+        self.buttons = [self.night_button, self._settings_button]
 
     def _on_update(self):
         now = dt.now()
         if now.hour == 0 and now.minute == 0 and now.second == 0:
             self.enter_night_mode()
+
+    def _set_brightness(self):
+        data = self.popup.get_input()
+        main_brightness = int(data["Main Brightness (0-9)"])
+        night_brightness = int(data["Night Brightness (0-9)"])
+        self.app.set_brightness(main_brightness, night_brightness)
 
     def handle_panel_events(self, event):
         if event.type == pygame.KEYDOWN:
@@ -196,9 +212,20 @@ class MainPanel(Panel):
                 self.traffic_widget.set_locations()
             elif event.key == pygame.K_l:
                 self.weather_widget.get_location_from_popup()
+            elif event.key == pygame.K_u:
+                self.settings_popup()
 
     def enter_night_mode(self):
         self.app.set_active_panel(self.app.night_panel)
+
+    def settings_popup(self):
+        main_brightness, night_brightness = self.app.get_brightness()
+        self.create_popup('input', self, 300, 200, input_width=50,
+                          entries=["Main Brightness (0-9)", "Night Brightness (0-9)"],
+                          required=[r'^[0-9]$', r'^[0-9]$'],
+                          values=[str(main_brightness), str(night_brightness)],
+                          close_action=self._set_brightness)
+        self.popup.set_title('Settings')
 
 
 class NightPanel(Panel):
@@ -208,7 +235,6 @@ class NightPanel(Panel):
         self.time_widget = NightTime(self)
         self.widgets = [self.time_widget]
 
-        self._background_alpha = self.get_setting('night_alpha', default=160)
         self._curr_hour = dt.now().hour
         self._curr_minute = dt.now().minute
 
@@ -218,12 +244,6 @@ class NightPanel(Panel):
         self.curr_minute = now.minute
         self.curr_sec = now.second
         self._auto_set_night()
-
-    def _on_draw(self, screen):
-        background_surface = pygame.Surface((self.screen_width, self.screen_height))
-        background_surface.fill((0, 0, 0))
-        background_surface.set_alpha(self._background_alpha)
-        screen.blit(background_surface, (0, 0))
 
     def _auto_set_night(self):
         if self.curr_hour == 6 and self.curr_minute == 0 and self.curr_sec == 0:

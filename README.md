@@ -43,6 +43,7 @@ Informational panel for Raspberry Pi.
 - **S**: stock info
   - **ENTER(RETURN)**: search
 - **T**: set traffic info
+- **U**: change settings
 - **V**: camera preview
 - **ESC**: back
 - **CTRL+Q**: quit
