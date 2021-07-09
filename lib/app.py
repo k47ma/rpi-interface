@@ -217,7 +217,7 @@ class App:
         if self.active_panel is self.camera_panel:
             return
 
-        brightness = self._main_brightness if self.active_panel is self.main_panel else self._night_brightness
+        brightness = self._night_brightness if self.active_panel is self.night_panel else self._main_brightness
 
         brightness_surface = pygame.Surface((self._screen_width, self._screen_height))
         brightness_surface.fill((0, 0, 0))
