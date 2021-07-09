@@ -189,7 +189,7 @@ class MainPanel(Panel):
         self._settings_button = Button(self, self.screen_width - self._settings_icon_size, 
                                        self.screen_height - self._settings_icon_size,
                                        image=self._settings_icon, on_click=self.settings_popup,
-                                       background_color=(0, 0, 0), background_alpha=160)
+                                       background_color=(0, 0, 0), background_alpha=80)
 
         self.buttons = [self.night_button, self._settings_button]
 
