@@ -50,8 +50,8 @@ class App:
         self._settings = None
         self._load_settings()
 
-        self._main_brightness = self.get_setting("main_brightness", default=9)
-        self._night_brightness = self.get_setting("night_brightness", default=3)
+        self._main_brightness = self.get_setting('main_brightness', default=9)
+        self._night_brightness = self.get_setting('night_brightness', default=3)
 
         self._done = False
 
@@ -101,17 +101,26 @@ class App:
         self.video_background1 = VideoPlayer(width=self._screen_width,
                                              height=self._screen_height,
                                              color=(0, 0, 0), alpha=160,
-                                             video_path=os.path.join('videos', 'car.mov'),
+                                             video_path=os.path.join('videos', 'city.mov'),
                                              fps=10)
         self.video_background2 = VideoPlayer(width=self._screen_width,
                                              height=self._screen_height,
                                              color=(0, 0, 0), alpha=160,
+                                             video_path=os.path.join('videos', 'car.mov'),
+                                             fps=10)
+        self.video_background3 = VideoPlayer(width=self._screen_width,
+                                             height=self._screen_height,
+                                             color=(0, 0, 0), alpha=160,
                                              video_path=os.path.join('videos', 'wireframe.mov'),
                                              fps=24)
-        self.backgrounds = [self.video_background1, self.video_background2,
+        self.backgrounds = [self.video_background1, self.video_background2, self.video_background3,
                             self.triangle_background, self.image_background,
                             self.trace_background, self.blank_background]
-        self._background_type = 0
+        self._background_type = self.get_setting('background_type', default=0)
+        if self._background_type >= len(self.backgrounds) or \
+           self._background_type < 0:
+            self._background_type = 0
+            self.set_setting('background_type', self._background_type)
 
         self._frame_rate_font = pygame.font.Font('fonts/FreeSans.ttf', 15)
         self._actual_frame_rate = 0
@@ -198,14 +207,12 @@ class App:
                 panel.update()
 
     def _toggle_background_type(self):
-        if len(self.backgrounds) == 1:
-            return
-
         self.backgrounds[self._background_type].exit()
         self._background_type += 1
         if self._background_type >= len(self.backgrounds):
             self._background_type = 0
         self.backgrounds[self._background_type].enter()
+        self.set_setting('background_type', self._background_type)
 
     def _draw_background(self, screen):
         background_surface = pygame.Surface((self._screen_width, self._screen_height))

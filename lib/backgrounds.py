@@ -272,6 +272,7 @@ class VideoPlayer(Background):
         self.fps = fps
 
         self._curr_frame = 0
+        self._update_interval = 1 / self.fps
         self._last_update = time.time()
         self._video_process = None
         self._frame = None
@@ -303,7 +304,7 @@ class VideoPlayer(Background):
 
         curr_time = time.time()
         if self._frame is None or self.fps <= 0 or \
-           curr_time - self._last_update > 1 / self.fps:
+           curr_time - self._last_update > self._update_interval:
             image_bytes = self._video_process.stdout.read(self.width * self.height * 3)
             if image_bytes:
                 self._frame = pygame.image.fromstring(image_bytes, (self.width, self.height), 'RGB')
