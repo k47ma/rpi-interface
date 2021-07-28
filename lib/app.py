@@ -175,7 +175,10 @@ class App:
                 elif event.key == pygame.K_r:
                     self.set_active_panel(self.qrcode_panel)
                 elif event.key == pygame.K_p:
-                    self._toggle_background_type()
+                    reverse_dir = False
+                    if pressed[pygame.K_LSHIFT] or pressed[pygame.K_RSHIFT]:
+                        reverse_dir = True
+                    self._toggle_background_type(reverse=reverse_dir)
 
             if event.type == pygame.MOUSEMOTION:
                 self._mouse_last_move = time.time()
@@ -206,11 +209,19 @@ class App:
             if panel == self.active_panel or panel.is_always_update():
                 panel.update()
 
-    def _toggle_background_type(self):
+    def _toggle_background_type(self, reverse=False):
         self.backgrounds[self._background_type].exit()
-        self._background_type += 1
-        if self._background_type >= len(self.backgrounds):
+        if reverse:
+            self._background_type -= 1
+        else:
+            self._background_type += 1
+        
+        total_backgrounds = len(self.backgrounds)
+        if self._background_type >= total_backgrounds:
             self._background_type = 0
+        elif self._background_type < 0:
+            self._background_type = total_backgrounds - 1
+
         self.backgrounds[self._background_type].enter()
         self.set_setting('background_type', self._background_type)
 
