@@ -49,6 +49,8 @@ class Button:
         self.width = max(text_width, image_width, self.width)
         self.height = max(text_height, image_height, self.height)
 
+        self._always_focus = False
+
     def get_width(self):
         return self.width
 
@@ -77,7 +79,7 @@ class Button:
             return
 
         if self.background_color is not None:
-            color = self.focus_color if self.focus_color and (self.is_focused() or self.is_shortcut()) else self.background_color
+            color = self.focus_color if self.focus_color and (self.is_focused() or self.is_shortcut() or self._always_focus) else self.background_color
             alpha = min(255, self.background_alpha + 50) if (self.is_clicked() or self.is_shortcut()) else self.background_alpha
             background_surface = pygame.Surface((self.width, self.height))
             background_surface.fill(color)
@@ -85,7 +87,7 @@ class Button:
             screen.blit(background_surface, (self.x, self.y))
 
         if self.border_color is not None and self.border_width > 0:
-            border_width = self.focus_width if self.is_focused() else self.border_width
+            border_width = self.focus_width if self.is_focused() or self._always_focus else self.border_width
             pygame.draw.rect(screen, self.border_color, (self.x, self.y, self.width, self.height), border_width)
 
         if self.rendered_text:
@@ -105,6 +107,9 @@ class Button:
 
     def set_active(self, status):
         self.is_active = status
+
+    def set_always_focus(self, status):
+        self._always_focus = status
 
     def set_pos(self, x, y):
         self.x = x

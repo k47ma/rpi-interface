@@ -4,7 +4,7 @@ import re
 import pygame
 from lib.buttons import Button, SelectorButton
 from lib.widgets import Widget, Content, Input
-from lib.util import get_font_width, get_font_height
+from lib.util import get_font_width, get_font_height, shift_pressed
 
 
 class Popup(Widget):
@@ -247,6 +247,7 @@ class InputPopup(Popup):
 
         self._entry_font = pygame.font.Font('fonts/FreeSans.ttf', 15)
         self._input_widgets = []
+        self._active_widget_ind = -1
         self._setup_input_widgets()
 
         self.add_action_button('OK', action=self._validate_close)
@@ -273,7 +274,8 @@ class InputPopup(Popup):
                                      font=self._entry_font, width=self.input_width,
                                      enter_key_event=self._validate_close)
                 input_widget.setup()
-                input_widget.bind_key(pygame.K_TAB, self._toggle_input_widget)
+                input_widget.bind_key(pygame.K_TAB, self._next_input_widget)
+                input_widget.bind_key(pygame.K_TAB, self._prev_input_widget, shift=True)
                 if self.values:
                     input_widget.set_text(self.values[ind])
                 self._subwidgets.append(input_widget)
@@ -285,7 +287,7 @@ class InputPopup(Popup):
                                               border_color=self._get_color('white'),
                                               focus_color=self._get_color('lightgray'),
                                               background_color=self._get_color('black'),
-                                              border_width=2, focus_width=2)
+                                              border_width=1, focus_width=2)
                 self.buttons.append(input_widget)
                 if self.values:
                     input_widget.set_selected(self.values[ind])
@@ -293,10 +295,7 @@ class InputPopup(Popup):
 
             y += title_widget.get_height() + self._text_padding
 
-        for t in self._input_widgets:
-            if isinstance(t[2], Input):
-                t[2].set_active(True)
-                break
+        self._toggle_input_widget()
 
     def _on_setup(self):
         self.set_title('Input')
@@ -304,30 +303,57 @@ class InputPopup(Popup):
     def _handle_popup_event(self, event):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_TAB:
-                self._toggle_input_widget()
+                if shift_pressed():
+                    self._prev_input_widget()
+                else:
+                    self._next_input_widget()
             elif event.key == pygame.K_RETURN:
                 self._validate_close()
+            elif event.key == pygame.K_SPACE:
+                self._toggle_selector_status()
 
-    def _toggle_input_widget(self):
-        found = False
+    def _toggle_selector_status(self):
+        if not self._input_widgets:
+            return
 
-        for ind, t in enumerate(self._input_widgets):
-            if not isinstance(t[2], Input):
-                continue
+        curr_widget = self._input_widgets[self._active_widget_ind][2]
+        if isinstance(curr_widget, SelectorButton):
+            curr_widget.click()
 
-            if t[2].is_active:
-                t[2].set_active(False)
-                for next_t in self._input_widgets[ind + 1:]:
-                    if isinstance(next_t[2], Input):
-                        next_t[2].set_active(True)
-                        found = True
-                break
+    def _set_widget_status(self, widget, status):
+        if isinstance(widget, Input):
+            widget.set_active(status)
+        elif isinstance(widget, SelectorButton):
+            widget.set_always_focus(status)
 
-        if not found:
-            for t in self._input_widgets:
-                if isinstance(t[2], Input):
-                    t[2].set_active(True)
-                    break
+    def _toggle_input_widget(self, reverse=False):
+        if not self._input_widgets:
+            return
+
+        if self._active_widget_ind == -1:
+            self._active_widget_ind = 0
+        else:
+            curr_widget = self._input_widgets[self._active_widget_ind][2]
+            self._set_widget_status(curr_widget, False)
+
+            if reverse:
+                self._active_widget_ind -= 1
+            else:
+                self._active_widget_ind += 1
+            
+            total_widgets = len(self._input_widgets)
+            if self._active_widget_ind == total_widgets:
+                self._active_widget_ind = 0
+            elif self._active_widget_ind < 0:
+                self._active_widget_ind = total_widgets - 1
+        curr_widget = self._input_widgets[self._active_widget_ind][2]
+        self._set_widget_status(curr_widget, True)
+
+    def _next_input_widget(self):
+        self._toggle_input_widget(reverse=False)
+
+    def _prev_input_widget(self):
+        self._toggle_input_widget(reverse=True)
 
     def _validate_close(self):
         if not self.required:

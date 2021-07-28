@@ -71,7 +71,7 @@ class Widget:
         self._last_active = time.time()
         self._shapes = []
         self._subwidgets = []
-        self._key_binds = {}
+        self._key_binds = []
 
     def setup(self):
         for widget in self._subwidgets:
@@ -252,11 +252,14 @@ class Widget:
             if event.key == pygame.K_ESCAPE and self.is_active:
                 self.set_active(False)
                 handled = True
-            elif self._key_binds.get(event.key) is not None and self.is_active:
-                bind = self._key_binds[event.key]
-                if (shift_pressed() == bind['shift']) and (ctrl_pressed() == bind['ctrl']):
-                    bind['func']()
-                    handled = True
+            elif self._key_binds and self.is_active:
+                for kb in self._key_binds:
+                    if kb['key'] == event.key and \
+                       shift_pressed() == kb['shift'] and \
+                       ctrl_pressed() == kb['ctrl']:
+                        kb['func']()
+                        handled = True
+                        break
 
         self._handle_widget_events(event)
         return handled
@@ -277,7 +280,15 @@ class Widget:
         return self.height
 
     def bind_key(self, key, func, shift=False, ctrl=False):
-        self._key_binds[key] = {'func': func, 'shift': shift, 'ctrl': ctrl}
+        new_bind = True
+        for kb in self._key_binds:
+            if kb['key'] == key and kb['shift'] == shift and kb['ctrl'] == ctrl:
+                kb['func'] = func
+                new_bind = False
+                break
+        
+        if new_bind:
+            self._key_binds.append({'key': key, 'func': func, 'shift': shift, 'ctrl': ctrl})
 
     def get_setting(self, name, default=None):
         return self.parent.get_setting(name, default=default)
@@ -890,7 +901,7 @@ class Weather(Widget):
         info = self.parent.popup.get_input()
         self._location_city = info['City']
         self._location_country = info['Country']
-        self._auto_get_location = info['Auto Update']
+        self._auto_get_location = info['Auto Location']
         
         self.set_setting('weather_city', self._location_city)
         self.set_setting('weather_country', self._location_country)
@@ -899,10 +910,9 @@ class Weather(Widget):
         self._get_weather()
 
     def get_location_from_popup(self):
-        self._auto_get_location = False
         self.parent.create_popup('input', self.parent, 300, 200, input_width=150,
                                  text="Please enter location:",
-                                 entries=["City", "Country", "Auto Update"],
+                                 entries=["City", "Country", "Auto Location"],
                                  values=[self._location_city, self._location_country, self._auto_get_location],
                                  styles=['input', 'input', 'selector'],
                                  required=[True, r'^[A-Za-z]{2}$'],

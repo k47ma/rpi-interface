@@ -12,7 +12,7 @@ from lib.panels import MainPanel, NightPanel, NewsPanel, SearchPanel, \
     CalculatorPanel, QRCodePanel
 from lib.backgrounds import Background, DynamicImage, \
     DynamicTriangle, DynamicTrace, VideoPlayer
-from lib.util import log_to_file
+from lib.util import log_to_file, shift_pressed, ctrl_pressed
 
 
 class App:
@@ -140,16 +140,16 @@ class App:
         self.set_active_panel(self.main_panel)
 
     def _handle_events(self):
-        pressed = pygame.key.get_pressed()
-        if pressed[pygame.K_q] and (pressed[pygame.K_LCTRL] or pressed[pygame.K_RCTRL]):
-            self._done = True
-            return
-
         for event in pygame.event.get():
             handled = self.active_panel.handle_events(event)
 
             if event.type == pygame.QUIT:
                 self._done = True
+                return
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_q and ctrl_pressed():
+                    self._done = True
+                    return
             
             if event.type == pygame.KEYDOWN and \
                self.active_panel is self.main_panel and \
@@ -176,7 +176,7 @@ class App:
                     self.set_active_panel(self.qrcode_panel)
                 elif event.key == pygame.K_p:
                     reverse_dir = False
-                    if pressed[pygame.K_LSHIFT] or pressed[pygame.K_RSHIFT]:
+                    if shift_pressed(): 
                         reverse_dir = True
                     self._toggle_background_type(reverse=reverse_dir)
 
